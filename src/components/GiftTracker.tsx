@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ interface Gift {
   cost: number;
   purchased: boolean;
   wrapped: boolean;
+  trackingNumber?: string;
+  carrier?: string;
 }
 
 interface Person {
@@ -38,6 +40,7 @@ const GiftTracker = () => {
   const [giftForm, setGiftForm] = useState({ name: '', cost: '' });
   const [isLoaded, setIsLoaded] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     assignedTo: 'all' as string,
     completion: 'all' as 'all' | 'completed' | 'incomplete',
@@ -149,6 +152,40 @@ const GiftTracker = () => {
           }
         : person
     ));
+  };
+
+  const updateGiftTracking = (personId: string, giftId: string, field: 'trackingNumber' | 'carrier', value: string) => {
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? {
+            ...person,
+            gifts: person.gifts.map(gift => 
+              gift.id === giftId ? { ...gift, [field]: value } : gift
+            )
+          }
+        : person
+    ));
+  };
+
+  const toggleTracking = (giftId: string) => {
+    const newExpanded = new Set(expandedTracking);
+    if (newExpanded.has(giftId)) {
+      newExpanded.delete(giftId);
+    } else {
+      newExpanded.add(giftId);
+    }
+    setExpandedTracking(newExpanded);
+  };
+
+  const getTrackingUrl = (carrier: string, trackingNumber: string) => {
+    const trackingUrls: { [key: string]: string } = {
+      'UPS': `https://www.ups.com/track?loc=en_US&tracknum=${trackingNumber}`,
+      'FedEx': `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`,
+      'USPS': `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`,
+      'Amazon': `https://track.amazon.com/tracking/${trackingNumber}`,
+      'DHL': `https://www.dhl.com/en/express/tracking.html?AWB=${trackingNumber}`
+    };
+    return trackingUrls[carrier] || '#';
   };
 
   const updateNotes = (personId: string, notes: string) => {
@@ -410,39 +447,103 @@ const GiftTracker = () => {
                                     </span>
                                   </div>
                                   
-                                  <div className="flex items-center gap-4">
-                                    <div className="flex items-center space-x-2">
-                                      <Checkbox
-                                        id={`purchased-${gift.id}`}
-                                        checked={gift.purchased}
-                                        onCheckedChange={(checked) => 
-                                          updateGiftStatus(person.id, gift.id, 'purchased', checked as boolean)
-                                        }
-                                      />
-                                      <label 
-                                        htmlFor={`purchased-${gift.id}`} 
-                                        className="text-sm text-muted-foreground"
-                                      >
-                                        Purchased
-                                      </label>
-                                    </div>
-                                    
-                                    <div className="flex items-center space-x-2">
-                                      <Checkbox
-                                        id={`wrapped-${gift.id}`}
-                                        checked={gift.wrapped}
-                                        onCheckedChange={(checked) => 
-                                          updateGiftStatus(person.id, gift.id, 'wrapped', checked as boolean)
-                                        }
-                                      />
-                                      <label 
-                                        htmlFor={`wrapped-${gift.id}`} 
-                                        className="text-sm text-muted-foreground"
-                                      >
-                                        Wrapped
-                                      </label>
-                                    </div>
-                                  </div>
+                                   <div className="flex items-center gap-4">
+                                     <div className="flex items-center space-x-2">
+                                       <Checkbox
+                                         id={`purchased-${gift.id}`}
+                                         checked={gift.purchased}
+                                         onCheckedChange={(checked) => 
+                                           updateGiftStatus(person.id, gift.id, 'purchased', checked as boolean)
+                                         }
+                                       />
+                                       <label 
+                                         htmlFor={`purchased-${gift.id}`} 
+                                         className="text-sm text-muted-foreground"
+                                       >
+                                         Purchased
+                                       </label>
+                                     </div>
+                                     
+                                     <div className="flex items-center space-x-2">
+                                       <Checkbox
+                                         id={`wrapped-${gift.id}`}
+                                         checked={gift.wrapped}
+                                         onCheckedChange={(checked) => 
+                                           updateGiftStatus(person.id, gift.id, 'wrapped', checked as boolean)
+                                         }
+                                       />
+                                       <label 
+                                         htmlFor={`wrapped-${gift.id}`} 
+                                         className="text-sm text-muted-foreground"
+                                       >
+                                         Wrapped
+                                       </label>
+                                     </div>
+                                   </div>
+
+                                   {/* Tracking Section - Only show if purchased */}
+                                   {gift.purchased && (
+                                     <div className="mt-3 pt-3 border-t border-muted">
+                                       <Collapsible
+                                         open={expandedTracking.has(gift.id)}
+                                         onOpenChange={() => toggleTracking(gift.id)}
+                                       >
+                                         <CollapsibleTrigger asChild>
+                                           <Button 
+                                             variant="ghost" 
+                                             size="sm" 
+                                             className="p-0 h-auto text-xs text-muted-foreground hover:text-foreground"
+                                           >
+                                             <Package className="w-3 h-3 mr-1" />
+                                             Tracking Info
+                                             {expandedTracking.has(gift.id) ? 
+                                               <ChevronDown className="w-3 h-3 ml-1" /> : 
+                                               <ChevronRight className="w-3 h-3 ml-1" />
+                                             }
+                                           </Button>
+                                         </CollapsibleTrigger>
+                                         <CollapsibleContent className="mt-2">
+                                           <div className="space-y-2 pl-4">
+                                             <div className="flex gap-2">
+                                               <Select 
+                                                 value={gift.carrier || ''} 
+                                                 onValueChange={(value) => updateGiftTracking(person.id, gift.id, 'carrier', value)}
+                                               >
+                                                 <SelectTrigger className="w-24 h-8 text-xs">
+                                                   <SelectValue placeholder="Carrier" />
+                                                 </SelectTrigger>
+                                                 <SelectContent>
+                                                   <SelectItem value="">Select</SelectItem>
+                                                   <SelectItem value="UPS">UPS</SelectItem>
+                                                   <SelectItem value="FedEx">FedEx</SelectItem>
+                                                   <SelectItem value="USPS">USPS</SelectItem>
+                                                   <SelectItem value="Amazon">Amazon</SelectItem>
+                                                   <SelectItem value="DHL">DHL</SelectItem>
+                                                   <SelectItem value="Other">Other</SelectItem>
+                                                 </SelectContent>
+                                               </Select>
+                                               <Input
+                                                 placeholder="Tracking number"
+                                                 value={gift.trackingNumber || ''}
+                                                 onChange={(e) => updateGiftTracking(person.id, gift.id, 'trackingNumber', e.target.value)}
+                                                 className="h-8 text-xs flex-1"
+                                               />
+                                               {gift.carrier && gift.trackingNumber && gift.carrier !== 'Other' && (
+                                                 <Button
+                                                   variant="outline"
+                                                   size="sm"
+                                                   className="h-8 px-2"
+                                                   onClick={() => window.open(getTrackingUrl(gift.carrier!, gift.trackingNumber!), '_blank')}
+                                                 >
+                                                   <ExternalLink className="w-3 h-3" />
+                                                 </Button>
+                                               )}
+                                             </div>
+                                           </div>
+                                         </CollapsibleContent>
+                                       </Collapsible>
+                                     </div>
+                                   )}
                                 </div>
                               ))}
                             </div>
