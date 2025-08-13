@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2, Home, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 
 interface Gift {
@@ -56,8 +55,6 @@ const GiftTracker = () => {
     key: 'name' | 'assignedTo' | 'totalCost' | 'progress';
     direction: 'asc' | 'desc';
   }>({ key: 'name', direction: 'asc' });
-  const [linkHelper, setLinkHelper] = useState<{ isOpen: boolean; personId: string }>({ isOpen: false, personId: '' });
-  const [linkForm, setLinkForm] = useState({ text: '', url: '' });
   const [deletingGift, setDeletingGift] = useState<{ personId: string; giftId: string; giftName: string } | null>(null);
   const [completionDialog, setCompletionDialog] = useState<{
     isOpen: boolean;
@@ -232,14 +229,6 @@ const GiftTracker = () => {
     ));
   };
 
-  const updateNotesText = (personId: string, newText: string) => {
-    const person = people.find(p => p.id === personId);
-    if (!person) return;
-    
-    // Combine new text with existing links
-    const combinedNotes = combineTextAndLinks(newText, person.notes);
-    updateNotes(personId, combinedNotes);
-  };
 
   const updateAssignment = (personId: string, assignedTo: string | null) => {
     setPeople(people.map(person => 
@@ -361,116 +350,6 @@ const GiftTracker = () => {
   };
 
 
-  // Link helper functions
-  const openLinkHelper = (personId: string) => {
-    setLinkHelper({ isOpen: true, personId });
-    setLinkForm({ text: '', url: '' });
-  };
-
-  const closeLinkHelper = () => {
-    setLinkHelper({ isOpen: false, personId: '' });
-    setLinkForm({ text: '', url: '' });
-  };
-
-  const insertLink = () => {
-    if (!linkForm.text.trim() || !linkForm.url.trim()) return;
-    
-    const person = people.find(p => p.id === linkHelper.personId);
-    if (!person) return;
-
-    const linkMarkdown = `[${linkForm.text}](${linkForm.url})`;
-    // Preserve existing text content and add the new link
-    const existingText = extractTextContent(person.notes);
-    const existingLinks = extractLinks(person.notes);
-    const allParts = [existingText, ...existingLinks, linkMarkdown].filter(part => part.trim().length > 0);
-    const newNotes = allParts.join(' ');
-    
-    updateNotes(linkHelper.personId, newNotes);
-    closeLinkHelper();
-  };
-
-  // Helper functions for notes display
-  const hasLinks = (notes: string): boolean => {
-    if (!notes) return false;
-    return /\[([^\]]+)\]\(([^)]+)\)/g.test(notes);
-  };
-
-  const extractTextContent = (notes: string): string => {
-    if (!notes) return '';
-    // Remove markdown link syntax, keeping only non-link text
-    return notes.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
-  };
-
-  const extractLinks = (notes: string): string[] => {
-    if (!notes) return [];
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const links = [];
-    let match;
-    while ((match = linkRegex.exec(notes)) !== null) {
-      links.push(`[${match[1]}](${match[2]})`);
-    }
-    return links;
-  };
-
-  const combineTextAndLinks = (text: string, existingNotes: string): string => {
-    const existingLinks = extractLinks(existingNotes);
-    const combinedParts = [text.trim(), ...existingLinks].filter(part => part.length > 0);
-    return combinedParts.join(' ');
-  };
-
-  const getDisplayText = (notes: string): string => {
-    if (!notes) return '';
-    // Remove markdown link syntax, keeping only the display text
-    return notes.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
-  };
-
-  // Parse and render notes with links
-  const renderNotesWithLinks = (notes: string) => {
-    if (!notes) return null;
-    
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-    let keyCounter = 0;
-
-    while ((match = linkRegex.exec(notes)) !== null) {
-      // Add text before the link
-      if (match.index > lastIndex) {
-        parts.push(
-          <span key={`text-${keyCounter++}`}>
-            {notes.slice(lastIndex, match.index)}
-          </span>
-        );
-      }
-      
-      // Add the link
-      parts.push(
-        <a
-          key={`link-${match.index}`}
-          href={match[2]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:text-primary/80 underline"
-        >
-          {match[1]}
-        </a>
-      );
-      
-      lastIndex = match.index + match[0].length;
-    }
-    
-    // Add remaining text
-    if (lastIndex < notes.length) {
-      parts.push(
-        <span key={`text-${keyCounter++}`}>
-          {notes.slice(lastIndex)}
-        </span>
-      );
-    }
-    
-    return parts.length > 0 ? <>{parts}</> : notes;
-  };
 
   // Filter people based on current filters
   const filteredPeople = people.filter(person => {
@@ -601,105 +480,69 @@ const GiftTracker = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Filter Popover */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="relative">
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-                {getActiveFilterCount() > 0 && (
-                  <Badge 
-                    variant="secondary" 
-                    className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground"
-                  >
-                    {getActiveFilterCount()}
-                  </Badge>
-                )}
+          {/* Filter Controls */}
+          <div className="flex flex-wrap gap-4">
+            {buyers.length > 1 && (
+              <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All assignments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All assignments</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {buyers.map(buyer => (
+                    <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            <Select value={filters.completion} onValueChange={(value: any) => setFilters(prev => ({ ...prev, completion: value }))}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="incomplete">Incomplete</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All wrapping</SelectItem>
+                <SelectItem value="needs-wrapping">Needs wrapping</SelectItem>
+                <SelectItem value="all-wrapped">All wrapped</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="showCompleted"
+                checked={filters.showCompleted}
+                onChange={(e) => setFilters(prev => ({ ...prev, showCompleted: e.target.checked }))}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="showCompleted" className="text-sm font-medium">
+                Show completed
+              </label>
+            </div>
+
+            {getActiveFilterCount() > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={clearAllFilters}
+                size="sm"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Clear filters
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="start">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium">Filter Options</h4>
-                  
-                   {/* Assignment Filter */}
-                   {buyers.length > 1 && (
-                     <div className="space-y-2">
-                       <label className="text-sm font-medium">Assignment</label>
-                       <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
-                         <SelectTrigger>
-                           <SelectValue placeholder="All assignments" />
-                         </SelectTrigger>
-                         <SelectContent>
-                           <SelectItem value="all">All assignments</SelectItem>
-                           <SelectItem value="unassigned">Unassigned</SelectItem>
-                           {buyers.map(buyer => (
-                             <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
-                           ))}
-                         </SelectContent>
-                       </Select>
-                     </div>
-                   )}
-
-                  {/* Completion Filter */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Purchase Status</label>
-                    <Select value={filters.completion} onValueChange={(value: any) => setFilters(prev => ({ ...prev, completion: value }))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="incomplete">Incomplete</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                   {/* Wrapping Filter */}
-                   <div className="space-y-2">
-                     <label className="text-sm font-medium">Wrapping Status</label>
-                     <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
-                       <SelectTrigger>
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="all">All wrapping</SelectItem>
-                         <SelectItem value="needs-wrapping">Needs wrapping</SelectItem>
-                         <SelectItem value="all-wrapped">All wrapped</SelectItem>
-                       </SelectContent>
-                     </Select>
-                   </div>
-
-                   {/* Show Completed Filter */}
-                   <div className="flex items-center space-x-2">
-                     <input
-                       type="checkbox"
-                       id="showCompleted"
-                       checked={filters.showCompleted}
-                       onChange={(e) => setFilters(prev => ({ ...prev, showCompleted: e.target.checked }))}
-                       className="rounded border-gray-300"
-                     />
-                      <label htmlFor="showCompleted" className="text-sm font-medium">
-                        Include recipients you've finished shopping for
-                      </label>
-                   </div>
-                 </div>
-
-                {/* Clear Filters Button */}
-                {getActiveFilterCount() > 0 && (
-                  <Button 
-                    variant="outline" 
-                    onClick={clearAllFilters}
-                    className="w-full"
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Clear all filters
-                  </Button>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+            )}
+          </div>
         </div>
 
         {/* Table */}
@@ -832,55 +675,14 @@ const GiftTracker = () => {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                          <div className="flex gap-2">
-                            <Textarea
-                              placeholder="Ideas, order numbers, links, gift notes, tracking info..."
-                              value={extractTextContent(person.notes)}
-                              onChange={(e) => updateNotesText(person.id, e.target.value)}
-                              className="min-h-[40px] text-sm flex-1"
-                            />
-                            <Popover open={linkHelper.isOpen && linkHelper.personId === person.id} onOpenChange={(open) => open ? openLinkHelper(person.id) : closeLinkHelper()}>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="px-2">
-                                  <Link className="w-4 h-4" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80">
-                                <div className="space-y-3">
-                                  <div className="flex justify-between items-center">
-                                    <h4 className="font-medium">Add Link</h4>
-                                    <Button variant="ghost" size="sm" onClick={closeLinkHelper} className="h-auto p-1">
-                                      <X className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Input
-                                      placeholder="Link text (e.g., Order #123456)"
-                                      value={linkForm.text}
-                                      onChange={(e) => setLinkForm(prev => ({ ...prev, text: e.target.value }))}
-                                    />
-                                    <Input
-                                      placeholder="URL (e.g., https://...)"
-                                      value={linkForm.url}
-                                      onChange={(e) => setLinkForm(prev => ({ ...prev, url: e.target.value }))}
-                                    />
-                                    <Button onClick={insertLink} className="w-full" size="sm">
-                                      Insert Link
-                                    </Button>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                          {person.notes && hasLinks(person.notes) && (
-                            <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded border">
-                              {renderNotesWithLinks(person.notes)}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <Textarea
+                           placeholder="Ideas, order numbers, links, gift notes, tracking info..."
+                           value={person.notes}
+                           onChange={(e) => updateNotes(person.id, e.target.value)}
+                           className="min-h-[40px] text-sm"
+                         />
+                       </TableCell>
                     </TableRow>
                     
                     {/* Expanded row content */}
