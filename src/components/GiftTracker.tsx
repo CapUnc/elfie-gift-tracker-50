@@ -50,7 +50,7 @@ const GiftTracker = () => {
     assignedTo: 'all' as string,
     completion: 'all' as 'all' | 'completed' | 'incomplete',
     wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped',
-    showCompleted: true
+    showCompleted: false
   });
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'assignedTo' | 'totalCost' | 'progress' | 'notes';
@@ -291,7 +291,7 @@ const GiftTracker = () => {
       assignedTo: 'all',
       completion: 'all',
       wrapping: 'all',
-      showCompleted: true
+      showCompleted: false
     });
   };
 
@@ -569,9 +569,9 @@ const GiftTracker = () => {
                        onChange={(e) => setFilters(prev => ({ ...prev, showCompleted: e.target.checked }))}
                        className="rounded border-gray-300"
                      />
-                     <label htmlFor="showCompleted" className="text-sm font-medium">
-                       Show completed recipients
-                     </label>
+                      <label htmlFor="showCompleted" className="text-sm font-medium">
+                        Include recipients you've finished shopping for
+                      </label>
                    </div>
                  </div>
 
@@ -767,11 +767,6 @@ const GiftTracker = () => {
                               </PopoverContent>
                             </Popover>
                           </div>
-                          {person.notes && (
-                            <div className="text-sm text-muted-foreground">
-                              {renderNotesWithLinks(person.notes)}
-                            </div>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>
