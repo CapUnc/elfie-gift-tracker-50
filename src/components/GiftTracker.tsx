@@ -29,6 +29,7 @@ const GiftTracker = () => {
   const [newPersonName, setNewPersonName] = useState('');
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string } | null>(null);
   const [giftForm, setGiftForm] = useState({ name: '', cost: '' });
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
@@ -68,12 +69,15 @@ const GiftTracker = () => {
       // Initialize with the names from your spreadsheet
       setPeople(initialPeople);
     }
+    setIsLoaded(true);
   }, []);
 
-  // Save to localStorage whenever people changes
+  // Save to localStorage whenever people changes (but only after initial load)
   useEffect(() => {
-    localStorage.setItem('christmas-gifts-2025', JSON.stringify(people));
-  }, [people]);
+    if (isLoaded) {
+      localStorage.setItem('christmas-gifts-2025', JSON.stringify(people));
+    }
+  }, [people, isLoaded]);
 
   const addPerson = () => {
     if (!newPersonName.trim()) return;
