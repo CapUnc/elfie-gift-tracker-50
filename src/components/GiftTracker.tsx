@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,20 +24,22 @@ interface Person {
   name: string;
   gifts: Gift[];
   notes: string;
-  assignedTo: 'Matt' | 'Maddie';
+  assignedTo: string | null;
 }
 
 const GiftTracker = () => {
+  const navigate = useNavigate();
   const [people, setPeople] = useState<Person[]>([]);
+  const [buyers, setBuyers] = useState<string[]>(['Matt', 'Maddie']);
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
-  const [newPersonAssignment, setNewPersonAssignment] = useState<'Matt' | 'Maddie'>('Matt');
+  const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string } | null>(null);
   const [giftForm, setGiftForm] = useState({ name: '', cost: '' });
   const [isLoaded, setIsLoaded] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
-    assignedTo: 'all' as 'all' | 'Matt' | 'Maddie',
+    assignedTo: 'all' as string,
     completion: 'all' as 'all' | 'completed' | 'incomplete',
     wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped'
   });
@@ -82,6 +85,14 @@ const GiftTracker = () => {
     setIsLoaded(true);
   }, []);
 
+  // Load buyers from localStorage
+  useEffect(() => {
+    const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
+    if (savedBuyers) {
+      setBuyers(JSON.parse(savedBuyers));
+    }
+  }, []);
+
   // Save to localStorage whenever people changes (but only after initial load)
   useEffect(() => {
     if (isLoaded) {
@@ -102,7 +113,7 @@ const GiftTracker = () => {
     
     setPeople([...people, newPerson]);
     setNewPersonName('');
-    setNewPersonAssignment('Matt');
+    setNewPersonAssignment(null);
     setIsAddPersonOpen(false);
   };
 
@@ -146,7 +157,7 @@ const GiftTracker = () => {
     ));
   };
 
-  const updateAssignment = (personId: string, assignedTo: 'Matt' | 'Maddie') => {
+  const updateAssignment = (personId: string, assignedTo: string | null) => {
     setPeople(people.map(person => 
       person.id === personId ? { ...person, assignedTo } : person
     ));
@@ -175,8 +186,9 @@ const GiftTracker = () => {
   // Filter people based on current filters
   const filteredPeople = people.filter(person => {
     // Filter by assignment
-    if (filters.assignedTo !== 'all' && person.assignedTo !== filters.assignedTo) {
-      return false;
+    if (filters.assignedTo !== 'all') {
+      if (filters.assignedTo === 'unassigned' && person.assignedTo !== null) return false;
+      if (filters.assignedTo !== 'unassigned' && person.assignedTo !== filters.assignedTo) return false;
     }
 
     // Filter by completion
@@ -211,6 +223,14 @@ const GiftTracker = () => {
             <Gift className="text-christmas-green" />
           </h1>
           <p className="text-muted-foreground">Keep track of all your holiday gift planning</p>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/settings')}
+            className="mt-4"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
         </div>
 
         {/* Controls */}
@@ -234,13 +254,15 @@ const GiftTracker = () => {
                   onChange={(e) => setNewPersonName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addPerson()}
                 />
-                <Select value={newPersonAssignment} onValueChange={(value: 'Matt' | 'Maddie') => setNewPersonAssignment(value)}>
+                <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value || null)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Assign to..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Matt">Matt</SelectItem>
-                    <SelectItem value="Maddie">Maddie</SelectItem>
+                    <SelectItem value="">Unassigned</SelectItem>
+                    {buyers.map(buyer => (
+                      <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button onClick={addPerson} className="w-full">
@@ -261,9 +283,11 @@ const GiftTracker = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All People</SelectItem>
-              <SelectItem value="Matt">Matt's</SelectItem>
-              <SelectItem value="Maddie">Maddie's</SelectItem>
+              <SelectItem value="all">Assignment</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {buyers.map(buyer => (
+                <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -325,15 +349,17 @@ const GiftTracker = () => {
                       <TableCell className="font-medium">{person.name}</TableCell>
                       <TableCell>
                         <Select 
-                          value={person.assignedTo} 
-                          onValueChange={(value: 'Matt' | 'Maddie') => updateAssignment(person.id, value)}
+                          value={person.assignedTo || ''} 
+                          onValueChange={(value: string) => updateAssignment(person.id, value || null)}
                         >
-                          <SelectTrigger className="w-24">
-                            <SelectValue />
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Assign to" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Matt">Matt</SelectItem>
-                            <SelectItem value="Maddie">Maddie</SelectItem>
+                            <SelectItem value="">Unassigned</SelectItem>
+                            {buyers.map(buyer => (
+                              <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </TableCell>
