@@ -384,17 +384,22 @@ const GiftTracker = () => {
     const parts = [];
     let lastIndex = 0;
     let match;
+    let keyCounter = 0;
 
     while ((match = linkRegex.exec(notes)) !== null) {
       // Add text before the link
       if (match.index > lastIndex) {
-        parts.push(notes.slice(lastIndex, match.index));
+        parts.push(
+          <span key={`text-${keyCounter++}`}>
+            {notes.slice(lastIndex, match.index)}
+          </span>
+        );
       }
       
       // Add the link
       parts.push(
         <a
-          key={match.index}
+          key={`link-${match.index}`}
           href={match[2]}
           target="_blank"
           rel="noopener noreferrer"
@@ -409,10 +414,14 @@ const GiftTracker = () => {
     
     // Add remaining text
     if (lastIndex < notes.length) {
-      parts.push(notes.slice(lastIndex));
+      parts.push(
+        <span key={`text-${keyCounter++}`}>
+          {notes.slice(lastIndex)}
+        </span>
+      );
     }
     
-    return parts.length > 0 ? parts : notes;
+    return parts.length > 0 ? <>{parts}</> : notes;
   };
 
   // Filter people based on current filters
