@@ -370,7 +370,8 @@ const GiftTracker = () => {
     if (!person) return;
 
     const linkMarkdown = `[${linkForm.text}](${linkForm.url})`;
-    const newNotes = person.notes ? `${person.notes} ${linkMarkdown}` : linkMarkdown;
+    // If there are existing links, add the new one. If not, replace any existing notes.
+    const newNotes = hasLinks(person.notes) ? `${person.notes} ${linkMarkdown}` : linkMarkdown;
     
     updateNotes(linkHelper.personId, newNotes);
     closeLinkHelper();
@@ -797,7 +798,7 @@ const GiftTracker = () => {
                           <div className="flex gap-2">
                             <Textarea
                               placeholder="Ideas, order numbers, links, gift notes, tracking info..."
-                              value={hasLinks(person.notes) ? getDisplayText(person.notes) : person.notes}
+                              value={hasLinks(person.notes) ? "" : person.notes}
                               onChange={(e) => updateNotes(person.id, e.target.value)}
                               className="min-h-[40px] text-sm flex-1"
                             />
