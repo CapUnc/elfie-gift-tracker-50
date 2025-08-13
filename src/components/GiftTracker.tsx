@@ -240,6 +240,23 @@ const GiftTracker = () => {
     return sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
+  // Filter helper functions
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.assignedTo !== 'all') count++;
+    if (filters.completion !== 'all') count++;
+    if (filters.wrapping !== 'all') count++;
+    return count;
+  };
+
+  const clearAllFilters = () => {
+    setFilters({
+      assignedTo: 'all',
+      completion: 'all',
+      wrapping: 'all'
+    });
+  };
+
 
   // Link helper functions
   const openLinkHelper = (personId: string) => {
@@ -422,46 +439,89 @@ const GiftTracker = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Filters */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Filters:</span>
-          </div>
+          {/* Filter Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="relative">
+                <Filter className="w-4 h-4 mr-2" />
+                Filters
+                {getActiveFilterCount() > 0 && (
+                  <Badge 
+                    variant="secondary" 
+                    className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground"
+                  >
+                    {getActiveFilterCount()}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="start">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Filter Options</h4>
+                  
+                  {/* Assignment Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Assignment</label>
+                    <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All assignments" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All assignments</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {buyers.map(buyer => (
+                          <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-           <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
-             <SelectTrigger className="w-40">
-               <SelectValue placeholder="Assignment" />
-             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Assignment</SelectItem>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              {buyers.map(buyer => (
-                <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                  {/* Completion Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Purchase Status</label>
+                    <Select value={filters.completion} onValueChange={(value: any) => setFilters(prev => ({ ...prev, completion: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="incomplete">Incomplete</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          <Select value={filters.completion} onValueChange={(value: any) => setFilters(prev => ({ ...prev, completion: value }))}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="incomplete">Incomplete</SelectItem>
-            </SelectContent>
-          </Select>
+                  {/* Wrapping Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Wrapping Status</label>
+                    <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All wrapping</SelectItem>
+                        <SelectItem value="needs-wrapping">Needs wrapping</SelectItem>
+                        <SelectItem value="all-wrapped">All wrapped</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-          <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Wrapping</SelectItem>
-              <SelectItem value="needs-wrapping">Needs Wrapping</SelectItem>
-              <SelectItem value="all-wrapped">All Wrapped</SelectItem>
-            </SelectContent>
-          </Select>
+                {/* Clear Filters Button */}
+                {getActiveFilterCount() > 0 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={clearAllFilters}
+                    className="w-full"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Clear all filters
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Table */}
