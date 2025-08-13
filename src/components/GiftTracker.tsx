@@ -53,7 +53,7 @@ const GiftTracker = () => {
     showCompleted: false
   });
   const [sortConfig, setSortConfig] = useState<{
-    key: 'name' | 'assignedTo' | 'totalCost' | 'progress' | 'notes';
+    key: 'name' | 'assignedTo' | 'totalCost' | 'progress';
     direction: 'asc' | 'desc';
   }>({ key: 'name', direction: 'asc' });
   const [linkHelper, setLinkHelper] = useState<{ isOpen: boolean; personId: string }>({ isOpen: false, personId: '' });
@@ -468,8 +468,6 @@ const GiftTracker = () => {
           const aProgress = aStats.total > 0 ? aStats.purchased / aStats.total : 0;
           const bProgress = bStats.total > 0 ? bStats.purchased / bStats.total : 0;
           return direction * (aProgress - bProgress);
-        case 'notes':
-          return direction * a.notes.localeCompare(b.notes);
         default:
           return 0;
       }
@@ -696,14 +694,7 @@ const GiftTracker = () => {
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleSort('notes')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent"
-                  >
-                    Notes {getSortIcon('notes')}
-                  </Button>
+                  <span className="font-semibold">Notes</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -787,8 +778,7 @@ const GiftTracker = () => {
                               placeholder="Ideas, order numbers, links, gift notes, tracking info..."
                               value={person.notes}
                               onChange={(e) => updateNotes(person.id, e.target.value)}
-                              className="resize-none min-h-[40px] text-sm flex-1"
-                              rows={1}
+                              className="min-h-[40px] text-sm flex-1"
                             />
                             <Popover open={linkHelper.isOpen && linkHelper.personId === person.id} onOpenChange={(open) => open ? openLinkHelper(person.id) : closeLinkHelper()}>
                               <PopoverTrigger asChild>
@@ -823,6 +813,11 @@ const GiftTracker = () => {
                               </PopoverContent>
                             </Popover>
                           </div>
+                          {person.notes && (
+                            <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded border">
+                              {renderNotesWithLinks(person.notes)}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
