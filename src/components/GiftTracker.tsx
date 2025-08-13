@@ -56,31 +56,31 @@ const GiftTracker = () => {
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
-    { id: '1', name: 'Mom (Mary)', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '2', name: 'Dad (Neil)', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '3', name: 'Mom (Kathy)', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '4', name: 'Ray', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '5', name: 'Kim', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '6', name: 'Jason', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '7', name: 'Kirstin', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '8', name: 'Ralph', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '9', name: 'Jenny', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '10', name: 'Billy', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '11', name: 'Maddie', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '12', name: 'Cole', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '13', name: 'Gina', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '14', name: 'Addyson', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '15', name: 'Esme', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '16', name: 'Atticus', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '17', name: 'Eden', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '18', name: 'Dax', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '19', name: 'Nassy', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '20', name: 'Pippa', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '21', name: 'Hannah/Logan', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '22', name: 'Lizzie', gifts: [], notes: '', assignedTo: 'Maddie' },
-    { id: '23', name: 'Landon', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '24', name: 'Work Team (Matt)', gifts: [], notes: '', assignedTo: 'Matt' },
-    { id: '25', name: 'Chras', gifts: [], notes: '', assignedTo: 'Maddie' }
+    { id: '1', name: 'Mom (Mary)', gifts: [], notes: '', assignedTo: null },
+    { id: '2', name: 'Dad (Neil)', gifts: [], notes: '', assignedTo: null },
+    { id: '3', name: 'Mom (Kathy)', gifts: [], notes: '', assignedTo: null },
+    { id: '4', name: 'Ray', gifts: [], notes: '', assignedTo: null },
+    { id: '5', name: 'Kim', gifts: [], notes: '', assignedTo: null },
+    { id: '6', name: 'Jason', gifts: [], notes: '', assignedTo: null },
+    { id: '7', name: 'Kirstin', gifts: [], notes: '', assignedTo: null },
+    { id: '8', name: 'Ralph', gifts: [], notes: '', assignedTo: null },
+    { id: '9', name: 'Jenny', gifts: [], notes: '', assignedTo: null },
+    { id: '10', name: 'Billy', gifts: [], notes: '', assignedTo: null },
+    { id: '11', name: 'Maddie', gifts: [], notes: '', assignedTo: null },
+    { id: '12', name: 'Cole', gifts: [], notes: '', assignedTo: null },
+    { id: '13', name: 'Gina', gifts: [], notes: '', assignedTo: null },
+    { id: '14', name: 'Addyson', gifts: [], notes: '', assignedTo: null },
+    { id: '15', name: 'Esme', gifts: [], notes: '', assignedTo: null },
+    { id: '16', name: 'Atticus', gifts: [], notes: '', assignedTo: null },
+    { id: '17', name: 'Eden', gifts: [], notes: '', assignedTo: null },
+    { id: '18', name: 'Dax', gifts: [], notes: '', assignedTo: null },
+    { id: '19', name: 'Nassy', gifts: [], notes: '', assignedTo: null },
+    { id: '20', name: 'Pippa', gifts: [], notes: '', assignedTo: null },
+    { id: '21', name: 'Hannah/Logan', gifts: [], notes: '', assignedTo: null },
+    { id: '22', name: 'Lizzie', gifts: [], notes: '', assignedTo: null },
+    { id: '23', name: 'Landon', gifts: [], notes: '', assignedTo: null },
+    { id: '24', name: 'Work Team (Matt)', gifts: [], notes: '', assignedTo: null },
+    { id: '25', name: 'Chras', gifts: [], notes: '', assignedTo: null }
   ];
 
   // Load data from localStorage on mount
@@ -547,7 +547,7 @@ const GiftTracker = () => {
                     onClick={() => handleSort('assignedTo')}
                     className="h-auto p-0 font-semibold hover:bg-transparent"
                   >
-                    Assigned To {getSortIcon('assignedTo')}
+                    Assigned {getSortIcon('assignedTo')}
                   </Button>
                 </TableHead>
                 <TableHead>
@@ -629,10 +629,10 @@ const GiftTracker = () => {
                       <TableCell>
                         <div className="flex gap-2">
                           <Badge variant="secondary" className="text-xs">
-                            {stats.purchased}/{stats.total} purchased
+                            🛒 {stats.purchased}/{stats.total}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {stats.wrapped}/{stats.total} wrapped
+                            🎁 {stats.wrapped}/{stats.total}
                           </Badge>
                         </div>
                       </TableCell>
