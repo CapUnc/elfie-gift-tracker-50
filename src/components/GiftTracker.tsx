@@ -451,17 +451,17 @@ const GiftTracker = () => {
                   onKeyPress={(e) => e.key === 'Enter' && addPerson()}
                 />
                 {buyers.length > 1 && (
-                  <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value || null)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Assign to..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {buyers.map(buyer => (
-                        <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value === 'unassigned' ? null : value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Assign to..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned"></SelectItem>
+                        {buyers.map(buyer => (
+                          <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                 )}
                 <Button onClick={addPerson} className="w-full">
                   Add Person
@@ -647,7 +647,7 @@ const GiftTracker = () => {
                               <SelectValue placeholder="Assign to" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              <SelectItem value="unassigned"></SelectItem>
                               {buyers.map(buyer => (
                                 <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
                               ))}

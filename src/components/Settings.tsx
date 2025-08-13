@@ -68,6 +68,15 @@ const Settings = () => {
 
   const removeBuyer = (buyerToRemove: string) => {
     setBuyers(buyers.filter(buyer => buyer !== buyerToRemove));
+    
+    // Clean up assignments for people assigned to the deleted buyer
+    const updatedPeople = people.map(person => 
+      person.assignedTo === buyerToRemove 
+        ? { ...person, assignedTo: null }
+        : person
+    );
+    setPeople(updatedPeople);
+    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
   };
 
   const handleBulkAdd = () => {
@@ -235,7 +244,7 @@ const Settings = () => {
                                   This will permanently delete {person.name} and all associated data:
                                   <br />• {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''}
                                   <br />• Notes: {person.notes ? 'Yes' : 'None'}
-                                  <br />• Assignment: {person.assignedTo || 'Unassigned'}
+                                  <br />• Assignment: {person.assignedTo || '(blank)'}
                                   <br /><br />
                                   This action cannot be undone.
                                 </AlertDialogDescription>
