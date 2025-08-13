@@ -739,19 +739,23 @@ const GiftTracker = () => {
                           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </Button>
                       </TableCell>
-                       <TableCell className="font-medium">
-                         <div className="flex items-center gap-2">
-                           <span className={person.completed ? "line-through text-muted-foreground" : ""}>{person.name}</span>
-                           {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green" />}
-                            <input
-                              type="checkbox"
-                              checked={person.completed || false}
-                              onChange={(e) => handleCompletionChange(person, e.target.checked)}
-                              className="ml-auto rounded border-gray-300"
-                              title="Mark shopping complete for this person"
-                            />
-                         </div>
-                       </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className={person.completed ? "line-through text-muted-foreground" : ""}>{person.name}</span>
+                            {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green" />}
+                            <Button
+                              variant={person.completed ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleCompletionChange(person, !person.completed)}
+                              className={`ml-auto ${person.completed 
+                                ? "bg-christmas-green hover:bg-christmas-green/80 text-white" 
+                                : "text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              {person.completed ? "Complete" : "All Done"}
+                            </Button>
+                          </div>
+                        </TableCell>
                       {buyers.length > 1 && (
                         <TableCell>
                           <Select 
