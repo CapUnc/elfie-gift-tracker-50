@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 
 // Force rebuild to clear cached Popover references
@@ -649,17 +650,26 @@ const GiftTracker = () => {
                           <div className="flex items-center gap-2">
                             <span className={person.completed ? "line-through text-muted-foreground" : ""}>{person.name}</span>
                             {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green" />}
-                            <Button
-                              variant={person.completed ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handleCompletionChange(person, !person.completed)}
-                              className={`ml-auto ${person.completed 
-                                ? "bg-christmas-green hover:bg-christmas-green/80 text-white" 
-                                : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            >
-                              {person.completed ? "Completed" : "Mark Complete"}
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleCompletionChange(person, !person.completed)}
+                                    className={`ml-auto h-8 w-8 ${person.completed 
+                                      ? "text-christmas-green hover:text-christmas-green/80" 
+                                      : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                  >
+                                    {person.completed ? <CheckCircle className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {person.completed ? "Mark as Incomplete" : "Mark as Complete"}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         </TableCell>
                       {buyers.length > 1 && (
