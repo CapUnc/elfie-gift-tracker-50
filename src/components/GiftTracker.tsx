@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 
 // Force rebuild to clear cached Popover references
@@ -483,68 +484,93 @@ const GiftTracker = () => {
           </Dialog>
 
           {/* Filter Controls */}
-          <div className="flex flex-wrap gap-4">
-            {buyers.length > 1 && (
-              <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All assignments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All assignments</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {buyers.map(buyer => (
-                    <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            <Select value={filters.completion} onValueChange={(value: any) => setFilters(prev => ({ ...prev, completion: value }))}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="incomplete">Incomplete</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All wrapping</SelectItem>
-                <SelectItem value="needs-wrapping">Needs wrapping</SelectItem>
-                <SelectItem value="all-wrapped">All wrapped</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="showCompleted"
-                checked={filters.showCompleted}
-                onChange={(e) => setFilters(prev => ({ ...prev, showCompleted: e.target.checked }))}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="showCompleted" className="text-sm font-medium">
-                Show completed
-              </label>
-            </div>
-
-            {getActiveFilterCount() > 0 && (
-              <Button 
-                variant="outline" 
-                onClick={clearAllFilters}
-                size="sm"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Clear filters
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="relative">
+                <Filter className="w-4 h-4 mr-2" />
+                Filter
+                {getActiveFilterCount() > 0 && (
+                  <Badge variant="secondary" className="ml-2 px-1 py-0 text-xs">
+                    {getActiveFilterCount()}
+                  </Badge>
+                )}
               </Button>
-            )}
-          </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="start">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Filters</h4>
+                  {getActiveFilterCount() > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      onClick={clearAllFilters}
+                      size="sm"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+
+                {buyers.length > 1 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Assignment</label>
+                    <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All assignments" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All assignments</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {buyers.map(buyer => (
+                          <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Completion Status</label>
+                  <Select value={filters.completion} onValueChange={(value: any) => setFilters(prev => ({ ...prev, completion: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="incomplete">Incomplete</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Wrapping Status</label>
+                  <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All wrapping</SelectItem>
+                      <SelectItem value="needs-wrapping">Needs wrapping</SelectItem>
+                      <SelectItem value="all-wrapped">All wrapped</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showCompleted"
+                    checked={filters.showCompleted}
+                    onCheckedChange={(checked) => setFilters(prev => ({ ...prev, showCompleted: !!checked }))}
+                  />
+                  <label htmlFor="showCompleted" className="text-sm font-medium">
+                    Show completed recipients
+                  </label>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Table */}
