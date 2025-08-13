@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Gift {
   id: string;
@@ -46,6 +47,12 @@ const GiftTracker = () => {
     completion: 'all' as 'all' | 'completed' | 'incomplete',
     wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped'
   });
+  const [sortConfig, setSortConfig] = useState<{
+    key: 'name' | 'assignedTo' | 'totalCost' | 'progress' | 'notes';
+    direction: 'asc' | 'desc';
+  }>({ key: 'name', direction: 'asc' });
+  const [linkHelper, setLinkHelper] = useState<{ isOpen: boolean; personId: string }>({ isOpen: false, personId: '' });
+  const [linkForm, setLinkForm] = useState({ text: '', url: '' });
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
@@ -220,6 +227,83 @@ const GiftTracker = () => {
     setExpandedRows(newExpanded);
   };
 
+  // Sorting functions
+  const handleSort = (key: typeof sortConfig.key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const getSortIcon = (column: typeof sortConfig.key) => {
+    if (sortConfig.key !== column) return <ArrowUpDown className="w-4 h-4" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
+  };
+
+
+  // Link helper functions
+  const openLinkHelper = (personId: string) => {
+    setLinkHelper({ isOpen: true, personId });
+    setLinkForm({ text: '', url: '' });
+  };
+
+  const closeLinkHelper = () => {
+    setLinkHelper({ isOpen: false, personId: '' });
+    setLinkForm({ text: '', url: '' });
+  };
+
+  const insertLink = () => {
+    if (!linkForm.text.trim() || !linkForm.url.trim()) return;
+    
+    const person = people.find(p => p.id === linkHelper.personId);
+    if (!person) return;
+
+    const linkMarkdown = `[${linkForm.text}](${linkForm.url})`;
+    const newNotes = person.notes ? `${person.notes} ${linkMarkdown}` : linkMarkdown;
+    
+    updateNotes(linkHelper.personId, newNotes);
+    closeLinkHelper();
+  };
+
+  // Parse and render notes with links
+  const renderNotesWithLinks = (notes: string) => {
+    if (!notes) return null;
+    
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(notes)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push(notes.slice(lastIndex, match.index));
+      }
+      
+      // Add the link
+      parts.push(
+        <a
+          key={match.index}
+          href={match[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:text-primary/80 underline"
+        >
+          {match[1]}
+        </a>
+      );
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < notes.length) {
+      parts.push(notes.slice(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : notes;
+  };
+
   // Filter people based on current filters
   const filteredPeople = people.filter(person => {
     // Filter by assignment
@@ -248,6 +332,35 @@ const GiftTracker = () => {
 
     return true;
   });
+
+  const sortedAndFilteredPeople = React.useMemo(() => {
+    return [...filteredPeople].sort((a, b) => {
+      const direction = sortConfig.direction === 'asc' ? 1 : -1;
+      
+      switch (sortConfig.key) {
+        case 'name':
+          return direction * a.name.localeCompare(b.name);
+        case 'assignedTo':
+          const aAssigned = a.assignedTo || 'Unassigned';
+          const bAssigned = b.assignedTo || 'Unassigned';
+          return direction * aAssigned.localeCompare(bAssigned);
+        case 'totalCost':
+          const aCost = getTotalCost(a.gifts);
+          const bCost = getTotalCost(b.gifts);
+          return direction * (aCost - bCost);
+        case 'progress':
+          const aStats = getCompletionStats(a.gifts);
+          const bStats = getCompletionStats(b.gifts);
+          const aProgress = aStats.total > 0 ? aStats.purchased / aStats.total : 0;
+          const bProgress = bStats.total > 0 ? bStats.purchased / bStats.total : 0;
+          return direction * (aProgress - bProgress);
+        case 'notes':
+          return direction * a.notes.localeCompare(b.notes);
+        default:
+          return 0;
+      }
+    });
+  }, [filteredPeople, sortConfig]);
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
@@ -357,15 +470,60 @@ const GiftTracker = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"></TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Total Cost</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('name')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Name {getSortIcon('name')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('assignedTo')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Assigned To {getSortIcon('assignedTo')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('totalCost')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Total Cost {getSortIcon('totalCost')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('progress')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Progress {getSortIcon('progress')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('notes')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Notes {getSortIcon('notes')}
+                  </Button>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPeople.map((person) => {
+              {sortedAndFilteredPeople.map((person) => {
                 const stats = getCompletionStats(person.gifts);
                 const totalCost = getTotalCost(person.gifts);
                 const isExpanded = expandedRows.has(person.id);
@@ -419,13 +577,54 @@ const GiftTracker = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Textarea
-                          placeholder="Notes..."
-                          value={person.notes}
-                          onChange={(e) => updateNotes(person.id, e.target.value)}
-                          className="resize-none min-h-[40px] text-sm"
-                          rows={1}
-                        />
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Textarea
+                              placeholder="Ideas, order numbers, links, gift notes, tracking info..."
+                              value={person.notes}
+                              onChange={(e) => updateNotes(person.id, e.target.value)}
+                              className="resize-none min-h-[40px] text-sm flex-1"
+                              rows={1}
+                            />
+                            <Popover open={linkHelper.isOpen && linkHelper.personId === person.id} onOpenChange={(open) => open ? openLinkHelper(person.id) : closeLinkHelper()}>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="px-2">
+                                  <Link className="w-4 h-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80">
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="font-medium">Add Link</h4>
+                                    <Button variant="ghost" size="sm" onClick={closeLinkHelper} className="h-auto p-1">
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Input
+                                      placeholder="Link text (e.g., Order #123456)"
+                                      value={linkForm.text}
+                                      onChange={(e) => setLinkForm(prev => ({ ...prev, text: e.target.value }))}
+                                    />
+                                    <Input
+                                      placeholder="URL (e.g., https://...)"
+                                      value={linkForm.url}
+                                      onChange={(e) => setLinkForm(prev => ({ ...prev, url: e.target.value }))}
+                                    />
+                                    <Button onClick={insertLink} className="w-full" size="sm">
+                                      Insert Link
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          {person.notes && (
+                            <div className="text-sm text-muted-foreground">
+                              {renderNotesWithLinks(person.notes)}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                     
@@ -601,7 +800,7 @@ const GiftTracker = () => {
         </div>
 
         {/* Empty state */}
-        {filteredPeople.length === 0 && people.length > 0 && (
+        {sortedAndFilteredPeople.length === 0 && people.length > 0 && (
           <div className="text-center py-12">
             <Filter className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-muted-foreground mb-2">
