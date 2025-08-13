@@ -752,7 +752,7 @@ const GiftTracker = () => {
                                 : "text-muted-foreground hover:text-foreground"
                               }`}
                             >
-                              {person.completed ? "Complete" : "All Done"}
+                              {person.completed ? "Completed" : "Mark Complete"}
                             </Button>
                           </div>
                         </TableCell>
