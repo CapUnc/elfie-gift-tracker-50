@@ -59,6 +59,11 @@ const GiftTracker = () => {
   const [linkHelper, setLinkHelper] = useState<{ isOpen: boolean; personId: string }>({ isOpen: false, personId: '' });
   const [linkForm, setLinkForm] = useState({ text: '', url: '' });
   const [deletingGift, setDeletingGift] = useState<{ personId: string; giftId: string; giftName: string } | null>(null);
+  const [completionDialog, setCompletionDialog] = useState<{
+    isOpen: boolean;
+    person: Person | null;
+    incompleteParts: { purchased: number; wrapped: number };
+  }>({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
@@ -233,10 +238,61 @@ const GiftTracker = () => {
     ));
   };
 
+  const handleCompletionChange = (person: Person, completed: boolean) => {
+    if (!completed) {
+      // If unchecking, directly update
+      updateCompletion(person.id, false);
+      return;
+    }
+
+    // If checking, check for incomplete gifts
+    const incompleteGifts = person.gifts.filter(gift => !gift.purchased || !gift.wrapped);
+    
+    if (incompleteGifts.length === 0) {
+      // All gifts are already complete, proceed normally
+      updateCompletion(person.id, true);
+      return;
+    }
+
+    // Show confirmation dialog for incomplete gifts
+    const unpurchased = incompleteGifts.filter(gift => !gift.purchased).length;
+    const unwrapped = incompleteGifts.filter(gift => !gift.wrapped).length;
+    
+    setCompletionDialog({
+      isOpen: true,
+      person,
+      incompleteParts: { purchased: unpurchased, wrapped: unwrapped }
+    });
+  };
+
   const updateCompletion = (personId: string, completed: boolean) => {
     setPeople(people.map(person => 
       person.id === personId ? { ...person, completed } : person
     ));
+  };
+
+  const completeAllGifts = (person: Person) => {
+    // Mark all gifts as purchased and wrapped
+    const updatedPeople = people.map(p => 
+      p.id === person.id 
+        ? {
+            ...p,
+            gifts: p.gifts.map(gift => ({
+              ...gift,
+              purchased: true,
+              wrapped: true
+            })),
+            completed: true
+          }
+        : p
+    );
+    
+    setPeople(updatedPeople);
+    setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
+  };
+
+  const cancelCompletion = () => {
+    setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
   };
 
   const getTotalCost = (gifts: Gift[]) => {
@@ -674,13 +730,13 @@ const GiftTracker = () => {
                          <div className="flex items-center gap-2">
                            <span className={person.completed ? "line-through text-muted-foreground" : ""}>{person.name}</span>
                            {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green" />}
-                           <input
-                             type="checkbox"
-                             checked={person.completed || false}
-                             onChange={(e) => updateCompletion(person.id, e.target.checked)}
-                             className="ml-auto rounded border-gray-300"
-                             title="Mark shopping complete for this person"
-                           />
+                            <input
+                              type="checkbox"
+                              checked={person.completed || false}
+                              onChange={(e) => handleCompletionChange(person, e.target.checked)}
+                              className="ml-auto rounded border-gray-300"
+                              title="Mark shopping complete for this person"
+                            />
                          </div>
                        </TableCell>
                       {buyers.length > 1 && (
@@ -1009,6 +1065,40 @@ const GiftTracker = () => {
             </Button>
           </div>
         )}
+
+        {/* Completion Confirmation Dialog */}
+        <AlertDialog open={completionDialog.isOpen} onOpenChange={(open) => !open && cancelCompletion()}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Complete Shopping for {completionDialog.person?.name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {completionDialog.person && (() => {
+                  const { purchased, wrapped } = completionDialog.incompleteParts;
+                  let message = `${completionDialog.person.name} has `;
+                  
+                  if (purchased > 0 && wrapped > 0) {
+                    message += `${purchased} unpurchased gift${purchased > 1 ? 's' : ''} and ${wrapped} unwrapped gift${wrapped > 1 ? 's' : ''}. `;
+                    message += "Marking them as complete will automatically mark all their gifts as purchased and wrapped.";
+                  } else if (purchased > 0) {
+                    message += `${purchased} unpurchased gift${purchased > 1 ? 's' : ''}. `;
+                    message += "Marking them as complete will automatically mark all their gifts as purchased.";
+                  } else if (wrapped > 0) {
+                    message += `${wrapped} unwrapped gift${wrapped > 1 ? 's' : ''}. `;
+                    message += "Marking them as complete will automatically mark all their gifts as wrapped.";
+                  }
+                  
+                  return message;
+                })()}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={cancelCompletion}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => completionDialog.person && completeAllGifts(completionDialog.person)}>
+                Complete Shopping
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
