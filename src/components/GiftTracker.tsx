@@ -376,6 +376,18 @@ const GiftTracker = () => {
     closeLinkHelper();
   };
 
+  // Helper functions for notes display
+  const hasLinks = (notes: string): boolean => {
+    if (!notes) return false;
+    return /\[([^\]]+)\]\(([^)]+)\)/g.test(notes);
+  };
+
+  const getDisplayText = (notes: string): string => {
+    if (!notes) return '';
+    // Remove markdown link syntax, keeping only the display text
+    return notes.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+  };
+
   // Parse and render notes with links
   const renderNotesWithLinks = (notes: string) => {
     if (!notes) return null;
@@ -785,7 +797,7 @@ const GiftTracker = () => {
                           <div className="flex gap-2">
                             <Textarea
                               placeholder="Ideas, order numbers, links, gift notes, tracking info..."
-                              value={person.notes}
+                              value={hasLinks(person.notes) ? getDisplayText(person.notes) : person.notes}
                               onChange={(e) => updateNotes(person.id, e.target.value)}
                               className="min-h-[40px] text-sm flex-1"
                             />
@@ -822,7 +834,7 @@ const GiftTracker = () => {
                               </PopoverContent>
                             </Popover>
                           </div>
-                          {person.notes && (
+                          {person.notes && hasLinks(person.notes) && (
                             <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded border">
                               {renderNotesWithLinks(person.notes)}
                             </div>
