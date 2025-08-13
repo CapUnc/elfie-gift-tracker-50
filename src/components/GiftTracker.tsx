@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2 } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 
 interface Gift {
   id: string;
@@ -35,6 +36,7 @@ const GiftTracker = () => {
   const navigate = useNavigate();
   const [people, setPeople] = useState<Person[]>([]);
   const [buyers, setBuyers] = useState<string[]>(['Matt', 'Maddie']);
+  const [currency, setCurrency] = useState('$');
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
@@ -102,6 +104,14 @@ const GiftTracker = () => {
     const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
     if (savedBuyers) {
       setBuyers(JSON.parse(savedBuyers));
+    }
+  }, []);
+
+  // Load currency from localStorage
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem('christmas-gifts-currency');
+    if (savedCurrency) {
+      setCurrency(savedCurrency);
     }
   }, []);
 
@@ -401,14 +411,22 @@ const GiftTracker = () => {
             <Gift className="text-christmas-green" />
           </h1>
           <p className="text-muted-foreground">Keep track of all your holiday gift planning</p>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/settings')}
-            className="mt-4"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
-          </Button>
+          <div className="flex gap-4 justify-center mt-4">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/')}
+            >
+              <Home className="w-4 h-4 mr-2" />
+              Summary
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/settings')}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+          </div>
         </div>
 
         {/* Controls */}
@@ -641,7 +659,7 @@ const GiftTracker = () => {
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-4 h-4 text-christmas-gold" />
                           <span className="font-semibold text-christmas-gold">
-                            ${totalCost.toFixed(2)}
+                            {formatCurrency(totalCost, currency)}
                           </span>
                         </div>
                       </TableCell>
@@ -748,9 +766,9 @@ const GiftTracker = () => {
                                          </AlertDialogContent>
                                        </AlertDialog>
                                      </div>
-                                     <span className="text-sm text-christmas-gold font-semibold">
-                                       ${gift.cost.toFixed(2)}
-                                     </span>
+                                      <span className="text-sm text-christmas-gold font-semibold">
+                                        {formatCurrency(gift.cost, currency)}
+                                      </span>
                                    </div>
                                   
                                    <div className="flex items-center gap-4">

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 
 interface Person {
@@ -23,6 +24,7 @@ const Settings = () => {
   const [bulkNames, setBulkNames] = useState('');
   const [people, setPeople] = useState<Person[]>([]);
   const [deletingPerson, setDeletingPerson] = useState<Person | null>(null);
+  const [currency, setCurrency] = useState('$');
 
   // Load buyers from localStorage
   useEffect(() => {
@@ -40,10 +42,23 @@ const Settings = () => {
     }
   }, []);
 
+  // Load currency from localStorage
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem('christmas-gifts-currency');
+    if (savedCurrency) {
+      setCurrency(savedCurrency);
+    }
+  }, []);
+
   // Save buyers to localStorage
   useEffect(() => {
     localStorage.setItem('christmas-gifts-buyers', JSON.stringify(buyers));
   }, [buyers]);
+
+  // Save currency to localStorage
+  useEffect(() => {
+    localStorage.setItem('christmas-gifts-currency', currency);
+  }, [currency]);
 
   const addBuyer = () => {
     if (!newBuyer.trim() || buyers.includes(newBuyer.trim())) return;
@@ -110,7 +125,7 @@ const Settings = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Gift Tracker
+            Back to Summary
           </Button>
           <div className="flex items-center gap-3">
             <SettingsIcon className="w-8 h-8 text-primary" />
@@ -119,6 +134,41 @@ const Settings = () => {
         </div>
 
         <div className="grid gap-6">
+          {/* Currency Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Currency
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                  Select Currency Symbol
+                </label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="$">$ (USD - US Dollar)</SelectItem>
+                    <SelectItem value="€">€ (EUR - Euro)</SelectItem>
+                    <SelectItem value="£">£ (GBP - British Pound)</SelectItem>
+                    <SelectItem value="C$">C$ (CAD - Canadian Dollar)</SelectItem>
+                    <SelectItem value="A$">A$ (AUD - Australian Dollar)</SelectItem>
+                    <SelectItem value="¥">¥ (JPY - Japanese Yen)</SelectItem>
+                    <SelectItem value="CHF">CHF (Swiss Franc)</SelectItem>
+                    <SelectItem value="kr">kr (SEK/NOK/DKK)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This will be used throughout the app to display gift costs and totals.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Manage Recipients Section */}
           <Card>
             <CardHeader>

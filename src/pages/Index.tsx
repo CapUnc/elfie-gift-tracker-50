@@ -1,7 +1,7 @@
-import GiftTracker from '@/components/GiftTracker';
+import Summary from '@/components/Summary';
 
 const Index = () => {
-  return <GiftTracker />;
+  return <Summary />;
 };
 
 export default Index;
