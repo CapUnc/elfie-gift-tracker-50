@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -53,6 +54,7 @@ const GiftTracker = () => {
   }>({ key: 'name', direction: 'asc' });
   const [linkHelper, setLinkHelper] = useState<{ isOpen: boolean; personId: string }>({ isOpen: false, personId: '' });
   const [linkForm, setLinkForm] = useState({ text: '', url: '' });
+  const [deletingGift, setDeletingGift] = useState<{ personId: string; giftId: string; giftName: string } | null>(null);
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
@@ -146,6 +148,15 @@ const GiftTracker = () => {
     
     setGiftForm({ name: '', cost: '' });
     setEditingGift(null);
+  };
+
+  const deleteGift = (personId: string, giftId: string) => {
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? { ...person, gifts: person.gifts.filter(gift => gift.id !== giftId) }
+        : person
+    ));
+    setDeletingGift(null);
   };
 
   const updateGiftStatus = (personId: string, giftId: string, field: 'purchased' | 'wrapped', value: boolean) => {
@@ -699,12 +710,40 @@ const GiftTracker = () => {
                             <div className="space-y-3">
                               {person.gifts.map((gift) => (
                                 <div key={gift.id} className="border rounded-lg p-3 bg-card">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium">{gift.name}</span>
-                                    <span className="text-sm text-christmas-gold font-semibold">
-                                      ${gift.cost.toFixed(2)}
-                                    </span>
-                                  </div>
+                                   <div className="flex items-center justify-between mb-2">
+                                     <div className="flex items-center gap-2">
+                                       <span className="font-medium">{gift.name}</span>
+                                       <AlertDialog>
+                                         <AlertDialogTrigger asChild>
+                                           <Button
+                                             variant="ghost"
+                                             size="sm"
+                                             className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                             onClick={() => setDeletingGift({ personId: person.id, giftId: gift.id, giftName: gift.name })}
+                                           >
+                                             <Trash2 className="w-3 h-3" />
+                                           </Button>
+                                         </AlertDialogTrigger>
+                                         <AlertDialogContent>
+                                           <AlertDialogHeader>
+                                             <AlertDialogTitle>Delete Gift</AlertDialogTitle>
+                                             <AlertDialogDescription>
+                                               Are you sure you want to delete "{gift.name}"? This action cannot be undone.
+                                             </AlertDialogDescription>
+                                           </AlertDialogHeader>
+                                           <AlertDialogFooter>
+                                             <AlertDialogCancel onClick={() => setDeletingGift(null)}>Cancel</AlertDialogCancel>
+                                             <AlertDialogAction onClick={() => deleteGift(person.id, gift.id)}>
+                                               Delete
+                                             </AlertDialogAction>
+                                           </AlertDialogFooter>
+                                         </AlertDialogContent>
+                                       </AlertDialog>
+                                     </div>
+                                     <span className="text-sm text-christmas-gold font-semibold">
+                                       ${gift.cost.toFixed(2)}
+                                     </span>
+                                   </div>
                                   
                                    <div className="flex items-center gap-4">
                                      <div className="flex items-center space-x-2">
