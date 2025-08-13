@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -662,7 +662,7 @@ const GiftTracker = () => {
                                       : "text-muted-foreground hover:text-foreground"
                                     }`}
                                   >
-                                    {person.completed ? <CheckCircle className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                    {person.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
