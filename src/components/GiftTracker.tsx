@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 
+// Force rebuild to clear cached Popover references
+
 interface Gift {
   id: string;
   name: string;
