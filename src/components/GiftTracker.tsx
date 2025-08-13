@@ -232,6 +232,15 @@ const GiftTracker = () => {
     ));
   };
 
+  const updateNotesText = (personId: string, newText: string) => {
+    const person = people.find(p => p.id === personId);
+    if (!person) return;
+    
+    // Combine new text with existing links
+    const combinedNotes = combineTextAndLinks(newText, person.notes);
+    updateNotes(personId, combinedNotes);
+  };
+
   const updateAssignment = (personId: string, assignedTo: string | null) => {
     setPeople(people.map(person => 
       person.id === personId ? { ...person, assignedTo } : person
@@ -370,8 +379,11 @@ const GiftTracker = () => {
     if (!person) return;
 
     const linkMarkdown = `[${linkForm.text}](${linkForm.url})`;
-    // If there are existing links, add the new one. If not, replace any existing notes.
-    const newNotes = hasLinks(person.notes) ? `${person.notes} ${linkMarkdown}` : linkMarkdown;
+    // Preserve existing text content and add the new link
+    const existingText = extractTextContent(person.notes);
+    const existingLinks = extractLinks(person.notes);
+    const allParts = [existingText, ...existingLinks, linkMarkdown].filter(part => part.trim().length > 0);
+    const newNotes = allParts.join(' ');
     
     updateNotes(linkHelper.personId, newNotes);
     closeLinkHelper();
@@ -381,6 +393,29 @@ const GiftTracker = () => {
   const hasLinks = (notes: string): boolean => {
     if (!notes) return false;
     return /\[([^\]]+)\]\(([^)]+)\)/g.test(notes);
+  };
+
+  const extractTextContent = (notes: string): string => {
+    if (!notes) return '';
+    // Remove markdown link syntax, keeping only non-link text
+    return notes.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '').trim();
+  };
+
+  const extractLinks = (notes: string): string[] => {
+    if (!notes) return [];
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const links = [];
+    let match;
+    while ((match = linkRegex.exec(notes)) !== null) {
+      links.push(`[${match[1]}](${match[2]})`);
+    }
+    return links;
+  };
+
+  const combineTextAndLinks = (text: string, existingNotes: string): string => {
+    const existingLinks = extractLinks(existingNotes);
+    const combinedParts = [text.trim(), ...existingLinks].filter(part => part.length > 0);
+    return combinedParts.join(' ');
   };
 
   const getDisplayText = (notes: string): string => {
@@ -802,8 +837,8 @@ const GiftTracker = () => {
                           <div className="flex gap-2">
                             <Textarea
                               placeholder="Ideas, order numbers, links, gift notes, tracking info..."
-                              value={hasLinks(person.notes) ? "" : person.notes}
-                              onChange={(e) => updateNotes(person.id, e.target.value)}
+                              value={extractTextContent(person.notes)}
+                              onChange={(e) => updateNotesText(person.id, e.target.value)}
                               className="min-h-[40px] text-sm flex-1"
                             />
                             <Popover open={linkHelper.isOpen && linkHelper.personId === person.id} onOpenChange={(open) => open ? openLinkHelper(person.id) : closeLinkHelper()}>
