@@ -52,6 +52,14 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				christmas: {
+					red: 'hsl(var(--christmas-red))',
+					'red-light': 'hsl(var(--christmas-red-light))',
+					green: 'hsl(var(--christmas-green))',
+					'green-light': 'hsl(var(--christmas-green-light))',
+					gold: 'hsl(var(--christmas-gold))',
+					'gold-light': 'hsl(var(--christmas-gold-light))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -67,6 +75,17 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			backgroundImage: {
+				'gradient-festive': 'var(--gradient-festive)',
+				'gradient-subtle': 'var(--gradient-subtle)'
+			},
+			boxShadow: {
+				'festive': 'var(--shadow-festive)',
+				'card': 'var(--shadow-card)'
+			},
+			transitionProperty: {
+				'smooth': 'var(--transition-smooth)'
 			},
 			keyframes: {
 				'accordion-down': {
