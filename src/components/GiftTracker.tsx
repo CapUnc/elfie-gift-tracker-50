@@ -30,11 +30,43 @@ const GiftTracker = () => {
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string } | null>(null);
   const [giftForm, setGiftForm] = useState({ name: '', cost: '' });
 
+  // Initial data from spreadsheet
+  const initialPeople: Person[] = [
+    { id: '1', name: 'Mom (Mary)', gifts: [], notes: '' },
+    { id: '2', name: 'Dad (Neil)', gifts: [], notes: '' },
+    { id: '3', name: 'Mom (Kathy)', gifts: [], notes: '' },
+    { id: '4', name: 'Ray', gifts: [], notes: '' },
+    { id: '5', name: 'Kim', gifts: [], notes: '' },
+    { id: '6', name: 'Jason', gifts: [], notes: '' },
+    { id: '7', name: 'Kirstin', gifts: [], notes: '' },
+    { id: '8', name: 'Ralph', gifts: [], notes: '' },
+    { id: '9', name: 'Jenny', gifts: [], notes: '' },
+    { id: '10', name: 'Billy', gifts: [], notes: '' },
+    { id: '11', name: 'Maddie', gifts: [], notes: '' },
+    { id: '12', name: 'Cole', gifts: [], notes: '' },
+    { id: '13', name: 'Gina', gifts: [], notes: '' },
+    { id: '14', name: 'Addyson', gifts: [], notes: '' },
+    { id: '15', name: 'Esme', gifts: [], notes: '' },
+    { id: '16', name: 'Atticus', gifts: [], notes: '' },
+    { id: '17', name: 'Eden', gifts: [], notes: '' },
+    { id: '18', name: 'Dax', gifts: [], notes: '' },
+    { id: '19', name: 'Nassy', gifts: [], notes: '' },
+    { id: '20', name: 'Pippa', gifts: [], notes: '' },
+    { id: '21', name: 'Hannah/Logan', gifts: [], notes: '' },
+    { id: '22', name: 'Lizzie', gifts: [], notes: '' },
+    { id: '23', name: 'Landon', gifts: [], notes: '' },
+    { id: '24', name: 'Work Team (Matt)', gifts: [], notes: '' },
+    { id: '25', name: 'Chras', gifts: [], notes: '' }
+  ];
+
   // Load data from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('christmas-gifts-2025');
     if (saved) {
       setPeople(JSON.parse(saved));
+    } else {
+      // Initialize with the names from your spreadsheet
+      setPeople(initialPeople);
     }
   }, []);
 
