@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Gift, Settings, Users, TrendingUp, Package, CheckCircle, Clock } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useNavigate } from 'react-router-dom';
+import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { differenceInDays } from 'date-fns';
 
 interface Gift {
   id: string;
@@ -21,6 +23,7 @@ interface Person {
   gifts: Gift[];
   notes: string;
   assignedTo: string | null;
+  completed?: boolean;
 }
 
 const Summary = () => {
@@ -47,19 +50,63 @@ const Summary = () => {
     }
   }, []);
 
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const allGifts = people.flatMap(person => person.gifts);
-    const totalCost = allGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
-    const giftsWithoutCost = allGifts.filter(gift => gift.cost === null).length;
-    const purchasedGifts = allGifts.filter(gift => gift.purchased);
-    const wrappedGifts = allGifts.filter(gift => gift.wrapped);
-    const peopleWithGifts = people.filter(person => person.gifts.length > 0);
-    const peopleWithoutGifts = people.filter(person => person.gifts.length === 0);
+  // Calculate Christmas countdown
+  const christmasCountdown = useMemo(() => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const christmasThisYear = new Date(currentYear, 11, 25); // December 25
+    const christmasNextYear = new Date(currentYear + 1, 11, 25);
+    
+    // If Christmas has passed this year, calculate for next year
+    const targetChristmas = today > christmasThisYear ? christmasNextYear : christmasThisYear;
+    const daysUntil = differenceInDays(targetChristmas, today);
+    
+    return {
+      daysUntil,
+      year: targetChristmas.getFullYear()
+    };
+  }, []);
 
-    // Buyer statistics
-    const buyerStats = buyers.map(buyer => {
+  // Calculate statistics
+  const overallStats = useMemo(() => {
+    const totalPeople = people.length;
+    const completedPeople = people.filter(person => person.completed === true).length;
+    const totalGifts = people.reduce((sum, person) => sum + person.gifts.length, 0);
+    const totalCost = people.reduce((sum, person) => 
+      sum + person.gifts.reduce((giftSum, gift) => giftSum + (gift.cost || 0), 0), 0
+    );
+    const purchasedGifts = people.reduce((sum, person) => 
+      sum + person.gifts.filter(gift => gift.purchased).length, 0
+    );
+    const wrappedGifts = people.reduce((sum, person) => 
+      sum + person.gifts.filter(gift => gift.wrapped).length, 0
+    );
+
+    const totalGiftsWithoutCost = people.reduce((sum, person) => 
+      sum + person.gifts.filter(gift => gift.cost === null).length, 0
+    );
+
+    return {
+      totalPeople,
+      completedPeople,
+      totalGifts,
+      totalCost,
+      purchasedGifts,
+      wrappedGifts,
+      totalGiftsWithoutCost,
+      purchaseProgress: totalGifts > 0 ? (purchasedGifts / totalGifts) * 100 : 0,
+      wrappingProgress: totalGifts > 0 ? (wrappedGifts / totalGifts) * 100 : 0,
+      completionProgress: totalPeople > 0 ? (completedPeople / totalPeople) * 100 : 0
+    };
+  }, [people]);
+
+  // Calculate buyer statistics
+  const buyerStats = useMemo(() => {
+    if (buyers.length <= 1) return [];
+    
+    return buyers.map(buyer => {
       const assignedPeople = people.filter(person => person.assignedTo === buyer);
+      const completedAssignedPeople = assignedPeople.filter(person => person.completed === true).length;
       const buyerGifts = assignedPeople.flatMap(person => person.gifts);
       const buyerCost = buyerGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
       const buyerPurchased = buyerGifts.filter(gift => gift.purchased).length;
@@ -68,35 +115,17 @@ const Summary = () => {
       return {
         name: buyer,
         people: assignedPeople.length,
+        completedPeople: completedAssignedPeople,
         gifts: buyerGifts.length,
         cost: buyerCost,
         purchased: buyerPurchased,
         wrapped: buyerWrapped,
         purchaseProgress: buyerGifts.length > 0 ? (buyerPurchased / buyerGifts.length) * 100 : 0,
-        wrappingProgress: buyerGifts.length > 0 ? (buyerWrapped / buyerGifts.length) * 100 : 0
+        wrappingProgress: buyerGifts.length > 0 ? (buyerWrapped / buyerGifts.length) * 100 : 0,
+        completionProgress: assignedPeople.length > 0 ? (completedAssignedPeople / assignedPeople.length) * 100 : 0
       };
     });
-
-    return {
-      totalPeople: people.length,
-      peopleWithGifts: peopleWithGifts.length,
-      peopleWithoutGifts: peopleWithoutGifts.length,
-      totalGifts: allGifts.length,
-      totalCost,
-      giftsWithoutCost,
-      averageCostPerGift: allGifts.length > 0 ? totalCost / allGifts.length : 0,
-      averageCostPerPerson: peopleWithGifts.length > 0 ? totalCost / peopleWithGifts.length : 0,
-      purchasedCount: purchasedGifts.length,
-      wrappedCount: wrappedGifts.length,
-      purchaseProgress: allGifts.length > 0 ? (purchasedGifts.length / allGifts.length) * 100 : 0,
-      wrappingProgress: allGifts.length > 0 ? (wrappedGifts.length / allGifts.length) * 100 : 0,
-      buyerStats: buyers.length > 1 ? buyerStats : []
-    };
   }, [people, buyers]);
-
-  const formatCurrency = (amount: number) => {
-    return `${currency}${amount.toFixed(2)}`;
-  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
@@ -105,15 +134,14 @@ const Summary = () => {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-2 flex items-center justify-center gap-3">
             <Gift className="text-christmas-red" />
-            Christmas 2025 Summary
+            Christmas {christmasCountdown.year} Gift Summary
             <Gift className="text-christmas-green" />
           </h1>
-          <p className="text-muted-foreground mb-6">Your holiday gift planning at a glance</p>
-          
-          <div className="flex gap-4 justify-center">
+          <p className="text-muted-foreground">Your holiday gift planning overview</p>
+          <div className="flex gap-4 justify-center mt-4">
             <Button
+              variant="outline"
               onClick={() => navigate('/gifts')}
-              className="bg-gradient-festive hover:opacity-90 text-white shadow-festive"
             >
               <Package className="w-4 h-4 mr-2" />
               Manage Gifts
@@ -128,117 +156,142 @@ const Summary = () => {
           </div>
         </div>
 
-        {/* Main Statistics Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          {/* People Statistics */}
+        {/* Christmas Countdown */}
+        <Card className="mb-8 bg-gradient-festive text-white shadow-festive">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
+              <Calendar className="w-8 h-8" />
+              {christmasCountdown.daysUntil === 0 
+                ? "🎄 Merry Christmas! 🎄" 
+                : christmasCountdown.daysUntil < 0 
+                  ? `Christmas was ${Math.abs(christmasCountdown.daysUntil)} days ago` 
+                  : `${christmasCountdown.daysUntil} days until Christmas!`
+              }
+            </CardTitle>
+            {christmasCountdown.daysUntil > 0 && (
+              <CardDescription className="text-white/80 text-lg">
+                Christmas {christmasCountdown.year}
+              </CardDescription>
+            )}
+          </CardHeader>
+        </Card>
+
+        {/* Key Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total People</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalPeople}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.peopleWithGifts} with gifts, {stats.peopleWithoutGifts} without
-              </p>
+              <div className="text-2xl font-bold">{overallStats.totalPeople}</div>
+              {overallStats.completedPeople > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {overallStats.completedPeople} shopping complete
+                </p>
+              )}
             </CardContent>
           </Card>
 
-          {/* Total Cost */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(stats.totalCost)}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.giftsWithoutCost > 0 ? `Partial total (${stats.giftsWithoutCost} gifts TBD)` : `Avg: ${formatCurrency(stats.averageCostPerPerson)} per person`}
-              </p>
+              <div className="text-2xl font-bold">
+                {overallStats.totalGiftsWithoutCost > 0 ? 'Partial: ' : ''}{formatCurrency(overallStats.totalCost, currency)}
+              </div>
+              {overallStats.totalGiftsWithoutCost > 0 && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {overallStats.totalGiftsWithoutCost} gift{overallStats.totalGiftsWithoutCost > 1 ? 's' : ''} without cost
+                </p>
+              )}
             </CardContent>
           </Card>
 
-          {/* Total Gifts */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Gifts</CardTitle>
               <Gift className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalGifts}</div>
-              <p className="text-xs text-muted-foreground">
-                Avg: {formatCurrency(stats.averageCostPerGift)} per gift
-              </p>
+              <div className="text-2xl font-bold">{overallStats.totalGifts}</div>
             </CardContent>
           </Card>
 
-          {/* Purchase Progress */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Purchased</CardTitle>
+              <CardTitle className="text-sm font-medium">Shopping Complete</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.purchasedCount}/{stats.totalGifts}</div>
+              <div className="text-2xl font-bold">{overallStats.completedPeople}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.purchaseProgress.toFixed(0)}% complete
+                of {overallStats.totalPeople} people
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Progress Cards */}
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          {/* Purchase Progress */}
+        {/* Progress Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-christmas-green" />
-                Purchase Progress
-              </CardTitle>
+              <CardTitle>Shopping Completion</CardTitle>
+              <CardDescription>
+                {overallStats.completedPeople} of {overallStats.totalPeople} people complete
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span>Purchased</span>
-                <span>{stats.purchasedCount} of {stats.totalGifts} gifts</span>
-              </div>
-              <Progress value={stats.purchaseProgress} className="h-3" />
-              <p className="text-xs text-muted-foreground">
-                {stats.totalGifts - stats.purchasedCount} gifts remaining to purchase
+            <CardContent>
+              <Progress value={overallStats.completionProgress} className="mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {overallStats.completionProgress.toFixed(1)}% complete
               </p>
             </CardContent>
           </Card>
 
-          {/* Wrapping Progress */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-christmas-red" />
-                Wrapping Progress
-              </CardTitle>
+              <CardTitle>Purchase Progress</CardTitle>
+              <CardDescription>
+                {overallStats.purchasedGifts} of {overallStats.totalGifts} gifts purchased
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span>Wrapped</span>
-                <span>{stats.wrappedCount} of {stats.totalGifts} gifts</span>
-              </div>
-              <Progress value={stats.wrappingProgress} className="h-3" />
-              <p className="text-xs text-muted-foreground">
-                {stats.totalGifts - stats.wrappedCount} gifts remaining to wrap
+            <CardContent>
+              <Progress value={overallStats.purchaseProgress} className="mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {overallStats.purchaseProgress.toFixed(1)}% complete
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Wrapping Progress</CardTitle>
+              <CardDescription>
+                {overallStats.wrappedGifts} of {overallStats.totalGifts} gifts wrapped
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Progress value={overallStats.wrappingProgress} className="mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {overallStats.wrappingProgress.toFixed(1)}% complete
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Buyer Statistics (only show if multiple buyers) */}
-        {stats.buyerStats.length > 0 && (
+        {/* Buyer Statistics */}
+        {buyerStats.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-primary mb-4 flex items-center gap-2">
               <Users className="w-6 h-6" />
               Buyer Breakdown
             </h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {stats.buyerStats.map((buyer) => (
+              {buyerStats.map((buyer) => (
                 <Card key={buyer.name}>
                   <CardHeader>
                     <CardTitle className="text-lg">{buyer.name}</CardTitle>
@@ -250,16 +303,26 @@ const Summary = () => {
                         <span className="ml-2 font-medium">{buyer.people}</span>
                       </div>
                       <div>
+                        <span className="text-muted-foreground">Complete:</span>
+                        <span className="ml-2 font-medium">{buyer.completedPeople}</span>
+                      </div>
+                      <div>
                         <span className="text-muted-foreground">Gifts:</span>
                         <span className="ml-2 font-medium">{buyer.gifts}</span>
                       </div>
-                      <div className="col-span-2">
+                      <div>
                         <span className="text-muted-foreground">Total Cost:</span>
-                        <span className="ml-2 font-medium">{formatCurrency(buyer.cost)}</span>
+                        <span className="ml-2 font-medium">{formatCurrency(buyer.cost, currency)}</span>
                       </div>
                     </div>
                     
                     <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Shopping Complete</span>
+                        <span>{buyer.completedPeople} of {buyer.people}</span>
+                      </div>
+                      <Progress value={buyer.completionProgress} className="h-2" />
+                      
                       <div className="flex justify-between text-sm">
                         <span>Purchased</span>
                         <span>{buyer.purchased} of {buyer.gifts}</span>
@@ -280,7 +343,7 @@ const Summary = () => {
         )}
 
         {/* Quick Stats */}
-        {stats.totalGifts === 0 ? (
+        {overallStats.totalGifts === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <Gift className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -300,23 +363,28 @@ const Summary = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
+                <CheckCircle className="w-5 h-5" />
                 Next Steps
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
-                {stats.peopleWithoutGifts > 0 && (
-                  <p>• Add gifts for {stats.peopleWithoutGifts} people who don't have any yet</p>
+                {overallStats.totalPeople - overallStats.completedPeople > 0 && (
+                  <p>• Complete shopping for {overallStats.totalPeople - overallStats.completedPeople} people</p>
                 )}
-                {stats.totalGifts - stats.purchasedCount > 0 && (
-                  <p>• Purchase {stats.totalGifts - stats.purchasedCount} remaining gifts</p>
+                {overallStats.totalGifts - overallStats.purchasedGifts > 0 && (
+                  <p>• Purchase {overallStats.totalGifts - overallStats.purchasedGifts} remaining gifts</p>
                 )}
-                {stats.totalGifts - stats.wrappedCount > 0 && (
-                  <p>• Wrap {stats.totalGifts - stats.wrappedCount} remaining gifts</p>
+                {overallStats.totalGifts - overallStats.wrappedGifts > 0 && (
+                  <p>• Wrap {overallStats.totalGifts - overallStats.wrappedGifts} remaining gifts</p>
                 )}
-                {stats.totalGifts === stats.purchasedCount && stats.totalGifts === stats.wrappedCount && (
-                  <p className="text-christmas-green font-medium">🎉 All gifts purchased and wrapped! You're ready for Christmas!</p>
+                {overallStats.totalGiftsWithoutCost > 0 && (
+                  <p>• Set costs for {overallStats.totalGiftsWithoutCost} gifts</p>
+                )}
+                {overallStats.totalPeople === overallStats.completedPeople && 
+                 overallStats.totalGifts === overallStats.purchasedGifts && 
+                 overallStats.totalGifts === overallStats.wrappedGifts && (
+                  <p className="text-christmas-green font-medium">🎉 All shopping complete! You're ready for Christmas!</p>
                 )}
               </div>
             </CardContent>

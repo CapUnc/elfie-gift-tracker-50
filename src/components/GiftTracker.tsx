@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2, Home, AlertCircle } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2, Home, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ interface Person {
   gifts: Gift[];
   notes: string;
   assignedTo: string | null;
+  completed?: boolean;
 }
 
 const GiftTracker = () => {
@@ -48,7 +49,8 @@ const GiftTracker = () => {
   const [filters, setFilters] = useState({
     assignedTo: 'all' as string,
     completion: 'all' as 'all' | 'completed' | 'incomplete',
-    wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped'
+    wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped',
+    showCompleted: true
   });
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'assignedTo' | 'totalCost' | 'progress' | 'notes';
@@ -231,6 +233,12 @@ const GiftTracker = () => {
     ));
   };
 
+  const updateCompletion = (personId: string, completed: boolean) => {
+    setPeople(people.map(person => 
+      person.id === personId ? { ...person, completed } : person
+    ));
+  };
+
   const getTotalCost = (gifts: Gift[]) => {
     return gifts.reduce((total, gift) => total + (gift.cost || 0), 0);
   };
@@ -274,6 +282,7 @@ const GiftTracker = () => {
     if (buyers.length > 1 && filters.assignedTo !== 'all') count++;
     if (filters.completion !== 'all') count++;
     if (filters.wrapping !== 'all') count++;
+    if (!filters.showCompleted) count++;
     return count;
   };
 
@@ -281,7 +290,8 @@ const GiftTracker = () => {
     setFilters({
       assignedTo: 'all',
       completion: 'all',
-      wrapping: 'all'
+      wrapping: 'all',
+      showCompleted: true
     });
   };
 
@@ -351,6 +361,9 @@ const GiftTracker = () => {
 
   // Filter people based on current filters
   const filteredPeople = people.filter(person => {
+    // Filter by shopping completion status
+    if (!filters.showCompleted && person.completed === true) return false;
+
     // Filter by assignment (only if there are multiple buyers)
     if (buyers.length > 1 && filters.assignedTo !== 'all') {
       if (filters.assignedTo === 'unassigned' && person.assignedTo !== null) return false;
@@ -532,21 +545,35 @@ const GiftTracker = () => {
                     </Select>
                   </div>
 
-                  {/* Wrapping Filter */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Wrapping Status</label>
-                    <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All wrapping</SelectItem>
-                        <SelectItem value="needs-wrapping">Needs wrapping</SelectItem>
-                        <SelectItem value="all-wrapped">All wrapped</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                   {/* Wrapping Filter */}
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Wrapping Status</label>
+                     <Select value={filters.wrapping} onValueChange={(value: any) => setFilters(prev => ({ ...prev, wrapping: value }))}>
+                       <SelectTrigger>
+                         <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="all">All wrapping</SelectItem>
+                         <SelectItem value="needs-wrapping">Needs wrapping</SelectItem>
+                         <SelectItem value="all-wrapped">All wrapped</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   </div>
+
+                   {/* Show Completed Filter */}
+                   <div className="flex items-center space-x-2">
+                     <input
+                       type="checkbox"
+                       id="showCompleted"
+                       checked={filters.showCompleted}
+                       onChange={(e) => setFilters(prev => ({ ...prev, showCompleted: e.target.checked }))}
+                       className="rounded border-gray-300"
+                     />
+                     <label htmlFor="showCompleted" className="text-sm font-medium">
+                       Show completed recipients
+                     </label>
+                   </div>
+                 </div>
 
                 {/* Clear Filters Button */}
                 {getActiveFilterCount() > 0 && (
@@ -643,7 +670,19 @@ const GiftTracker = () => {
                           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </Button>
                       </TableCell>
-                      <TableCell className="font-medium">{person.name}</TableCell>
+                       <TableCell className="font-medium">
+                         <div className="flex items-center gap-2">
+                           <span className={person.completed ? "line-through text-muted-foreground" : ""}>{person.name}</span>
+                           {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green" />}
+                           <input
+                             type="checkbox"
+                             checked={person.completed || false}
+                             onChange={(e) => updateCompletion(person.id, e.target.checked)}
+                             className="ml-auto rounded border-gray-300"
+                             title="Mark shopping complete for this person"
+                           />
+                         </div>
+                       </TableCell>
                       {buyers.length > 1 && (
                         <TableCell>
                           <Select 
