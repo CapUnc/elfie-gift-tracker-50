@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2, Home } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X, Trash2, Home, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 interface Gift {
   id: string;
   name: string;
-  cost: number;
+  cost: number | null;
   purchased: boolean;
   wrapped: boolean;
   trackingNumber?: string;
@@ -142,10 +142,13 @@ const GiftTracker = () => {
   const addGift = (personId: string) => {
     if (!giftForm.name.trim()) return;
     
+    const parsedCost = giftForm.cost.trim() === '' ? null : parseFloat(giftForm.cost);
+    const cost = isNaN(parsedCost as number) ? null : parsedCost;
+    
     const newGift: Gift = {
       id: Date.now().toString(),
       name: giftForm.name.trim(),
-      cost: parseFloat(giftForm.cost) || 0,
+      cost,
       purchased: false,
       wrapped: false
     };
@@ -229,7 +232,11 @@ const GiftTracker = () => {
   };
 
   const getTotalCost = (gifts: Gift[]) => {
-    return gifts.reduce((total, gift) => total + gift.cost, 0);
+    return gifts.reduce((total, gift) => total + (gift.cost || 0), 0);
+  };
+
+  const getGiftsWithoutCost = (gifts: Gift[]) => {
+    return gifts.filter(gift => gift.cost === null).length;
   };
 
   const getCompletionStats = (gifts: Gift[]) => {
@@ -655,14 +662,19 @@ const GiftTracker = () => {
                           </Select>
                         </TableCell>
                       )}
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4 text-christmas-gold" />
-                          <span className="font-semibold text-christmas-gold">
-                            {formatCurrency(totalCost, currency)}
-                          </span>
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <div className="flex items-center gap-1">
+                           <DollarSign className="w-4 h-4 text-christmas-gold" />
+                           <span className="font-semibold text-christmas-gold">
+                             {formatCurrency(totalCost, currency)}
+                           </span>
+                           {getGiftsWithoutCost(person.gifts) > 0 && (
+                             <div title={`${getGiftsWithoutCost(person.gifts)} gift(s) without cost`}>
+                               <AlertCircle className="w-4 h-4 text-amber-500 ml-1" />
+                             </div>
+                           )}
+                         </div>
+                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Badge variant="secondary" className="text-xs">
@@ -737,38 +749,43 @@ const GiftTracker = () => {
                               {person.gifts.map((gift) => (
                                 <div key={gift.id} className="border rounded-lg p-3 bg-card">
                                    <div className="flex items-center justify-between mb-2">
-                                     <div className="flex items-center gap-2">
-                                       <span className="font-medium">{gift.name}</span>
-                                       <AlertDialog>
-                                         <AlertDialogTrigger asChild>
-                                           <Button
-                                             variant="ghost"
-                                             size="sm"
-                                             className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                                             onClick={() => setDeletingGift({ personId: person.id, giftId: gift.id, giftName: gift.name })}
-                                           >
-                                             <Trash2 className="w-3 h-3" />
-                                           </Button>
-                                         </AlertDialogTrigger>
-                                         <AlertDialogContent>
-                                           <AlertDialogHeader>
-                                             <AlertDialogTitle>Delete Gift</AlertDialogTitle>
-                                             <AlertDialogDescription>
-                                               Are you sure you want to delete "{gift.name}"? This action cannot be undone.
-                                             </AlertDialogDescription>
-                                           </AlertDialogHeader>
-                                           <AlertDialogFooter>
-                                             <AlertDialogCancel onClick={() => setDeletingGift(null)}>Cancel</AlertDialogCancel>
-                                             <AlertDialogAction onClick={() => deleteGift(person.id, gift.id)}>
-                                               Delete
-                                             </AlertDialogAction>
-                                           </AlertDialogFooter>
-                                         </AlertDialogContent>
-                                       </AlertDialog>
-                                     </div>
-                                      <span className="text-sm text-christmas-gold font-semibold">
-                                        {formatCurrency(gift.cost, currency)}
-                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">{gift.name}</span>
+                                        {gift.cost === null && (
+                                          <div title="Cost not set">
+                                            <AlertCircle className="w-4 h-4 text-amber-500" />
+                                          </div>
+                                        )}
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                              onClick={() => setDeletingGift({ personId: person.id, giftId: gift.id, giftName: gift.name })}
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Delete Gift</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Are you sure you want to delete "{gift.name}"? This action cannot be undone.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel onClick={() => setDeletingGift(null)}>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => deleteGift(person.id, gift.id)}>
+                                                Delete
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                       <span className="text-sm text-christmas-gold font-semibold">
+                                         {gift.cost === null ? 'TBD' : formatCurrency(gift.cost, currency)}
+                                       </span>
                                    </div>
                                   
                                    <div className="flex items-center gap-4">
@@ -873,18 +890,21 @@ const GiftTracker = () => {
 
                             {/* Add Gift */}
                             {editingGift?.personId === person.id ? (
-                              <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
-                                <Input
-                                  placeholder="Gift name"
-                                  value={giftForm.name}
-                                  onChange={(e) => setGiftForm({ ...giftForm, name: e.target.value })}
-                                />
-                                <Input
-                                  type="number"
-                                  placeholder="Cost"
-                                  value={giftForm.cost}
-                                  onChange={(e) => setGiftForm({ ...giftForm, cost: e.target.value })}
-                                />
+                               <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
+                                 <Input
+                                   placeholder="Gift name"
+                                   value={giftForm.name}
+                                   onChange={(e) => setGiftForm({ ...giftForm, name: e.target.value })}
+                                   onKeyPress={(e) => e.key === 'Enter' && document.getElementById('cost-input')?.focus()}
+                                 />
+                                 <Input
+                                   id="cost-input"
+                                   type="number"
+                                   placeholder="Cost (leave blank if unknown)"
+                                   value={giftForm.cost}
+                                   onChange={(e) => setGiftForm({ ...giftForm, cost: e.target.value })}
+                                   onKeyPress={(e) => e.key === 'Enter' && addGift(person.id)}
+                                 />
                                 <div className="flex gap-2">
                                   <Button 
                                     size="sm" 

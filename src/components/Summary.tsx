@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 interface Gift {
   id: string;
   name: string;
-  cost: number;
+  cost: number | null;
   purchased: boolean;
   wrapped: boolean;
   trackingNumber?: string;
@@ -50,7 +50,8 @@ const Summary = () => {
   // Calculate statistics
   const stats = useMemo(() => {
     const allGifts = people.flatMap(person => person.gifts);
-    const totalCost = allGifts.reduce((sum, gift) => sum + gift.cost, 0);
+    const totalCost = allGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
+    const giftsWithoutCost = allGifts.filter(gift => gift.cost === null).length;
     const purchasedGifts = allGifts.filter(gift => gift.purchased);
     const wrappedGifts = allGifts.filter(gift => gift.wrapped);
     const peopleWithGifts = people.filter(person => person.gifts.length > 0);
@@ -60,7 +61,7 @@ const Summary = () => {
     const buyerStats = buyers.map(buyer => {
       const assignedPeople = people.filter(person => person.assignedTo === buyer);
       const buyerGifts = assignedPeople.flatMap(person => person.gifts);
-      const buyerCost = buyerGifts.reduce((sum, gift) => sum + gift.cost, 0);
+      const buyerCost = buyerGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
       const buyerPurchased = buyerGifts.filter(gift => gift.purchased).length;
       const buyerWrapped = buyerGifts.filter(gift => gift.wrapped).length;
 
@@ -82,6 +83,7 @@ const Summary = () => {
       peopleWithoutGifts: peopleWithoutGifts.length,
       totalGifts: allGifts.length,
       totalCost,
+      giftsWithoutCost,
       averageCostPerGift: allGifts.length > 0 ? totalCost / allGifts.length : 0,
       averageCostPerPerson: peopleWithGifts.length > 0 ? totalCost / peopleWithGifts.length : 0,
       purchasedCount: purchasedGifts.length,
@@ -151,7 +153,7 @@ const Summary = () => {
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(stats.totalCost)}</div>
               <p className="text-xs text-muted-foreground">
-                Avg: {formatCurrency(stats.averageCostPerPerson)} per person
+                {stats.giftsWithoutCost > 0 ? `Partial total (${stats.giftsWithoutCost} gifts TBD)` : `Avg: ${formatCurrency(stats.averageCostPerPerson)} per person`}
               </p>
             </CardContent>
           </Card>
