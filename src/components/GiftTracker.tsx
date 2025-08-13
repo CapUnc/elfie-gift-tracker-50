@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Link, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -333,7 +333,7 @@ const GiftTracker = () => {
     return true;
   });
 
-  const sortedAndFilteredPeople = React.useMemo(() => {
+  const sortedAndFilteredPeople = useMemo(() => {
     return [...filteredPeople].sort((a, b) => {
       const direction = sortConfig.direction === 'asc' ? 1 : -1;
       
