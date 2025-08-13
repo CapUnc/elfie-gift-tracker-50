@@ -295,8 +295,8 @@ const GiftTracker = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Assign to..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                           <SelectContent>
+                             <SelectItem value="unassigned">Unassigned</SelectItem>
                     {buyers.map(buyer => (
                       <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
                     ))}
@@ -315,10 +315,10 @@ const GiftTracker = () => {
             <span className="text-sm text-muted-foreground">Filters:</span>
           </div>
 
-          <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
+           <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
+             <SelectTrigger className="w-40">
+               <SelectValue placeholder="Assignment" />
+             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Assignment</SelectItem>
               <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -385,15 +385,15 @@ const GiftTracker = () => {
                       </TableCell>
                       <TableCell className="font-medium">{person.name}</TableCell>
                       <TableCell>
-                        <Select 
-                          value={person.assignedTo || ''} 
-                          onValueChange={(value: string) => updateAssignment(person.id, value || null)}
-                        >
+                         <Select 
+                           value={person.assignedTo === null ? 'unassigned' : person.assignedTo} 
+                           onValueChange={(value: string) => updateAssignment(person.id, value === 'unassigned' ? null : value)}
+                         >
                           <SelectTrigger className="w-32">
                             <SelectValue placeholder="Assign to" />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Unassigned</SelectItem>
+                           <SelectContent>
+                             <SelectItem value="unassigned">Unassigned</SelectItem>
                             {buyers.map(buyer => (
                               <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
                             ))}
@@ -513,7 +513,6 @@ const GiftTracker = () => {
                                                    <SelectValue placeholder="Carrier" />
                                                  </SelectTrigger>
                                                  <SelectContent>
-                                                   <SelectItem value="">Select</SelectItem>
                                                    <SelectItem value="UPS">UPS</SelectItem>
                                                    <SelectItem value="FedEx">FedEx</SelectItem>
                                                    <SelectItem value="USPS">USPS</SelectItem>
