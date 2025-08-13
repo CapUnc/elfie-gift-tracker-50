@@ -176,9 +176,14 @@ const Settings = () => {
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Buyers are the people who can be assigned to purchase gifts. Changes will apply to all assignment dropdowns.
-              </p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>
+                  Buyers are the people who can be assigned to purchase gifts. Changes will apply to all assignment dropdowns.
+                </p>
+                <p className="bg-muted/50 p-2 rounded border-l-2 border-primary/50">
+                  <strong>Note:</strong> The assignment column will only appear in the gift tracker when you have more than one buyer. This keeps the interface clean for solo users while enabling collaboration for couples, families, or groups.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -254,7 +254,7 @@ const GiftTracker = () => {
   // Filter helper functions
   const getActiveFilterCount = () => {
     let count = 0;
-    if (filters.assignedTo !== 'all') count++;
+    if (buyers.length > 1 && filters.assignedTo !== 'all') count++;
     if (filters.completion !== 'all') count++;
     if (filters.wrapping !== 'all') count++;
     return count;
@@ -334,8 +334,8 @@ const GiftTracker = () => {
 
   // Filter people based on current filters
   const filteredPeople = people.filter(person => {
-    // Filter by assignment
-    if (filters.assignedTo !== 'all') {
+    // Filter by assignment (only if there are multiple buyers)
+    if (buyers.length > 1 && filters.assignedTo !== 'all') {
       if (filters.assignedTo === 'unassigned' && person.assignedTo !== null) return false;
       if (filters.assignedTo !== 'unassigned' && person.assignedTo !== filters.assignedTo) return false;
     }
@@ -432,17 +432,19 @@ const GiftTracker = () => {
                   onChange={(e) => setNewPersonName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addPerson()}
                 />
-                <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value || null)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Assign to..." />
-                  </SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {buyers.map(buyer => (
-                      <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {buyers.length > 1 && (
+                  <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value || null)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Assign to..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {buyers.map(buyer => (
+                        <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <Button onClick={addPerson} className="w-full">
                   Add Person
                 </Button>
@@ -471,22 +473,24 @@ const GiftTracker = () => {
                 <div className="space-y-2">
                   <h4 className="font-medium">Filter Options</h4>
                   
-                  {/* Assignment Filter */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Assignment</label>
-                    <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All assignments" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All assignments</SelectItem>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {buyers.map(buyer => (
-                          <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                   {/* Assignment Filter */}
+                   {buyers.length > 1 && (
+                     <div className="space-y-2">
+                       <label className="text-sm font-medium">Assignment</label>
+                       <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="All assignments" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="all">All assignments</SelectItem>
+                           <SelectItem value="unassigned">Unassigned</SelectItem>
+                           {buyers.map(buyer => (
+                             <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                   )}
 
                   {/* Completion Filter */}
                   <div className="space-y-2">
@@ -551,16 +555,18 @@ const GiftTracker = () => {
                     Name {getSortIcon('name')}
                   </Button>
                 </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleSort('assignedTo')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent"
-                  >
-                    Assigned {getSortIcon('assignedTo')}
-                  </Button>
-                </TableHead>
+                {buyers.length > 1 && (
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('assignedTo')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Assigned {getSortIcon('assignedTo')}
+                    </Button>
+                  </TableHead>
+                )}
                 <TableHead>
                   <Button
                     variant="ghost"
@@ -613,22 +619,24 @@ const GiftTracker = () => {
                         </Button>
                       </TableCell>
                       <TableCell className="font-medium">{person.name}</TableCell>
-                      <TableCell>
-                         <Select 
-                           value={person.assignedTo === null ? 'unassigned' : person.assignedTo} 
-                           onValueChange={(value: string) => updateAssignment(person.id, value === 'unassigned' ? null : value)}
-                         >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Assign to" />
-                          </SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="unassigned">Unassigned</SelectItem>
-                            {buyers.map(buyer => (
-                              <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
+                      {buyers.length > 1 && (
+                        <TableCell>
+                          <Select 
+                            value={person.assignedTo === null ? 'unassigned' : person.assignedTo} 
+                            onValueChange={(value: string) => updateAssignment(person.id, value === 'unassigned' ? null : value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Assign to" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              {buyers.map(buyer => (
+                                <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-4 h-4 text-christmas-gold" />
@@ -702,7 +710,7 @@ const GiftTracker = () => {
                     {/* Expanded row content */}
                     {isExpanded && (
                       <TableRow>
-                        <TableCell colSpan={6} className="bg-muted/30">
+                        <TableCell colSpan={buyers.length > 1 ? 6 : 5} className="bg-muted/30">
                           <div className="p-4 space-y-4">
                             <h4 className="font-medium text-sm text-muted-foreground">Gifts for {person.name}</h4>
                             
