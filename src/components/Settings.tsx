@@ -1,23 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
+
+interface Person {
+  id: string;
+  name: string;
+  gifts: any[];
+  notes: string;
+  assignedTo: string | null;
+}
 
 const Settings = () => {
   const navigate = useNavigate();
   const [buyers, setBuyers] = useState<string[]>(['Matt', 'Maddie']);
   const [newBuyer, setNewBuyer] = useState('');
   const [bulkNames, setBulkNames] = useState('');
+  const [people, setPeople] = useState<Person[]>([]);
+  const [deletingPerson, setDeletingPerson] = useState<Person | null>(null);
 
   // Load buyers from localStorage
   useEffect(() => {
     const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
     if (savedBuyers) {
       setBuyers(JSON.parse(savedBuyers));
+    }
+  }, []);
+
+  // Load people from localStorage
+  useEffect(() => {
+    const savedPeople = localStorage.getItem('christmas-gifts-2025');
+    if (savedPeople) {
+      setPeople(JSON.parse(savedPeople));
     }
   }, []);
 
@@ -46,11 +65,8 @@ const Settings = () => {
 
     if (names.length === 0) return;
 
-    // Get existing people
-    const existingPeople = JSON.parse(localStorage.getItem('christmas-gifts-2025') || '[]');
-    const existingNames = existingPeople.map((person: any) => person.name.toLowerCase());
-
     // Filter out duplicates
+    const existingNames = people.map(person => person.name.toLowerCase());
     const newNames = names.filter(name => !existingNames.includes(name.toLowerCase()));
 
     if (newNames.length === 0) {
@@ -67,12 +83,20 @@ const Settings = () => {
       assignedTo: null
     }));
 
-    // Add to existing people
-    const updatedPeople = [...existingPeople, ...newPeople];
+    // Add to existing people and update state
+    const updatedPeople = [...people, ...newPeople];
+    setPeople(updatedPeople);
     localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
 
     setBulkNames('');
     alert(`Added ${newNames.length} new people: ${newNames.join(', ')}`);
+  };
+
+  const deletePerson = (personToDelete: Person) => {
+    const updatedPeople = people.filter(person => person.id !== personToDelete.id);
+    setPeople(updatedPeople);
+    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
+    setDeletingPerson(null);
   };
 
   return (
@@ -95,33 +119,101 @@ const Settings = () => {
         </div>
 
         <div className="grid gap-6">
-          {/* Bulk Add Section */}
+          {/* Manage Recipients Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Plus className="w-5 h-5" />
-                Bulk Add People
+                <Users className="w-5 h-5" />
+                Manage Recipients
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                  Add multiple people (comma-separated)
-                </label>
-                <Textarea
-                  placeholder="John Doe, Jane Smith, Bob Johnson, etc..."
-                  value={bulkNames}
-                  onChange={(e) => setBulkNames(e.target.value)}
-                  className="resize-none"
-                  rows={3}
-                />
+            <CardContent className="space-y-6">
+              {/* Bulk Add */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">Bulk Add People</h3>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Add multiple people (comma-separated)
+                  </label>
+                  <Textarea
+                    placeholder="John Doe, Jane Smith, Bob Johnson, etc..."
+                    value={bulkNames}
+                    onChange={(e) => setBulkNames(e.target.value)}
+                    className="resize-none"
+                    rows={3}
+                  />
+                </div>
+                <Button onClick={handleBulkAdd} className="w-full">
+                  Add People
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Names will be added as unassigned. You can assign them to buyers later.
+                </p>
               </div>
-              <Button onClick={handleBulkAdd} className="w-full">
-                Add People
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Names will be added as unassigned. You can assign them to buyers later.
-              </p>
+
+              {/* Delete People */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-sm font-semibold text-foreground">Delete People</h3>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Current Recipients ({people.length} total)
+                  </label>
+                  {people.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-muted/30">
+                      {people.map((person) => (
+                        <Badge
+                          key={person.id}
+                          variant="secondary"
+                          className="flex items-center gap-2 px-3 py-1"
+                        >
+                          {person.name}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto p-0 hover:bg-transparent"
+                                onClick={() => setDeletingPerson(person)}
+                              >
+                                <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete {person.name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete {person.name} and all associated data:
+                                  <br />• {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''}
+                                  <br />• Notes: {person.notes ? 'Yes' : 'None'}
+                                  <br />• Assignment: {person.assignedTo || 'Unassigned'}
+                                  <br /><br />
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deletePerson(person)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-md">
+                      No recipients added yet. Use the bulk add feature above to get started.
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Warning:</strong> Deleting a person will remove all their gifts, notes, and assignments permanently.
+                </p>
+              </div>
             </CardContent>
           </Card>
 
