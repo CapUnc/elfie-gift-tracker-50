@@ -1,6 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users } from 'lucide-react';
 import FloatingActionButton from './FloatingActionButton';
+import { SwipeableGiftItem } from './SwipeableGiftItem';
+import { GiftSearch } from './GiftSearch';
+import { AlphabetIndex } from './AlphabetIndex';
+import { GiftContextMenu, PersonContextMenu } from './ContextMenu';
+import { GiftNotes } from './GiftNotes';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,11 +66,13 @@ const GiftTracker = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     assignedTo: 'all' as string,
     completion: 'all' as 'all' | 'completed' | 'incomplete',
     wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped',
-    showCompleted: false
+    showCompleted: false,
+    hasGifts: 'all' as 'all' | 'with-gifts' | 'no-gifts'
   });
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'assignedTo' | 'totalCost' | 'progress';
@@ -83,6 +90,7 @@ const GiftTracker = () => {
     field: 'assignment' | 'notes';
     value: string;
   } | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
@@ -263,6 +271,73 @@ const GiftTracker = () => {
     return sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
+  // Letter navigation
+  const scrollToLetter = (letter: string) => {
+    const personIndex = sortedAndFilteredPeople.findIndex(person => 
+      person.name.charAt(0).toUpperCase() === letter
+    );
+    if (personIndex !== -1 && tableRef.current) {
+      const tableRows = tableRef.current.querySelectorAll('tbody tr[data-person-id]');
+      const targetRow = tableRows[personIndex];
+      if (targetRow) {
+        targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
+
+  // Enhanced gift management functions
+  const deleteGift = (personId: string, giftId: string) => {
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? { ...person, gifts: person.gifts.filter(gift => gift.id !== giftId) }
+        : person
+    ));
+  };
+
+  const duplicateGift = (personId: string, gift: Gift) => {
+    const newGift: Gift = {
+      ...gift,
+      id: Date.now().toString(),
+      name: gift.name + ' (Copy)',
+      purchased: false,
+      wrapped: false
+    };
+    
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? { ...person, gifts: [...person.gifts, newGift] }
+        : person
+    ));
+  };
+
+  const markAllPurchased = (personId: string) => {
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? {
+            ...person,
+            gifts: person.gifts.map(gift => ({ ...gift, purchased: true }))
+          }
+        : person
+    ));
+  };
+
+  const markAllWrapped = (personId: string) => {
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? {
+            ...person,
+            gifts: person.gifts.map(gift => ({ ...gift, wrapped: true }))
+          }
+        : person
+    ));
+  };
+
+  const updatePersonNotes = (personId: string, notes: string) => {
+    setPeople(people.map(person => 
+      person.id === personId ? { ...person, notes } : person
+    ));
+  };
+
   // Filter helper functions
   const getActiveFilterCount = () => {
     let count = 0;
@@ -278,17 +353,29 @@ const GiftTracker = () => {
       assignedTo: 'all',
       completion: 'all',
       wrapping: 'all',
-      showCompleted: false
+      showCompleted: false,
+      hasGifts: 'all'
     });
   };
 
-  // Filter people based on current filters
+  // Filter people based on current filters and search
   const filteredPeople = people.filter(person => {
+    // Search filter
+    if (searchTerm && !person.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+
     if (!filters.showCompleted && person.completed === true) return false;
     
     if (buyers.length > 1 && filters.assignedTo !== 'all') {
       if (filters.assignedTo === 'unassigned' && person.assignedTo !== null) return false;
       if (filters.assignedTo !== 'unassigned' && person.assignedTo !== filters.assignedTo) return false;
+    }
+
+    if (filters.hasGifts !== 'all') {
+      const hasGifts = person.gifts.length > 0;
+      if (filters.hasGifts === 'with-gifts' && !hasGifts) return false;
+      if (filters.hasGifts === 'no-gifts' && hasGifts) return false;
     }
 
     if (filters.completion !== 'all') {
@@ -352,72 +439,34 @@ const GiftTracker = () => {
             </div>
           </div>
 
-          {/* Compact Controls Toolbar */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {/* Filter Controls */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="relative h-9">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                  {getActiveFilterCount() > 0 && (
-                    <Badge variant="secondary" className="ml-2 px-1 py-0 text-xs">
-                      {getActiveFilterCount()}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="start">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Filters</h4>
-                    {getActiveFilterCount() > 0 && (
-                      <Button 
-                        variant="ghost" 
-                        onClick={clearAllFilters}
-                        size="sm"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Clear all
-                      </Button>
-                    )}
-                  </div>
-
-                  {buyers.length > 1 && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Assignment</label>
-                      <Select value={filters.assignedTo} onValueChange={(value: any) => setFilters(prev => ({ ...prev, assignedTo: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All assignments" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All assignments</SelectItem>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {buyers.map(buyer => (
-                            <SelectItem key={buyer.id} value={buyer.name}>{buyer.emoji} {buyer.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Completion Status</label>
-                    <Select value={filters.completion} onValueChange={(value: any) => setFilters(prev => ({ ...prev, completion: value }))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="incomplete">Incomplete</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+          {/* Enhanced Search and Filter System */}
+          <GiftSearch
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            filters={filters}
+            onFiltersChange={setFilters}
+            buyers={buyers}
+            quickFilters={[
+              {
+                label: 'Need Shopping',
+                icon: <ShoppingCart className="h-3 w-3" />,
+                onClick: () => setFilters(prev => ({ ...prev, completion: prev.completion === 'incomplete' ? 'all' : 'incomplete' })),
+                active: filters.completion === 'incomplete'
+              },
+              {
+                label: 'No Gifts',
+                icon: <Users className="h-3 w-3" />,
+                onClick: () => setFilters(prev => ({ ...prev, hasGifts: prev.hasGifts === 'no-gifts' ? 'all' : 'no-gifts' })),
+                active: filters.hasGifts === 'no-gifts'
+              },
+              {
+                label: 'Need Wrapping',
+                icon: <Package className="h-3 w-3" />,
+                onClick: () => setFilters(prev => ({ ...prev, wrapping: prev.wrapping === 'needs-wrapping' ? 'all' : 'needs-wrapping' })),
+                active: filters.wrapping === 'needs-wrapping'
+              }
+            ]}
+          />
         </div>
 
         {/* Add Person Dialog */}
@@ -456,9 +505,24 @@ const GiftTracker = () => {
         {/* Floating Action Button */}
         <FloatingActionButton onClick={() => setIsAddPersonOpen(true)} />
 
-        {/* Compact Table */}
-        <div className="rounded-lg border bg-card overflow-hidden shadow-sm">
-          <Table>
+        {/* Main Content Area with Alphabet Index */}
+        <div className="flex gap-4">
+          {/* Alphabet Index - Desktop Only */}
+          {sortedAndFilteredPeople.length > 10 && (
+            <div className="hidden xl:block">
+              <div className="sticky top-4">
+                <AlphabetIndex
+                  people={sortedAndFilteredPeople}
+                  onLetterClick={scrollToLetter}
+                  className="w-8"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Compact Table */}
+          <div className="flex-1 rounded-lg border bg-card overflow-hidden shadow-sm" ref={tableRef}>
+            <Table>
             <TableHeader className="bg-muted/50">
               <TableRow className="border-b">
                 <TableHead className="w-10 p-2">
@@ -512,7 +576,19 @@ const GiftTracker = () => {
                 
                 return (
                   <React.Fragment key={person.id}>
-                    <TableRow className={`hover:bg-muted/50 border-b border-border/50 ${person.completed ? 'bg-accent/20' : ''}`}>
+                    <PersonContextMenu
+                      onAddGift={() => setQuickAddGift({ personId: person.id, isOpen: true })}
+                      onEditNotes={() => {/* TODO: Open notes edit */}}
+                      onEditAssignment={() => {/* TODO: Open assignment edit */}}
+                      onMarkAllPurchased={() => markAllPurchased(person.id)}
+                      onMarkAllWrapped={() => markAllWrapped(person.id)}
+                      onDeletePerson={() => {/* TODO: Delete person */}}
+                      hasGifts={person.gifts.length > 0}
+                    >
+                      <TableRow 
+                        data-person-id={person.id}
+                        className={`hover:bg-muted/50 border-b border-border/50 cursor-pointer ${person.completed ? 'bg-accent/20' : ''}`}
+                      >
                       <TableCell className="p-2">
                         <Button
                           variant="ghost"
@@ -531,7 +607,10 @@ const GiftTracker = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleCompletionChange(person, !person.completed)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCompletionChange(person, !person.completed);
+                                  }}
                                   className={`h-5 w-5 p-0 ${person.completed 
                                     ? "text-christmas-green hover:text-christmas-green/80" 
                                     : "text-muted-foreground hover:text-foreground"
@@ -545,12 +624,23 @@ const GiftTracker = () => {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          <span className={`font-semibold text-base ${person.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                            {person.name}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {stats.total} gifts • {stats.purchased} purchased • {stats.wrapped} wrapped
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-semibold text-base ${person.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                {person.name}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                              <span>{stats.total} gifts • {stats.purchased} purchased • {stats.wrapped} wrapped</span>
+                            </div>
+                            {/* Notes Preview */}
+                            <GiftNotes
+                              notes={person.notes}
+                              onNotesChange={(notes) => updatePersonNotes(person.id, notes)}
+                              personName={person.name}
+                              className="mt-1"
+                            />
+                          </div>
                         </div>
                       </TableCell>
                       {buyers.length > 1 && (
@@ -583,13 +673,17 @@ const GiftTracker = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setQuickAddGift({ personId: person.id, isOpen: true })}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickAddGift({ personId: person.id, isOpen: true });
+                          }}
                           className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
                         >
                           <Plus className="w-4 h-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
+                    </PersonContextMenu>
                     
                     {/* Expanded Gift Details */}
                     {isExpanded && (
@@ -601,42 +695,27 @@ const GiftTracker = () => {
                               {person.gifts.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">No gifts added yet</p>
                               ) : (
-                                <div className="space-y-2">
-                                  {person.gifts.map((gift) => (
-                                    <div key={gift.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                                      <div className="flex items-center gap-3">
-                                        <div className="flex gap-1">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => updateGiftStatus(person.id, gift.id, 'purchased', !gift.purchased)}
-                                            className={`h-6 w-6 p-0 ${gift.purchased ? 'text-christmas-green' : 'text-muted-foreground'}`}
-                                          >
-                                            {gift.purchased ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => updateGiftStatus(person.id, gift.id, 'wrapped', !gift.wrapped)}
-                                            className={`h-6 w-6 p-0 ${gift.wrapped ? 'text-christmas-red' : 'text-muted-foreground'}`}
-                                          >
-                                            <Package className="w-4 h-4" />
-                                          </Button>
-                                        </div>
-                                        <div>
-                                          <span className={`text-sm font-medium ${gift.purchased ? 'line-through text-muted-foreground' : ''}`}>
-                                            {gift.name}
-                                          </span>
-                                          {gift.cost !== null && (
-                                            <span className="text-xs text-muted-foreground ml-2">
-                                              {formatCurrency(gift.cost, currency)}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+                                 <div className="space-y-2">
+                                   {person.gifts.map((gift) => (
+                                     <GiftContextMenu
+                                       key={gift.id}
+                                       gift={gift}
+                                       onEdit={() => {/* TODO: Edit gift */}}
+                                       onTogglePurchased={() => updateGiftStatus(person.id, gift.id, 'purchased', !gift.purchased)}
+                                       onToggleWrapped={() => updateGiftStatus(person.id, gift.id, 'wrapped', !gift.wrapped)}
+                                       onDelete={() => deleteGift(person.id, gift.id)}
+                                       onDuplicate={() => duplicateGift(person.id, gift)}
+                                     >
+                                       <SwipeableGiftItem
+                                         gift={gift}
+                                         currency={currency}
+                                         onUpdate={(field, value) => updateGiftStatus(person.id, gift.id, field, value)}
+                                         onDelete={() => deleteGift(person.id, gift.id)}
+                                         onEdit={() => {/* TODO: Edit gift */}}
+                                       />
+                                     </GiftContextMenu>
+                                   ))}
+                                 </div>
                               )}
                             </div>
                           </div>
@@ -647,7 +726,8 @@ const GiftTracker = () => {
                 );
               })}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </div>
 
         {/* Quick Add Gift Sheet */}
