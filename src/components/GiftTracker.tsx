@@ -720,14 +720,14 @@ const GiftTracker = () => {
                       {buyers.length > 1 && (
                         <TableCell className="hidden md:table-cell p-2 sm:p-4">
                           <Select 
-                            value={person.assignedTo || ""} 
-                            onValueChange={(value) => updateAssignment(person.id, value || null)}
+                            value={person.assignedTo || "unassigned"} 
+                            onValueChange={(value) => updateAssignment(person.id, value === "unassigned" ? null : value)}
                           >
                             <SelectTrigger className="w-full min-w-[140px]">
                               <SelectValue placeholder="Assign to..." />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Unassigned</SelectItem>
+                              <SelectItem value="unassigned">Unassigned</SelectItem>
                               {buyers.map((buyer) => (
                                 <SelectItem key={buyer} value={buyer}>
                                   {buyer}
@@ -798,14 +798,14 @@ const GiftTracker = () => {
                                     Assigned To
                                   </label>
                                   <Select 
-                                    value={person.assignedTo || ""} 
-                                    onValueChange={(value) => updateAssignment(person.id, value || null)}
+                                    value={person.assignedTo || "unassigned"} 
+                                    onValueChange={(value) => updateAssignment(person.id, value === "unassigned" ? null : value)}
                                   >
                                     <SelectTrigger className="w-full">
                                       <SelectValue placeholder="Assign to..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="">Unassigned</SelectItem>
+                                      <SelectItem value="unassigned">Unassigned</SelectItem>
                                       {buyers.map((buyer) => (
                                         <SelectItem key={buyer} value={buyer}>
                                           {buyer}
@@ -931,22 +931,23 @@ const GiftTracker = () => {
                                          <CollapsibleContent className="mt-2">
                                            <div className="space-y-2 pl-4">
                                              <div className="flex gap-2">
-                                               <Select 
-                                                 value={gift.carrier || ''} 
-                                                 onValueChange={(value) => updateGiftTracking(person.id, gift.id, 'carrier', value)}
-                                               >
-                                                 <SelectTrigger className="w-24 h-8 text-xs">
-                                                   <SelectValue placeholder="Carrier" />
-                                                 </SelectTrigger>
-                                                 <SelectContent>
-                                                   <SelectItem value="UPS">UPS</SelectItem>
-                                                   <SelectItem value="FedEx">FedEx</SelectItem>
-                                                   <SelectItem value="USPS">USPS</SelectItem>
-                                                   <SelectItem value="Amazon">Amazon</SelectItem>
-                                                   <SelectItem value="DHL">DHL</SelectItem>
-                                                   <SelectItem value="Other">Other</SelectItem>
-                                                 </SelectContent>
-                                               </Select>
+                                                <Select 
+                                                  value={gift.carrier || 'none'} 
+                                                  onValueChange={(value) => updateGiftTracking(person.id, gift.id, 'carrier', value === 'none' ? undefined : value)}
+                                                >
+                                                  <SelectTrigger className="w-24 h-8 text-xs">
+                                                    <SelectValue placeholder="Carrier" />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    <SelectItem value="none">None</SelectItem>
+                                                    <SelectItem value="UPS">UPS</SelectItem>
+                                                    <SelectItem value="FedEx">FedEx</SelectItem>
+                                                    <SelectItem value="USPS">USPS</SelectItem>
+                                                    <SelectItem value="Amazon">Amazon</SelectItem>
+                                                    <SelectItem value="DHL">DHL</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
+                                                  </SelectContent>
+                                                </Select>
                                                <Input
                                                  placeholder="Tracking number"
                                                  value={gift.trackingNumber || ''}
