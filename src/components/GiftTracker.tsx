@@ -929,8 +929,8 @@ const GiftTracker = () => {
                                   
                                   {editingRecipient?.personId === person.id && editingRecipient.field === 'assignment' ? (
                                     <Select
-                                      value={editingRecipient.value}
-                                      onValueChange={(value) => setEditingRecipient({ ...editingRecipient, value })}
+                                       value={typeof editingRecipient.value === 'string' ? editingRecipient.value : 'unassigned'}
+                                       onValueChange={(value) => setEditingRecipient({ ...editingRecipient, value })}
                                     >
                                       <SelectTrigger className="w-full">
                                         <SelectValue />
