@@ -25,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { GiftForm } from './GiftForm';
 
 // Force rebuild to clear cached Popover references
 
@@ -67,7 +68,7 @@ const GiftTracker = () => {
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
-  const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string } | null>(null);
+  const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string; gift?: Gift } | null>(null);
   const [giftForm, setGiftForm] = useState({ name: '', cost: '' });
   const [isLoaded, setIsLoaded] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -90,7 +91,7 @@ const GiftTracker = () => {
     person: Person | null;
     incompleteParts: { purchased: number; wrapped: number };
   }>({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
-  const [quickAddGift, setQuickAddGift] = useState<{ personId: string; isOpen: boolean } | null>(null);
+  
   const [editingRecipient, setEditingRecipient] = useState<{
     personId: string;
     field: 'assignment' | 'notes';
@@ -205,15 +206,15 @@ const GiftTracker = () => {
     setTimeout(() => setHighlightedItems(new Set()), 3000);
   };
 
-  const addGift = (personId: string) => {
-    if (!giftForm.name.trim()) return;
+  const addGift = (personId: string, giftData: { name: string; cost: string }) => {
+    if (!giftData.name.trim()) return;
     
-    const parsedCost = giftForm.cost.trim() === '' ? null : parseFloat(giftForm.cost);
+    const parsedCost = giftData.cost.trim() === '' ? null : parseFloat(giftData.cost);
     const cost = isNaN(parsedCost as number) ? null : parsedCost;
     
     const newGift: Gift = {
       id: Date.now().toString(),
-      name: giftForm.name.trim(),
+      name: giftData.name.trim(),
       cost,
       purchased: false,
       wrapped: false
@@ -225,18 +226,51 @@ const GiftTracker = () => {
         : person
     ));
     
-    setGiftForm({ name: '', cost: '' });
     setEditingGift(null);
     setUnsavedChanges(false);
     
     // Show success toast
     toast({
       title: "Gift added!",
-      description: `${giftForm.name.trim()} has been added to the list.`,
+      description: `${giftData.name.trim()} has been added to the list.`,
     });
     
     // Highlight the new gift
     const highlightId = `gift-${newGift.id}`;
+    setHighlightedItems(new Set([highlightId]));
+    setTimeout(() => setHighlightedItems(new Set()), 3000);
+  };
+
+  const updateGift = (personId: string, giftId: string, giftData: { name: string; cost: string }) => {
+    if (!giftData.name.trim()) return;
+    
+    const parsedCost = giftData.cost.trim() === '' ? null : parseFloat(giftData.cost);
+    const cost = isNaN(parsedCost as number) ? null : parsedCost;
+    
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? {
+            ...person,
+            gifts: person.gifts.map(gift => 
+              gift.id === giftId 
+                ? { ...gift, name: giftData.name.trim(), cost }
+                : gift
+            )
+          }
+        : person
+    ));
+    
+    setEditingGift(null);
+    setUnsavedChanges(false);
+    
+    // Show success toast
+    toast({
+      title: "Gift updated!",
+      description: `${giftData.name.trim()} has been updated.`,
+    });
+    
+    // Highlight the updated gift
+    const highlightId = `gift-${giftId}`;
     setHighlightedItems(new Set([highlightId]));
     setTimeout(() => setHighlightedItems(new Set()), 3000);
   };
@@ -687,7 +721,7 @@ const GiftTracker = () => {
                 return (
                   <React.Fragment key={person.id}>
                     <PersonContextMenu
-                      onAddGift={() => setQuickAddGift({ personId: person.id, isOpen: true })}
+                      onAddGift={() => setEditingGift({ personId: person.id })}
                       onEditNotes={() => {/* TODO: Open notes edit */}}
                       onEditAssignment={() => {/* TODO: Open assignment edit */}}
                       onMarkAllPurchased={() => markAllPurchased(person.id)}
@@ -794,7 +828,7 @@ const GiftTracker = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setQuickAddGift({ personId: person.id, isOpen: true });
+                            setEditingGift({ personId: person.id });
                           }}
                           className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
                         >
@@ -819,7 +853,7 @@ const GiftTracker = () => {
                                      <GiftContextMenu
                                        key={gift.id}
                                        gift={gift}
-                                       onEdit={() => {/* TODO: Edit gift */}}
+                                        onEdit={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
                                        onTogglePurchased={() => updateGiftStatus(person.id, gift.id, 'purchased', !gift.purchased)}
                                        onToggleWrapped={() => updateGiftStatus(person.id, gift.id, 'wrapped', !gift.wrapped)}
                                        onDelete={() => deleteGift(person.id, gift.id)}
@@ -831,7 +865,7 @@ const GiftTracker = () => {
                                             currency={currency}
                                             onUpdate={(field, value) => updateGiftStatus(person.id, gift.id, field, value)}
                                             onDelete={() => deleteGift(person.id, gift.id)}
-                                            onEdit={() => {/* TODO: Edit gift */}}
+                                            onEdit={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
                                           />
                                         </div>
                                      </GiftContextMenu>
@@ -851,140 +885,31 @@ const GiftTracker = () => {
           </div>
         </div>
 
-        {/* Quick Add Gift Sheet */}
-        {quickAddGift && (
-          <Sheet open={quickAddGift.isOpen} onOpenChange={(open) => !open && setQuickAddGift(null)}>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Quick Add Gift</SheetTitle>
-              </SheetHeader>
-              <QuickAddGiftForm
-                personId={quickAddGift.personId}
-                  onSubmit={(name, cost) => {
-                    const person = people.find(p => p.id === quickAddGift.personId);
-                    if (person) {
-                      const parsedCost = cost.trim() === '' ? null : parseFloat(cost);
-                      const finalCost = isNaN(parsedCost as number) ? null : parsedCost;
-                      
-                      const newGift: Gift = {
-                        id: Date.now().toString(),
-                        name: name.trim(),
-                        cost: finalCost,
-                        purchased: false,
-                        wrapped: false
-                      };
-                      
-                      setPeople(people.map(p => 
-                        p.id === quickAddGift.personId 
-                          ? { ...p, gifts: [...p.gifts, newGift] }
-                          : p
-                      ));
-                      
-                      // Show success toast
-                      toast({
-                        title: "Gift added!",
-                        description: `${name.trim()} has been added to the list.`,
-                      });
-                      
-                      // Highlight the new gift
-                      const highlightId = `gift-${newGift.id}`;
-                      setHighlightedItems(new Set([highlightId]));
-                      setTimeout(() => setHighlightedItems(new Set()), 3000);
-                    }
-                    setQuickAddGift(null);
-                  }}
-                onCancel={() => setQuickAddGift(null)}
-                currency={currency}
-              />
-            </SheetContent>
-          </Sheet>
+
+        {/* Gift Form for Add/Edit */}
+        {editingGift && (
+          <GiftForm
+            isOpen={true}
+            onClose={() => setEditingGift(null)}
+            onSubmit={(giftData) => {
+              if (editingGift.giftId) {
+                // Edit existing gift
+                updateGift(editingGift.personId, editingGift.giftId, giftData);
+              } else {
+                // Add new gift
+                addGift(editingGift.personId, giftData);
+              }
+            }}
+            personName={people.find(p => p.id === editingGift.personId)?.name || ''}
+            currency={currency}
+            editingGift={editingGift.gift}
+            mode={editingGift.giftId ? 'edit' : 'add'}
+          />
         )}
       </div>
     </div>
   );
 };
 
-// Quick Add Gift Form Component
-const QuickAddGiftForm: React.FC<{
-  personId: string;
-  onSubmit: (name: string, cost: string) => void;
-  onCancel: () => void;
-  currency: string;
-}> = ({ onSubmit, onCancel, currency }) => {
-  const [giftName, setGiftName] = useState('');
-  const [giftCost, setGiftCost] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (giftName.trim()) {
-      onSubmit(giftName, giftCost);
-      // Reset form
-      setGiftName('');
-      setGiftCost('');
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSubmit(e);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-      <div className="space-y-2">
-        <label htmlFor="giftName" className="text-sm font-medium">
-          Gift Name *
-        </label>
-        <Input
-          id="giftName"
-          placeholder="Enter gift name"
-          value={giftName}
-          onChange={(e) => setGiftName(e.target.value)}
-          onKeyDown={handleKeyDown}
-          autoFocus
-        />
-      </div>
-      <div className="space-y-2">
-        <label htmlFor="giftCost" className="text-sm font-medium">
-          Cost ({currency}) - Optional
-        </label>
-        <Input
-          id="giftCost"
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          value={giftCost}
-          onChange={(e) => setGiftCost(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-      </div>
-      <div className="flex flex-col gap-3 pt-4 border-t mt-6">
-        <RippleButton 
-          type="submit" 
-          className="w-full h-11"
-          disabled={!giftName.trim()}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Save Gift
-        </RippleButton>
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => {
-            if ((giftName.trim() || giftCost.trim()) && window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
-              onCancel();
-            } else if (!giftName.trim() && !giftCost.trim()) {
-              onCancel();
-            }
-          }}
-          className="w-full"
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
-  );
-};
 
 export default GiftTracker;

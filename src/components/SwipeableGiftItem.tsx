@@ -143,6 +143,16 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
     }
   }, [showActions]);
 
+  const handleContentClick = (e: React.MouseEvent) => {
+    // Prevent click when swiping or if target is a checkbox
+    if (isDragging || Math.abs(swipeOffset) > 5) return;
+    if ((e.target as HTMLElement).closest('[role="checkbox"]')) return;
+    if ((e.target as HTMLElement).closest('button')) return;
+    
+    haptic.tap();
+    onEdit();
+  };
+
   return (
     <div className="relative overflow-hidden rounded-lg border bg-card">
       {/* Background action indicators */}
@@ -213,8 +223,11 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
               </div>
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+            <div 
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={handleContentClick}
+            >
+              <div className="flex items-center gap-2 p-2 rounded transition-colors hover:bg-muted/50">
                 <span className={`font-medium ${gift.purchased ? 'line-through text-muted-foreground' : ''}`}>
                   {gift.name}
                 </span>
@@ -222,7 +235,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                 {gift.wrapped && <Package className="h-4 w-4 text-blue-600" />}
               </div>
               {gift.cost !== null && (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground px-2">
                   {formatCurrency(gift.cost, currency)}
                 </div>
               )}
@@ -236,7 +249,10 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={onEdit}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
               className="h-8 w-8 p-0"
             >
               <Edit2 className="h-4 w-4" />
@@ -244,7 +260,10 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={onDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
