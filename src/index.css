@@ -138,4 +138,22 @@ All colors MUST be HSL.
   .quick-action-btn {
     @apply transition-colors duration-200 hover:scale-105 active:scale-95;
   }
+
+  /* Gift list animations and visual polish */
+  .gift-card-enter {
+    @apply animate-fade-in;
+  }
+
+  .gift-status-button {
+    @apply transition-all duration-200 hover:scale-105;
+  }
+
+  /* Enhanced status indicators */
+  .status-complete {
+    @apply bg-success/5 border-success/20 opacity-75;
+  }
+
+  .status-indicator {
+    @apply transition-all duration-200;
+  }
 }

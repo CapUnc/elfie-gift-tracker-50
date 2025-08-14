@@ -9,6 +9,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 
+interface Buyer {
+  id: string;
+  name: string;
+  emoji: string;
+}
+
 interface Person {
   id: string;
   name: string;
@@ -19,8 +25,12 @@ interface Person {
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [buyers, setBuyers] = useState<string[]>(['Matt', 'Maddie']);
+  const [buyers, setBuyers] = useState<Buyer[]>([
+    { id: '1', name: 'Matt', emoji: '👨' },
+    { id: '2', name: 'Maddie', emoji: '👩' }
+  ]);
   const [newBuyer, setNewBuyer] = useState('');
+  const [newBuyerEmoji, setNewBuyerEmoji] = useState('👤');
   const [bulkNames, setBulkNames] = useState('');
   const [people, setPeople] = useState<Person[]>([]);
   const [deletingPerson, setDeletingPerson] = useState<Person | null>(null);
@@ -30,7 +40,19 @@ const Settings = () => {
   useEffect(() => {
     const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
     if (savedBuyers) {
-      setBuyers(JSON.parse(savedBuyers));
+      const parsed = JSON.parse(savedBuyers);
+      // Handle migration from old string array format
+      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+        const migratedBuyers = parsed.map((name: string, index: number) => ({
+          id: (index + 1).toString(),
+          name,
+          emoji: index === 0 ? '👨' : '👩'
+        }));
+        setBuyers(migratedBuyers);
+        localStorage.setItem('christmas-gifts-buyers', JSON.stringify(migratedBuyers));
+      } else {
+        setBuyers(parsed);
+      }
     }
   }, []);
 
@@ -61,17 +83,26 @@ const Settings = () => {
   }, [currency]);
 
   const addBuyer = () => {
-    if (!newBuyer.trim() || buyers.includes(newBuyer.trim())) return;
-    setBuyers([...buyers, newBuyer.trim()]);
+    if (!newBuyer.trim() || buyers.some(buyer => buyer.name === newBuyer.trim())) return;
+    const newBuyerObj: Buyer = {
+      id: Date.now().toString(),
+      name: newBuyer.trim(),
+      emoji: newBuyerEmoji
+    };
+    setBuyers([...buyers, newBuyerObj]);
     setNewBuyer('');
+    setNewBuyerEmoji('👤');
   };
 
-  const removeBuyer = (buyerToRemove: string) => {
-    setBuyers(buyers.filter(buyer => buyer !== buyerToRemove));
+  const removeBuyer = (buyerIdToRemove: string) => {
+    const buyerToRemove = buyers.find(buyer => buyer.id === buyerIdToRemove);
+    if (!buyerToRemove) return;
+    
+    setBuyers(buyers.filter(buyer => buyer.id !== buyerIdToRemove));
     
     // Clean up assignments for people assigned to the deleted buyer
     const updatedPeople = people.map(person => 
-      person.assignedTo === buyerToRemove 
+      person.assignedTo === buyerToRemove.name 
         ? { ...person, assignedTo: null }
         : person
     );
@@ -292,15 +323,16 @@ const Settings = () => {
                 <div className="flex flex-wrap gap-2 mb-4">
                   {buyers.map((buyer) => (
                     <Badge
-                      key={buyer}
+                      key={buyer.id}
                       variant="secondary"
                       className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 text-xs sm:text-sm"
                     >
-                      <span className="truncate max-w-[120px] sm:max-w-none">{buyer}</span>
+                      <span className="text-base">{buyer.emoji}</span>
+                      <span className="truncate max-w-[120px] sm:max-w-none">{buyer.name}</span>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeBuyer(buyer)}
+                        onClick={() => removeBuyer(buyer.id)}
                         className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
                       >
                         <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
@@ -310,20 +342,44 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <label className="text-sm font-medium text-muted-foreground">
                   Add New Buyer
                 </label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Buyer name"
-                    value={newBuyer}
-                    onChange={(e) => setNewBuyer(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addBuyer()}
-                  />
-                  <Button onClick={addBuyer} className="min-h-[44px] sm:min-h-auto">
-                    <Plus className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">
+                      Choose Emoji/Avatar
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'].map((emoji) => (
+                        <Button
+                          key={emoji}
+                          variant={newBuyerEmoji === emoji ? "default" : "outline"}
+                          size="sm"
+                          className="h-10 w-10 p-0 text-lg"
+                          onClick={() => setNewBuyerEmoji(emoji)}
+                        >
+                          {emoji}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-2 border rounded-md px-3 py-2 flex-1">
+                      <span className="text-lg">{newBuyerEmoji}</span>
+                      <Input
+                        placeholder="Buyer name"
+                        value={newBuyer}
+                        onChange={(e) => setNewBuyer(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addBuyer()}
+                        className="border-0 p-0 focus-visible:ring-0 flex-1"
+                      />
+                    </div>
+                    <Button onClick={addBuyer} className="min-h-[44px] sm:min-h-auto">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
