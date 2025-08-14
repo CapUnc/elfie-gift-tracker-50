@@ -135,7 +135,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <SheetContent 
         side="bottom" 
-        className="h-[80vh] sm:h-auto sm:max-w-md sm:rounded-t-lg"
+        className="max-h-[calc(100vh-env(keyboard-inset-height,0px))] h-auto min-h-[60vh] sm:h-auto sm:max-w-md sm:rounded-t-lg flex flex-col"
       >
         <SheetHeader className="pb-4">
           <SheetTitle className="text-left">{title}</SheetTitle>
