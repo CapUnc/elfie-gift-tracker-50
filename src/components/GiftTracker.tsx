@@ -193,13 +193,43 @@ const GiftTracker = () => {
     ));
   };
 
-  const updateGiftTracking = (personId: string, giftId: string, field: 'trackingNumber' | 'carrier', value: string) => {
+  const updateGiftTracking = (personId: string, giftId: string, trackingNumber?: string, carrier?: string) => {
     setPeople(people.map(person => 
       person.id === personId 
         ? {
             ...person,
             gifts: person.gifts.map(gift => 
-              gift.id === giftId ? { ...gift, [field]: value } : gift
+              gift.id === giftId ? { 
+                ...gift, 
+                ...(trackingNumber !== undefined && { trackingNumber }),
+                ...(carrier !== undefined && { carrier })
+              } : gift
+            )
+          }
+        : person
+    ));
+  };
+
+  const updateGiftName = (personId: string, giftId: string, name: string) => {
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? {
+            ...person,
+            gifts: person.gifts.map(gift => 
+              gift.id === giftId ? { ...gift, name } : gift
+            )
+          }
+        : person
+    ));
+  };
+
+  const updateGiftCost = (personId: string, giftId: string, cost: number | null) => {
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? {
+            ...person,
+            gifts: person.gifts.map(gift => 
+              gift.id === giftId ? { ...gift, cost } : gift
             )
           }
         : person
@@ -216,7 +246,7 @@ const GiftTracker = () => {
     setExpandedTracking(newExpanded);
   };
 
-  const getTrackingUrl = (carrier: string, trackingNumber: string) => {
+  const getTrackingUrl = (trackingNumber: string, carrier: string) => {
     const trackingUrls: { [key: string]: string } = {
       'UPS': `https://www.ups.com/track?loc=en_US&tracknum=${trackingNumber}`,
       'FedEx': `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`,
@@ -305,10 +335,10 @@ const GiftTracker = () => {
     return gifts.filter(gift => gift.cost === null).length;
   };
 
-  const getCompletionStats = (gifts: Gift[]) => {
-    const purchased = gifts.filter(g => g.purchased).length;
-    const wrapped = gifts.filter(g => g.wrapped).length;
-    return { purchased, wrapped, total: gifts.length };
+  const getCompletionStats = (person: Person) => {
+    const purchased = person.gifts.filter(g => g.purchased).length;
+    const wrapped = person.gifts.filter(g => g.wrapped).length;
+    return { purchased, wrapped, total: person.gifts.length };
   };
 
   const toggleRow = (personId: string) => {
@@ -368,7 +398,7 @@ const GiftTracker = () => {
 
     // Filter by completion
     if (filters.completion !== 'all') {
-      const stats = getCompletionStats(person.gifts);
+      const stats = getCompletionStats(person);
       const isCompleted = stats.total > 0 && stats.purchased === stats.total;
       if (filters.completion === 'completed' && !isCompleted) return false;
       if (filters.completion === 'incomplete' && isCompleted) return false;
@@ -376,7 +406,7 @@ const GiftTracker = () => {
 
     // Filter by wrapping
     if (filters.wrapping !== 'all') {
-      const stats = getCompletionStats(person.gifts);
+      const stats = getCompletionStats(person);
       const needsWrapping = stats.total > 0 && stats.wrapped < stats.total;
       const allWrapped = stats.total > 0 && stats.wrapped === stats.total;
       
@@ -403,8 +433,8 @@ const GiftTracker = () => {
           const bCost = getTotalCost(b.gifts);
           return direction * (aCost - bCost);
         case 'progress':
-          const aStats = getCompletionStats(a.gifts);
-          const bStats = getCompletionStats(b.gifts);
+          const aStats = getCompletionStats(a);
+          const bStats = getCompletionStats(b);
           const aProgress = aStats.total > 0 ? aStats.purchased / aStats.total : 0;
           const bProgress = bStats.total > 0 ? bStats.purchased / bStats.total : 0;
           return direction * (aProgress - bProgress);
@@ -425,10 +455,11 @@ const GiftTracker = () => {
             <Gift className="text-christmas-green" />
           </h1>
           <p className="text-muted-foreground">Keep track of all your holiday gift planning</p>
-          <div className="flex gap-4 justify-center mt-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center mt-4">
             <Button
               variant="outline"
               onClick={() => navigate('/')}
+              className="min-h-[44px] sm:min-h-auto"
             >
               <Home className="w-4 h-4 mr-2" />
               Summary
@@ -436,6 +467,7 @@ const GiftTracker = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/settings')}
+              className="min-h-[44px] sm:min-h-auto"
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
@@ -443,12 +475,12 @@ const GiftTracker = () => {
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-wrap gap-4 mb-6">
+          {/* Controls */}
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 mb-6">
           {/* Add Person Button */}
           <Dialog open={isAddPersonOpen} onOpenChange={setIsAddPersonOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-festive hover:opacity-90 text-white shadow-festive">
+              <Button className="bg-gradient-festive hover:opacity-90 text-white shadow-festive w-full sm:w-auto min-h-[44px] sm:min-h-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Person
               </Button>
@@ -477,7 +509,7 @@ const GiftTracker = () => {
                       </SelectContent>
                     </Select>
                 )}
-                <Button onClick={addPerson} className="w-full">
+                <Button onClick={addPerson} className="w-full min-h-[44px] sm:min-h-auto">
                   Add Person
                 </Button>
               </div>
@@ -487,7 +519,7 @@ const GiftTracker = () => {
           {/* Filter Controls */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="relative">
+              <Button variant="outline" size="sm" className="relative w-full sm:w-auto min-h-[44px] sm:min-h-auto">
                 <Filter className="w-4 h-4 mr-2" />
                 Filter
                 {getActiveFilterCount() > 0 && (
@@ -575,34 +607,38 @@ const GiftTracker = () => {
         </div>
 
         {/* Table */}
-        <div className="border rounded-lg bg-card">
+        <div className="rounded-md border bg-card overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12"></TableHead>
-                <TableHead>
+                <TableHead className="w-[40px] sm:w-[60px]">
+                  <span className="sr-only">Expand</span>
+                </TableHead>
+                <TableHead className="min-w-[120px]">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleSort('name')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                    className="h-auto p-0 font-semibold hover:bg-transparent text-left"
                   >
-                    Name {getSortIcon('name')}
+                    <span className="hidden sm:inline">Name</span>
+                    <span className="sm:hidden">Person</span>
+                    {getSortIcon('name')}
                   </Button>
                 </TableHead>
                 {buyers.length > 1 && (
-                  <TableHead>
+                  <TableHead className="hidden md:table-cell">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleSort('assignedTo')}
                       className="h-auto p-0 font-semibold hover:bg-transparent"
                     >
-                      Assigned {getSortIcon('assignedTo')}
+                      Assigned To {getSortIcon('assignedTo')}
                     </Button>
                   </TableHead>
                 )}
-                <TableHead>
+                <TableHead className="hidden sm:table-cell min-w-[100px]">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -612,30 +648,30 @@ const GiftTracker = () => {
                     Total Cost {getSortIcon('totalCost')}
                   </Button>
                 </TableHead>
-                <TableHead>
-                  <span className="font-semibold">Progress</span>
+                <TableHead className="min-w-[80px]">
+                  <span className="font-semibold hidden sm:inline">Progress</span>
+                  <span className="font-semibold sm:hidden">Status</span>
                 </TableHead>
-                <TableHead>
+                <TableHead className="hidden lg:table-cell">
                   <span className="font-semibold">Notes</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedAndFilteredPeople.map((person) => {
-                const stats = getCompletionStats(person.gifts);
-                const totalCost = getTotalCost(person.gifts);
+                const stats = getCompletionStats(person);
                 const isExpanded = expandedRows.has(person.id);
                 
                 return (
                   <React.Fragment key={person.id}>
                     <TableRow className="hover:bg-muted/50">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="p-2 sm:p-4">
+                        <div className="flex items-center gap-1 sm:gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleRow(person.id)}
-                            className="p-1"
+                            className="p-1 min-h-[44px] sm:min-h-auto"
                           >
                             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           </Button>
@@ -646,7 +682,7 @@ const GiftTracker = () => {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleCompletionChange(person, !person.completed)}
-                                  className={`h-8 w-8 ${person.completed 
+                                  className={`h-8 w-8 min-h-[44px] sm:min-h-auto ${person.completed 
                                     ? "text-christmas-green hover:text-christmas-green/80" 
                                     : "text-muted-foreground hover:text-foreground"
                                   }`}
@@ -661,69 +697,137 @@ const GiftTracker = () => {
                           </TooltipProvider>
                         </div>
                       </TableCell>
-                        <TableCell className="font-medium">
+                      <TableCell className="font-medium p-2 sm:p-4">
+                        <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className={person.completed ? "line-through text-muted-foreground" : ""}>{person.name}</span>
-                            {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green" />}
+                            <span className={`text-sm sm:text-base ${person.completed ? "line-through text-muted-foreground" : ""}`}>
+                              {person.name}
+                            </span>
+                            {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green flex-shrink-0" />}
                           </div>
-                        </TableCell>
+                          {/* Mobile-only assignment display */}
+                          {buyers.length > 1 && (
+                            <div className="md:hidden text-xs text-muted-foreground">
+                              {person.assignedTo ? `Assigned to: ${person.assignedTo}` : 'Unassigned'}
+                            </div>
+                          )}
+                          {/* Mobile-only cost display */}
+                          <div className="sm:hidden text-xs text-muted-foreground">
+                            {formatCurrency(getTotalCost(person.gifts), currency)}
+                          </div>
+                        </div>
+                      </TableCell>
                       {buyers.length > 1 && (
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell p-2 sm:p-4">
                           <Select 
-                            value={person.assignedTo === null ? 'unassigned' : person.assignedTo} 
-                            onValueChange={(value: string) => updateAssignment(person.id, value === 'unassigned' ? null : value)}
+                            value={person.assignedTo || ""} 
+                            onValueChange={(value) => updateAssignment(person.id, value || null)}
                           >
-                            <SelectTrigger className="w-32">
-                              <SelectValue placeholder="Assign to" />
+                            <SelectTrigger className="w-full min-w-[140px]">
+                              <SelectValue placeholder="Assign to..." />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="unassigned"></SelectItem>
-                              {buyers.map(buyer => (
-                                <SelectItem key={buyer} value={buyer}>{buyer}</SelectItem>
+                              <SelectItem value="">Unassigned</SelectItem>
+                              {buyers.map((buyer) => (
+                                <SelectItem key={buyer} value={buyer}>
+                                  {buyer}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </TableCell>
                       )}
-                       <TableCell>
-                         <div className="flex items-center gap-1">
-                           <DollarSign className="w-4 h-4 text-christmas-gold" />
-                           <span className="font-semibold text-christmas-gold">
-                             {formatCurrency(totalCost, currency)}
-                           </span>
-                           {getGiftsWithoutCost(person.gifts) > 0 && (
-                             <div title={`${getGiftsWithoutCost(person.gifts)} gift(s) without cost`}>
-                               <AlertCircle className="w-4 h-4 text-amber-500 ml-1" />
-                             </div>
-                           )}
-                         </div>
-                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            🛒 {stats.purchased}/{stats.total}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            🎁 {stats.wrapped}/{stats.total}
-                          </Badge>
+                      <TableCell className="hidden sm:table-cell p-2 sm:p-4">
+                        <div className="font-medium">
+                          {formatCurrency(getTotalCost(person.gifts), currency)}
                         </div>
                       </TableCell>
-                       <TableCell>
-                         <Textarea
-                           placeholder="Ideas, order numbers, links, gift notes, tracking info..."
-                           value={person.notes}
-                           onChange={(e) => updateNotes(person.id, e.target.value)}
-                           className="min-h-[40px] text-sm"
-                         />
-                       </TableCell>
+                      <TableCell className="p-2 sm:p-4">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap gap-1">
+                            <Badge variant="outline" className="text-xs">
+                              <span className="hidden sm:inline">Purchased: </span>
+                              <span className="sm:hidden">P: </span>
+                              {stats.purchased}/{stats.total}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              <span className="hidden sm:inline">Wrapped: </span>
+                              <span className="sm:hidden">W: </span>
+                              {stats.wrapped}/{stats.total}
+                            </Badge>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell p-2 sm:p-4">
+                        <div className="max-w-[200px]">
+                          <Textarea
+                            placeholder="Add notes..."
+                            value={person.notes}
+                            onChange={(e) => updateNotes(person.id, e.target.value)}
+                            className="min-h-[60px] text-sm resize-none"
+                          />
+                        </div>
+                      </TableCell>
                     </TableRow>
                     
                     {/* Expanded row content */}
                     {isExpanded && (
                       <TableRow>
-                        <TableCell colSpan={buyers.length > 1 ? 6 : 5} className="bg-muted/30">
-                          <div className="p-4 space-y-4">
-                            <h4 className="font-medium text-sm text-muted-foreground">Gifts for {person.name}</h4>
+                        <TableCell colSpan={6} className="bg-muted/30 p-2 sm:p-4">
+                          <div className="space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <h4 className="font-semibold flex items-center gap-2">
+                                <Gift className="w-4 h-4" />
+                                Gifts for {person.name}
+                              </h4>
+                              <Button
+                                onClick={() => setEditingGift({ personId: person.id })}
+                                size="sm"
+                                className="gap-2 w-full sm:w-auto min-h-[44px] sm:min-h-auto"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Add Gift
+                              </Button>
+                            </div>
+                            
+                            {/* Mobile: Assignment and Notes when hidden from main table */}
+                            <div className="space-y-3 lg:hidden">
+                              {buyers.length > 1 && (
+                                <div className="md:hidden">
+                                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                                    Assigned To
+                                  </label>
+                                  <Select 
+                                    value={person.assignedTo || ""} 
+                                    onValueChange={(value) => updateAssignment(person.id, value || null)}
+                                  >
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Assign to..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="">Unassigned</SelectItem>
+                                      {buyers.map((buyer) => (
+                                        <SelectItem key={buyer} value={buyer}>
+                                          {buyer}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                              
+                              <div className="lg:hidden">
+                                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                                  Notes
+                                </label>
+                                <Textarea
+                                  placeholder="Add notes..."
+                                  value={person.notes}
+                                  onChange={(e) => updateNotes(person.id, e.target.value)}
+                                  className="min-h-[60px] text-sm resize-none"
+                                />
+                              </div>
+                            </div>
                             
                             {/* Gifts List */}
                             <div className="space-y-3">
@@ -949,7 +1053,7 @@ const GiftTracker = () => {
             </p>
             <Button 
               onClick={() => setIsAddPersonOpen(true)}
-              className="bg-gradient-festive hover:opacity-90 text-white"
+              className="bg-gradient-festive hover:opacity-90 text-white min-h-[44px] sm:min-h-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Your First Person

@@ -138,10 +138,11 @@ const Summary = () => {
             <Gift className="text-christmas-green" />
           </h1>
           <p className="text-muted-foreground">Your holiday gift planning overview</p>
-          <div className="flex gap-4 justify-center mt-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center mt-4">
             <Button
               variant="outline"
               onClick={() => navigate('/gifts')}
+              className="min-h-[44px] sm:min-h-auto"
             >
               <Package className="w-4 h-4 mr-2" />
               Manage Gifts
@@ -149,6 +150,7 @@ const Summary = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/settings')}
+              className="min-h-[44px] sm:min-h-auto"
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
@@ -177,7 +179,7 @@ const Summary = () => {
         </Card>
 
         {/* Key Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total People</CardTitle>
@@ -224,7 +226,7 @@ const Summary = () => {
         </div>
 
         {/* Progress Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <Card>
             <CardHeader>
               <CardTitle>Shopping Completion</CardTitle>
@@ -278,14 +280,14 @@ const Summary = () => {
               <Users className="w-6 h-6" />
               Buyer Breakdown
             </h2>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-2">
               {buyerStats.map((buyer) => (
                 <Card key={buyer.name}>
                   <CardHeader>
                     <CardTitle className="text-lg">{buyer.name}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">People:</span>
                         <span className="ml-2 font-medium">{buyer.people}</span>
@@ -341,7 +343,7 @@ const Summary = () => {
               </p>
               <Button
                 onClick={() => navigate('/gifts')}
-                className="bg-gradient-festive hover:opacity-90 text-white shadow-festive"
+                className="bg-gradient-festive hover:opacity-90 text-white shadow-festive min-h-[44px] sm:min-h-auto"
               >
                 Get Started
               </Button>

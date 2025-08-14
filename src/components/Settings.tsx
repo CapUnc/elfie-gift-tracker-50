@@ -202,7 +202,7 @@ const Settings = () => {
                     rows={3}
                   />
                 </div>
-                <Button onClick={handleBulkAdd} className="w-full">
+                <Button onClick={handleBulkAdd} className="w-full min-h-[44px] sm:min-h-auto">
                   Add People
                 </Button>
                 <p className="text-xs text-muted-foreground">
@@ -218,20 +218,20 @@ const Settings = () => {
                     Current Recipients ({people.length} total)
                   </label>
                   {people.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-muted/30">
+                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto border rounded-md p-2 sm:p-3 bg-muted/30">
                       {people.map((person) => (
                         <Badge
                           key={person.id}
                           variant="secondary"
-                          className="flex items-center gap-2 px-3 py-1"
+                          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 text-xs sm:text-sm"
                         >
-                          {person.name}
+                          <span className="truncate max-w-[120px] sm:max-w-none">{person.name}</span>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-auto p-0 hover:bg-transparent"
+                                className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
                                 onClick={() => setDeletingPerson(person)}
                               >
                                 <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
@@ -294,14 +294,14 @@ const Settings = () => {
                     <Badge
                       key={buyer}
                       variant="secondary"
-                      className="flex items-center gap-2 px-3 py-1"
+                      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 text-xs sm:text-sm"
                     >
-                      {buyer}
+                      <span className="truncate max-w-[120px] sm:max-w-none">{buyer}</span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeBuyer(buyer)}
-                        className="h-auto p-0 hover:bg-transparent"
+                        className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
                       >
                         <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
                       </Button>
@@ -321,7 +321,7 @@ const Settings = () => {
                     onChange={(e) => setNewBuyer(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addBuyer()}
                   />
-                  <Button onClick={addBuyer}>
+                  <Button onClick={addBuyer} className="min-h-[44px] sm:min-h-auto">
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
