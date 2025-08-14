@@ -1094,13 +1094,12 @@ const GiftTracker = () => {
                                         </Collapsible>
                                       </div>
                                     )}
-                                  </div>
-                                );
-                              })}
-                              ))}
-                            </div>
+                                   </div>
+                                 );
+                               })}
+                             </div>
 
-                            {/* Add Gift */}
+                             {/* Add Gift */}
                             {editingGift?.personId === person.id ? (
                                <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
                                  <Input
@@ -1151,7 +1150,7 @@ const GiftTracker = () => {
                     )}
                   </React.Fragment>
                 );
-              })}
+                              })}
             </TableBody>
           </Table>
         </div>
