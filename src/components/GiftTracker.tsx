@@ -747,12 +747,12 @@ const GiftTracker = () => {
                           <div className="flex flex-wrap gap-1">
                             <Badge variant="outline" className="text-xs">
                               <span className="hidden sm:inline">Purchased: </span>
-                              <span className="sm:hidden">P: </span>
+                              <span className="sm:hidden">🛒 </span>
                               {stats.purchased}/{stats.total}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
                               <span className="hidden sm:inline">Wrapped: </span>
-                              <span className="sm:hidden">W: </span>
+                              <span className="sm:hidden">🎁 </span>
                               {stats.wrapped}/{stats.total}
                             </Badge>
                           </div>
