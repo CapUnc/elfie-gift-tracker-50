@@ -54,14 +54,14 @@ export const GiftNotes: React.FC<GiftNotesProps> = ({
             value={editingNotes}
             onChange={(e) => setEditingNotes(e.target.value)}
             placeholder={`Add notes for ${personName}...`}
-            className="min-h-20 text-sm resize-none"
+            className="min-h-16 text-sm resize-none border-muted-foreground/10"
             autoFocus
           />
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <Button
               size="sm"
               onClick={handleSave}
-              className="h-7 px-3"
+              className="h-6 px-2 text-xs"
             >
               <Save className="h-3 w-3 mr-1" />
               Save
@@ -70,7 +70,7 @@ export const GiftNotes: React.FC<GiftNotesProps> = ({
               variant="outline"
               size="sm"
               onClick={handleCancel}
-              className="h-7 px-3"
+              className="h-6 px-2 text-xs"
             >
               <X className="h-3 w-3 mr-1" />
               Cancel
@@ -80,18 +80,18 @@ export const GiftNotes: React.FC<GiftNotesProps> = ({
       ) : (
         <div 
           onClick={handleNotesClick}
-          className={`
-            bg-muted/30 border border-muted-foreground/20 rounded-lg p-3 cursor-pointer 
-            transition-all duration-200 hover:bg-muted/50 hover:border-muted-foreground/30
-            min-h-[44px] flex items-center gap-2
-          `}
+          className="
+            flex items-center gap-2 py-1 px-1 mt-2 cursor-pointer 
+            transition-all duration-200 hover:bg-muted/20 rounded
+            min-h-[20px]
+          "
         >
-          <StickyNote className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <div className="text-sm flex-1">
+          <StickyNote className="h-3 w-3 text-muted-foreground/60 flex-shrink-0" />
+          <div className="text-xs text-muted-foreground/80 flex-1 line-clamp-1">
             {hasNotes ? (
-              <span className="text-foreground">{notes}</span>
+              <span className="text-muted-foreground">{notes}</span>
             ) : (
-              <span className="text-muted-foreground italic">
+              <span className="italic">
                 Add a note for {personName}...
               </span>
             )}
