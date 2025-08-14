@@ -613,14 +613,7 @@ const GiftTracker = () => {
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleSort('progress')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent"
-                  >
-                    Progress {getSortIcon('progress')}
-                  </Button>
+                  <span className="font-semibold">Progress</span>
                 </TableHead>
                 <TableHead>
                   <span className="font-semibold">Notes</span>
@@ -637,39 +630,41 @@ const GiftTracker = () => {
                   <React.Fragment key={person.id}>
                     <TableRow className="hover:bg-muted/50">
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleRow(person.id)}
-                          className="p-1"
-                        >
-                          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleRow(person.id)}
+                            className="p-1"
+                          >
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleCompletionChange(person, !person.completed)}
+                                  className={`h-8 w-8 ${person.completed 
+                                    ? "text-christmas-green hover:text-christmas-green/80" 
+                                    : "text-muted-foreground hover:text-foreground"
+                                  }`}
+                                >
+                                  {person.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {person.completed ? "Mark as Incomplete" : "Mark as Complete"}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             <span className={person.completed ? "line-through text-muted-foreground" : ""}>{person.name}</span>
                             {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green" />}
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleCompletionChange(person, !person.completed)}
-                                    className={`ml-auto h-8 w-8 ${person.completed 
-                                      ? "text-christmas-green hover:text-christmas-green/80" 
-                                      : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                                  >
-                                    {person.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {person.completed ? "Mark as Incomplete" : "Mark as Complete"}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
                           </div>
                         </TableCell>
                       {buyers.length > 1 && (
