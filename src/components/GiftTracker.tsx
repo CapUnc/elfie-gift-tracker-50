@@ -810,7 +810,10 @@ const GiftTracker = () => {
                                    className="text-lg" 
                                    title={`Assigned to ${person.assignedTo}`}
                                  >
-                                   {buyers.find(b => b.name === person.assignedTo)?.emoji || '?'}
+                                    {(() => {
+                                      const buyer = buyers.find(b => b.name === person.assignedTo);
+                                      return buyer?.emoji || '?';
+                                    })()}
                                  </span>
                                ) : (
                                  'Unassigned'
@@ -945,7 +948,10 @@ const GiftTracker = () => {
                                     <div className="text-sm">
                                        {person.assignedTo ? (
                                          <span className="flex items-center gap-2">
-                                           {buyers.find(b => b.name === person.assignedTo)?.emoji || '?'} 
+                                            {(() => {
+                                              const buyer = buyers.find(b => b.name === person.assignedTo);
+                                              return buyer?.emoji || '?';
+                                            })()}
                                            {person.assignedTo}
                                          </span>
                                       ) : (
