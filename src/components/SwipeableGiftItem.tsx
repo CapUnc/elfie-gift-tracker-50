@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, ShoppingCart, Package, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { StatusToggle } from '@/components/ui/status-toggle';
 import { formatCurrency } from '@/lib/currency';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { cn } from '@/lib/utils';
@@ -198,7 +198,8 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
           <div className="flex items-center space-x-3 flex-1">
             <div className="flex space-x-2">
               <div className="touch-target flex items-center justify-center">
-                <Checkbox
+                <StatusToggle
+                  type="purchased"
                   checked={gift.purchased}
                   onCheckedChange={(checked) => {
                     haptic.success();
@@ -206,11 +207,12 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                     setTimeout(() => setIsHighlighted(false), 2000);
                     onUpdate('purchased', checked as boolean);
                   }}
-                  className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 gift-status-button"
+                  className="gift-status-button"
                 />
               </div>
               <div className="touch-target flex items-center justify-center">
-                <Checkbox
+                <StatusToggle
+                  type="wrapped"
                   checked={gift.wrapped}
                   onCheckedChange={(checked) => {
                     haptic.success();
@@ -218,7 +220,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                     setTimeout(() => setIsHighlighted(false), 2000);
                     onUpdate('wrapped', checked as boolean);
                   }}
-                  className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 gift-status-button"
+                  className="gift-status-button"
                 />
               </div>
             </div>
