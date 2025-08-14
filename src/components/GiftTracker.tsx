@@ -876,7 +876,7 @@ const GiftTracker = () => {
                                          </AvatarFallback>
                                        ) : (
                                          <AvatarFallback className="bg-muted hover:bg-muted/80 text-muted-foreground">
-                                           <Plus className="h-3 w-3" />
+                                           <Users className="h-3 w-3" />
                                          </AvatarFallback>
                                        )}
                                      </Avatar>
