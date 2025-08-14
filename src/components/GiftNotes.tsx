@@ -8,30 +8,40 @@ interface GiftNotesProps {
   onNotesChange: (notes: string) => void;
   personName: string;
   className?: string;
+  isEditing?: boolean;
+  onEditStart?: () => void;
+  onEditEnd?: () => void;
 }
 
 export const GiftNotes: React.FC<GiftNotesProps> = ({
   notes,
   onNotesChange,
   personName,
-  className = ""
+  className = "",
+  isEditing = false,
+  onEditStart,
+  onEditEnd
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
   const [editingNotes, setEditingNotes] = useState(notes);
+
+  // Update local state when notes prop changes
+  React.useEffect(() => {
+    setEditingNotes(notes);
+  }, [notes]);
 
   const handleSave = () => {
     onNotesChange(editingNotes);
-    setIsEditing(false);
+    onEditEnd?.();
   };
 
   const handleCancel = () => {
     setEditingNotes(notes);
-    setIsEditing(false);
+    onEditEnd?.();
   };
 
   const handleNotesClick = () => {
     setEditingNotes(notes);
-    setIsEditing(true);
+    onEditStart?.();
   };
 
   const hasNotes = notes.trim().length > 0;

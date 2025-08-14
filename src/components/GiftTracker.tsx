@@ -100,6 +100,7 @@ const GiftTracker = () => {
   const [lastExpandedRow, setLastExpandedRow] = useState<string | null>(null);
   const [highlightedItems, setHighlightedItems] = useState<Set<string>>(new Set());
   const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Initial data from spreadsheet
@@ -327,6 +328,11 @@ const GiftTracker = () => {
     const newExpanded = new Set(expandedRows);
     const isCurrentlyExpanded = newExpanded.has(personId);
     
+    // Close any open notes editing when expanding a different row
+    if (!isCurrentlyExpanded && editingNotes !== personId) {
+      setEditingNotes(null);
+    }
+    
     if (isCurrentlyExpanded) {
       // Collapsing: remove from expanded and scroll to person
       newExpanded.delete(personId);
@@ -349,6 +355,18 @@ const GiftTracker = () => {
     }
     
     setExpandedRows(newExpanded);
+  };
+
+  const handleNotesEditStart = (personId: string) => {
+    // Close any other notes editing and row expansion
+    setEditingNotes(personId);
+    // Optionally close expanded rows when editing notes
+    // setExpandedRows(new Set());
+    // setLastExpandedRow(null);
+  };
+
+  const handleNotesEditEnd = () => {
+    setEditingNotes(null);
   };
 
   // Sorting functions
@@ -792,6 +810,9 @@ const GiftTracker = () => {
                               onNotesChange={(notes) => updatePersonNotes(person.id, notes)}
                               personName={person.name}
                               className="mt-1"
+                              isEditing={editingNotes === person.id}
+                              onEditStart={() => handleNotesEditStart(person.id)}
+                              onEditEnd={handleNotesEditEnd}
                             />
                           </div>
                         </div>
