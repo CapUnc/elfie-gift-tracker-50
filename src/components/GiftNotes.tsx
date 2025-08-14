@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { StickyNote, Edit2, Save, X } from 'lucide-react';
+import { Save, X, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface GiftNotesProps {
   notes: string;
@@ -20,7 +18,6 @@ export const GiftNotes: React.FC<GiftNotesProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingNotes, setEditingNotes] = useState(notes);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleSave = () => {
     onNotesChange(editingNotes);
@@ -32,96 +29,65 @@ export const GiftNotes: React.FC<GiftNotesProps> = ({
     setIsEditing(false);
   };
 
-  const getNotesPreview = (text: string, maxLength: number = 50) => {
-    if (!text) return '';
-    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+  const handleNotesClick = () => {
+    setEditingNotes(notes);
+    setIsEditing(true);
   };
 
   const hasNotes = notes.trim().length > 0;
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      {/* Notes indicator and preview */}
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <div className="flex items-center gap-2">
-          {hasNotes && (
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 gap-1.5 text-xs"
-              >
-                <StickyNote className="h-3 w-3" />
-                {!isExpanded && getNotesPreview(notes, 30)}
-              </Button>
-            </CollapsibleTrigger>
-          )}
-          
-          {!isEditing && (
+    <div className={className}>
+      {isEditing ? (
+        <div className="space-y-2">
+          <Textarea
+            value={editingNotes}
+            onChange={(e) => setEditingNotes(e.target.value)}
+            placeholder={`Add notes for ${personName}...`}
+            className="min-h-20 text-sm resize-none"
+            autoFocus
+          />
+          <div className="flex gap-2">
             <Button
-              variant="ghost"
               size="sm"
-              onClick={() => {
-                setIsEditing(true);
-                setIsExpanded(true);
-              }}
-              className="h-6 w-6 p-0"
+              onClick={handleSave}
+              className="h-7 px-3"
             >
-              <Edit2 className="h-3 w-3" />
+              <Save className="h-3 w-3 mr-1" />
+              Save
             </Button>
-          )}
-          
-          {!hasNotes && !isEditing && (
-            <Badge 
-              variant="outline" 
-              className="text-xs cursor-pointer"
-              onClick={() => {
-                setIsEditing(true);
-                setIsExpanded(true);
-              }}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancel}
+              className="h-7 px-3"
             >
-              Add notes
-            </Badge>
-          )}
+              <X className="h-3 w-3 mr-1" />
+              Cancel
+            </Button>
+          </div>
         </div>
-
-        <CollapsibleContent className="space-y-2">
-          {isEditing ? (
-            <div className="space-y-2">
-              <Textarea
-                value={editingNotes}
-                onChange={(e) => setEditingNotes(e.target.value)}
-                placeholder={`Add notes for ${personName}...`}
-                className="min-h-20 text-sm"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  className="h-7 px-3"
-                >
-                  <Save className="h-3 w-3 mr-1" />
-                  Save
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancel}
-                  className="h-7 px-3"
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : hasNotes ? (
-            <div className="bg-muted/50 rounded-lg p-3">
-              <div className="text-sm whitespace-pre-wrap">{notes}</div>
-            </div>
-          ) : null}
-        </CollapsibleContent>
-      </Collapsible>
+      ) : (
+        <div 
+          onClick={handleNotesClick}
+          className={`
+            bg-muted/30 border border-muted-foreground/20 rounded-lg p-3 cursor-pointer 
+            transition-all duration-200 hover:bg-muted/50 hover:border-muted-foreground/30
+            min-h-[44px] flex items-center gap-2
+          `}
+        >
+          <StickyNote className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="text-sm flex-1">
+            {hasNotes ? (
+              <span className="text-foreground">{notes}</span>
+            ) : (
+              <span className="text-muted-foreground italic">
+                Add a note for {personName}...
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
