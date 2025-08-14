@@ -868,17 +868,19 @@ const GiftTracker = () => {
                                {/* Assignment Avatar */}
                                <Popover>
                                  <PopoverTrigger asChild>
-                                   <Avatar className="h-5 w-5 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
-                                     {person.assignedTo ? (
-                                       <AvatarFallback className="bg-primary/10 text-xs">
-                                         {buyers.find(b => b.name === person.assignedTo)?.emoji || '👤'}
-                                       </AvatarFallback>
-                                     ) : (
-                                       <AvatarFallback className="bg-muted hover:bg-muted/80 text-muted-foreground">
-                                         <Plus className="h-3 w-3" />
-                                       </AvatarFallback>
-                                     )}
-                                   </Avatar>
+                                   <button className="h-5 w-5 rounded-full cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all flex items-center justify-center">
+                                     <Avatar className="h-5 w-5">
+                                       {person.assignedTo ? (
+                                         <AvatarFallback className="bg-primary/10 text-xs">
+                                           {buyers.find(b => b.name === person.assignedTo)?.emoji || '👤'}
+                                         </AvatarFallback>
+                                       ) : (
+                                         <AvatarFallback className="bg-muted hover:bg-muted/80 text-muted-foreground">
+                                           <Plus className="h-3 w-3" />
+                                         </AvatarFallback>
+                                       )}
+                                     </Avatar>
+                                   </button>
                                  </PopoverTrigger>
                                  <PopoverContent className="w-48 p-2" align="start">
                                    <div className="space-y-1">
