@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -65,6 +66,7 @@ const GiftTracker = () => {
     person: Person | null;
     incompleteParts: { purchased: number; wrapped: number };
   }>({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
+  const [quickAddGift, setQuickAddGift] = useState<{ personId: string; isOpen: boolean } | null>(null);
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
@@ -169,6 +171,29 @@ const GiftTracker = () => {
     
     setGiftForm({ name: '', cost: '' });
     setEditingGift(null);
+  };
+
+  const quickAddGiftSubmit = (personId: string, name: string, cost: string) => {
+    if (!name.trim()) return;
+    
+    const parsedCost = cost.trim() === '' ? null : parseFloat(cost);
+    const finalCost = isNaN(parsedCost as number) ? null : parsedCost;
+    
+    const newGift: Gift = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      cost: finalCost,
+      purchased: false,
+      wrapped: false
+    };
+    
+    setPeople(people.map(person => 
+      person.id === personId 
+        ? { ...person, gifts: [...person.gifts, newGift] }
+        : person
+    ));
+    
+    setQuickAddGift(null);
   };
 
   const deleteGift = (personId: string, giftId: string) => {
@@ -591,16 +616,17 @@ const GiftTracker = () => {
                   </Select>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="showCompleted"
-                    checked={filters.showCompleted}
-                    onCheckedChange={(checked) => setFilters(prev => ({ ...prev, showCompleted: !!checked }))}
-                  />
-                  <label htmlFor="showCompleted" className="text-sm font-medium">
-                    Show completed recipients
-                  </label>
-                </div>
+                 <div className="flex items-center space-x-2">
+                   <Checkbox
+                     id="showCompleted"
+                     checked={filters.showCompleted}
+                     onCheckedChange={(checked) => setFilters(prev => ({ ...prev, showCompleted: !!checked }))}
+                     className="touch-target"
+                   />
+                   <label htmlFor="showCompleted" className="text-sm font-medium cursor-pointer touch-target">
+                     Show completed recipients
+                   </label>
+                 </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -667,26 +693,26 @@ const GiftTracker = () => {
                     <TableRow className="hover:bg-muted/50">
                       <TableCell className="p-2 sm:p-4">
                         <div className="flex items-center gap-1 sm:gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleRow(person.id)}
-                            className="p-1 min-h-[44px] sm:min-h-auto"
-                          >
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => toggleRow(person.id)}
+                             className="p-1 touch-target quick-action-btn"
+                           >
                             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           </Button>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleCompletionChange(person, !person.completed)}
-                                  className={`h-8 w-8 min-h-[44px] sm:min-h-auto ${person.completed 
-                                    ? "text-christmas-green hover:text-christmas-green/80" 
-                                    : "text-muted-foreground hover:text-foreground"
-                                  }`}
-                                >
+                                 <Button
+                                   variant="ghost"
+                                   size="icon"
+                                   onClick={() => handleCompletionChange(person, !person.completed)}
+                                   className={`h-8 w-8 touch-target quick-action-btn ${person.completed 
+                                     ? "text-christmas-green hover:text-christmas-green/80" 
+                                     : "text-muted-foreground hover:text-foreground"
+                                   }`}
+                                 >
                                   {person.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                                 </Button>
                               </TooltipTrigger>
@@ -697,14 +723,34 @@ const GiftTracker = () => {
                           </TooltipProvider>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium p-2 sm:p-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm sm:text-base ${person.completed ? "line-through text-muted-foreground" : ""}`}>
-                              {person.name}
-                            </span>
-                            {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green flex-shrink-0" />}
-                          </div>
+                       <TableCell className="font-medium p-2 sm:p-4">
+                         <div className="space-y-1">
+                           <div className="flex items-center justify-between gap-2">
+                             <div className="flex items-center gap-2">
+                               <span className={`text-sm sm:text-base ${person.completed ? "line-through text-muted-foreground" : ""}`}>
+                                 {person.name}
+                               </span>
+                               {person.completed && <CheckCircle className="w-4 h-4 text-christmas-green flex-shrink-0" />}
+                             </div>
+                             {/* Quick Add Gift Button */}
+                             <TooltipProvider>
+                               <Tooltip>
+                                 <TooltipTrigger asChild>
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={() => setQuickAddGift({ personId: person.id, isOpen: true })}
+                                     className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                   >
+                                     <PlusCircle className="w-4 h-4" />
+                                   </Button>
+                                 </TooltipTrigger>
+                                 <TooltipContent>
+                                   Quick Add Gift
+                                 </TooltipContent>
+                               </Tooltip>
+                             </TooltipProvider>
+                           </div>
                           {/* Mobile-only assignment display */}
                           {buyers.length > 1 && (
                             <div className="md:hidden text-xs text-muted-foreground">
@@ -770,21 +816,21 @@ const GiftTracker = () => {
                       </TableCell>
                     </TableRow>
                     
-                    {/* Expanded row content */}
-                    {isExpanded && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="bg-muted/30 p-2 sm:p-4">
+                     {/* Expanded row content */}
+                     {isExpanded && (
+                       <TableRow>
+                         <TableCell colSpan={6} className="bg-muted/30 p-2 sm:p-4 smooth-accordion">
                           <div className="space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <h4 className="font-semibold flex items-center gap-2">
                                 <Gift className="w-4 h-4" />
                                 Gifts for {person.name}
                               </h4>
-                              <Button
-                                onClick={() => setEditingGift({ personId: person.id })}
-                                size="sm"
-                                className="gap-2 w-full sm:w-auto min-h-[44px] sm:min-h-auto"
-                              >
+                               <Button
+                                 onClick={() => setEditingGift({ personId: person.id })}
+                                 size="sm"
+                                 className="gap-2 w-full sm:w-auto touch-target quick-action-btn"
+                               >
                                 <Plus className="w-4 h-4" />
                                 Add Gift
                               </Button>
@@ -873,39 +919,41 @@ const GiftTracker = () => {
                                        </span>
                                    </div>
                                   
-                                   <div className="flex items-center gap-4">
-                                     <div className="flex items-center space-x-2">
-                                       <Checkbox
-                                         id={`purchased-${gift.id}`}
-                                         checked={gift.purchased}
-                                         onCheckedChange={(checked) => 
-                                           updateGiftStatus(person.id, gift.id, 'purchased', checked as boolean)
-                                         }
-                                       />
-                                       <label 
-                                         htmlFor={`purchased-${gift.id}`} 
-                                         className="text-sm text-muted-foreground"
-                                       >
-                                         Purchased
-                                       </label>
-                                     </div>
-                                     
-                                     <div className="flex items-center space-x-2">
-                                       <Checkbox
-                                         id={`wrapped-${gift.id}`}
-                                         checked={gift.wrapped}
-                                         onCheckedChange={(checked) => 
-                                           updateGiftStatus(person.id, gift.id, 'wrapped', checked as boolean)
-                                         }
-                                       />
-                                       <label 
-                                         htmlFor={`wrapped-${gift.id}`} 
-                                         className="text-sm text-muted-foreground"
-                                       >
-                                         Wrapped
-                                       </label>
-                                     </div>
-                                   </div>
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded quick-action-btn">
+                                        <Checkbox
+                                          id={`purchased-${gift.id}`}
+                                          checked={gift.purchased}
+                                          onCheckedChange={(checked) => 
+                                            updateGiftStatus(person.id, gift.id, 'purchased', checked as boolean)
+                                          }
+                                          className="touch-target"
+                                        />
+                                        <label 
+                                          htmlFor={`purchased-${gift.id}`} 
+                                          className="text-sm text-muted-foreground cursor-pointer touch-target"
+                                        >
+                                          Purchased
+                                        </label>
+                                      </div>
+                                      
+                                      <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded quick-action-btn">
+                                        <Checkbox
+                                          id={`wrapped-${gift.id}`}
+                                          checked={gift.wrapped}
+                                          onCheckedChange={(checked) => 
+                                            updateGiftStatus(person.id, gift.id, 'wrapped', checked as boolean)
+                                          }
+                                          className="touch-target"
+                                        />
+                                        <label 
+                                          htmlFor={`wrapped-${gift.id}`} 
+                                          className="text-sm text-muted-foreground cursor-pointer touch-target"
+                                        >
+                                          Wrapped
+                                        </label>
+                                      </div>
+                                    </div>
 
                                    {/* Tracking Section - Only show if purchased */}
                                    {gift.purchased && (
@@ -1062,6 +1110,23 @@ const GiftTracker = () => {
           </div>
         )}
 
+        {/* Quick Add Gift Sheet */}
+        <Sheet open={quickAddGift?.isOpen || false} onOpenChange={(open) => !open && setQuickAddGift(null)}>
+          <SheetContent side="bottom" className="h-[300px] sm:h-auto">
+            <SheetHeader>
+              <SheetTitle>
+                Add Gift for {quickAddGift ? people.find(p => p.id === quickAddGift.personId)?.name : ''}
+              </SheetTitle>
+            </SheetHeader>
+            <QuickAddGiftForm 
+              personId={quickAddGift?.personId || ''}
+              onSubmit={quickAddGiftSubmit}
+              onCancel={() => setQuickAddGift(null)}
+              currency={currency}
+            />
+          </SheetContent>
+        </Sheet>
+
         {/* Completion Confirmation Dialog */}
         <AlertDialog open={completionDialog.isOpen} onOpenChange={(open) => !open && cancelCompletion()}>
           <AlertDialogContent>
@@ -1097,6 +1162,85 @@ const GiftTracker = () => {
         </AlertDialog>
       </div>
     </div>
+  );
+};
+
+// Quick Add Gift Form Component
+const QuickAddGiftForm = ({ personId, onSubmit, onCancel, currency }: {
+  personId: string;
+  onSubmit: (personId: string, name: string, cost: string) => void;
+  onCancel: () => void;
+  currency: string;
+}) => {
+  const [giftName, setGiftName] = useState('');
+  const [giftCost, setGiftCost] = useState('');
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (giftName.trim()) {
+      onSubmit(personId, giftName, giftCost);
+      setGiftName('');
+      setGiftCost('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+      <div className="space-y-2">
+        <label htmlFor="giftName" className="text-sm font-medium">
+          Gift Name
+        </label>
+        <Input
+          id="giftName"
+          placeholder="Enter gift name..."
+          value={giftName}
+          onChange={(e) => setGiftName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="touch-target"
+          autoFocus
+        />
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="giftCost" className="text-sm font-medium">
+          Cost ({currency}) - Optional
+        </label>
+        <Input
+          id="giftCost"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          value={giftCost}
+          onChange={(e) => setGiftCost(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="touch-target"
+        />
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button 
+          type="submit" 
+          className="flex-1 touch-target quick-action-btn"
+          disabled={!giftName.trim()}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Gift
+        </Button>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          className="touch-target quick-action-btn"
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 };
 

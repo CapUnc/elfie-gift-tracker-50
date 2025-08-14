@@ -55,6 +55,7 @@ All colors MUST be HSL.
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-quick: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     --radius: 0.5rem;
 
@@ -121,5 +122,20 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Mobile UX optimizations */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .smooth-accordion {
+    transition: var(--transition-smooth);
+  }
+  
+  .quick-action-btn {
+    @apply transition-colors duration-200 hover:scale-105 active:scale-95;
   }
 }
