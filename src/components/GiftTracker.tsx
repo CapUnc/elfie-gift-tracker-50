@@ -22,8 +22,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { GiftForm } from './GiftForm';
 
@@ -555,6 +556,29 @@ const GiftTracker = () => {
     ));
   };
 
+  const updatePersonAssignment = (personId: string, assignedTo: string | null) => {
+    setPeople(prev => 
+      prev.map(person => 
+        person.id === personId 
+          ? { ...person, assignedTo }
+          : person
+      )
+    );
+    
+    const assignedBuyer = assignedTo ? buyers.find(b => b.name === assignedTo) : null;
+    const person = people.find(p => p.id === personId);
+    
+    if (person) {
+      toast({
+        title: assignedTo 
+          ? `Assigned ${person.name} to ${assignedBuyer?.emoji} ${assignedTo}`
+          : `Unassigned ${person.name}`,
+      });
+    }
+    
+    haptic.success();
+  };
+
   // Filter helper functions
   const getActiveFilterCount = () => {
     let count = 0;
@@ -840,6 +864,52 @@ const GiftTracker = () => {
                                <span className={`font-semibold text-base ${person.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                                  {person.name}
                                </span>
+                               
+                               {/* Assignment Avatar */}
+                               <Popover>
+                                 <PopoverTrigger asChild>
+                                   <Avatar className="h-5 w-5 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
+                                     {person.assignedTo ? (
+                                       <AvatarFallback className="bg-primary/10 text-xs">
+                                         {buyers.find(b => b.name === person.assignedTo)?.emoji || '👤'}
+                                       </AvatarFallback>
+                                     ) : (
+                                       <AvatarFallback className="bg-muted hover:bg-muted/80 text-muted-foreground">
+                                         <Plus className="h-3 w-3" />
+                                       </AvatarFallback>
+                                     )}
+                                   </Avatar>
+                                 </PopoverTrigger>
+                                 <PopoverContent className="w-48 p-2" align="start">
+                                   <div className="space-y-1">
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       className="w-full justify-start"
+                                       onClick={() => {
+                                         updatePersonAssignment(person.id, null);
+                                       }}
+                                     >
+                                       <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
+                                       Unassigned
+                                     </Button>
+                                     {buyers.map(buyer => (
+                                       <Button
+                                         key={buyer.id}
+                                         variant="ghost"
+                                         size="sm"
+                                         className="w-full justify-start"
+                                         onClick={() => {
+                                           updatePersonAssignment(person.id, buyer.name);
+                                         }}
+                                       >
+                                         <span className="mr-2 text-sm">{buyer.emoji}</span>
+                                         {buyer.name}
+                                       </Button>
+                                     ))}
+                                   </div>
+                                 </PopoverContent>
+                               </Popover>
                                <Button
                                  variant={person.completed ? "default" : "outline"}
                                  size="sm"
