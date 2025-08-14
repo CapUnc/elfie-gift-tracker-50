@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
@@ -41,9 +41,9 @@ interface Gift {
   cost: number | null;
   purchased: boolean;
   wrapped: boolean;
-  trackingNumber?: string;
-  carrier?: string;
-  assignedTo?: string | null;
+  url?: string;
+  tracking?: string;
+  assignedTo?: string;
 }
 
 interface Person {
@@ -102,6 +102,8 @@ const GiftTracker = () => {
   const [highlightedItems, setHighlightedItems] = useState<Set<string>>(new Set());
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingCompletionToggle, setPendingCompletionToggle] = useState<{ person: Person; newState: boolean } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Initial data from spreadsheet
@@ -219,23 +221,43 @@ const GiftTracker = () => {
       name: giftData.name.trim(),
       cost,
       purchased: false,
-      wrapped: false
+      wrapped: false,
+      url: '',
+      tracking: '',
+      assignedTo: ''
     };
+
+    // Check if person was manually marked done
+    const person = people.find(p => p.id === personId);
+    const wasManuallyComplete = person?.completed && person?.manualComplete;
     
     setPeople(people.map(person => 
       person.id === personId 
-        ? { ...person, gifts: [...person.gifts, newGift] }
+        ? { 
+            ...person, 
+            gifts: [...person.gifts, newGift],
+            // Auto-unset completion if they were manually marked done
+            completed: wasManuallyComplete ? false : person.completed,
+            manualComplete: wasManuallyComplete ? false : person.manualComplete
+          }
         : person
     ));
     
     setEditingGift(null);
     setUnsavedChanges(false);
     
-    // Show success toast
-    toast({
-      title: "Gift added!",
-      description: `${giftData.name.trim()} has been added to the list.`,
-    });
+    // Show success toast with auto-unset message if applicable
+    if (wasManuallyComplete) {
+      toast({
+        title: "Gift added!",
+        description: `Added gift - ${person?.name} unmarked as done.`,
+      });
+    } else {
+      toast({
+        title: "Gift added!",
+        description: `${giftData.name.trim()} has been added to the list.`,
+      });
+    }
     
     // Highlight the new gift
     const highlightId = `gift-${newGift.id}`;
@@ -322,8 +344,25 @@ const GiftTracker = () => {
     );
   };
 
-  const handleCompletionChange = (person: Person, completed: boolean) => {
-    // Manual override - set manualComplete flag
+  // Check if person has incomplete gifts
+  const hasIncompleteGifts = (person: Person) => {
+    return person.gifts.some(gift => !gift.purchased || !gift.wrapped);
+  };
+
+  const handleManualComplete = (person: Person) => {
+    const newState = !person.completed;
+    
+    if (newState && hasIncompleteGifts(person)) {
+      // Show confirmation dialog for incomplete gifts
+      setPendingCompletionToggle({ person, newState });
+      setShowConfirmDialog(true);
+    } else {
+      // Direct toggle
+      confirmManualComplete(person, newState);
+    }
+  };
+
+  const confirmManualComplete = (person: Person, completed: boolean) => {
     setPeople(prevPeople =>
       prevPeople.map(p =>
         p.id === person.id
@@ -332,10 +371,19 @@ const GiftTracker = () => {
       )
     );
     
+    const incompleteGiftsNote = completed && hasIncompleteGifts(person) ? " (with incomplete gifts)" : "";
+    
     toast({
-      title: completed ? "Person marked complete" : "Person marked incomplete",
-      description: `${person.name} manually ${completed ? 'completed' : 'marked incomplete'}.`,
+      title: `Marked ${person.name} as ${completed ? "done" : "not done"}.`,
+      description: completed 
+        ? `${person.name} marked as done${incompleteGiftsNote}.`
+        : `${person.name} unmarked as done.`,
     });
+  };
+
+  const handleCompletionChange = (person: Person, completed: boolean) => {
+    // Legacy function for context menu - redirect to new manual complete
+    handleManualComplete(person);
   };
 
   const updateCompletion = (personId: string, completed: boolean) => {
@@ -808,16 +856,27 @@ const GiftTracker = () => {
                       <TableCell className="p-3">
                         <div className="flex items-center gap-2">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`font-semibold text-base ${person.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                                {person.name}
-                              </span>
-                              {person.completed && (
-                                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Complete
-                                </Badge>
-                              )}
+                             <div className="flex items-center gap-2">
+                               <span className={`font-semibold text-base ${person.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                 {person.name}
+                               </span>
+                               <Button
+                                 variant={person.completed ? "default" : "outline"}
+                                 size="sm"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   haptic.tap();
+                                   handleManualComplete(person);
+                                 }}
+                                 className={`h-6 px-2 text-xs ${
+                                   person.completed 
+                                     ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' 
+                                     : 'border-muted-foreground/30 text-muted-foreground hover:bg-muted/50'
+                                 }`}
+                               >
+                                 <Check className="w-3 h-3 mr-1" />
+                                 Done
+                               </Button>
                             </div>
                             <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
                               <span className="flex items-center gap-1">
@@ -969,6 +1028,36 @@ const GiftTracker = () => {
             mode={editingGift.giftId ? 'edit' : 'add'}
           />
         )}
+
+        {/* Confirmation Dialog for Incomplete Gifts */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Mark as Done?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You still have gifts not purchased or wrapped for {pendingCompletionToggle?.person.name}. 
+                Mark done anyway?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setShowConfirmDialog(false);
+                setPendingCompletionToggle(null);
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={() => {
+                if (pendingCompletionToggle) {
+                  confirmManualComplete(pendingCompletionToggle.person, pendingCompletionToggle.newState);
+                }
+                setShowConfirmDialog(false);
+                setPendingCompletionToggle(null);
+              }}>
+                Mark Done Anyway
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
