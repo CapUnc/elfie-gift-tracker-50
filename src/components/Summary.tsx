@@ -138,11 +138,35 @@ const Summary = () => {
             <Gift className="text-christmas-green" />
           </h1>
           <p className="text-muted-foreground">Your holiday gift planning overview</p>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center mt-4">
+          
+          {/* Christmas Countdown - Mobile first, then buttons below */}
+          <div className="sm:hidden mb-6 mt-6">
+            <Card className="bg-gradient-festive text-white shadow-festive">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+                  <Calendar className="w-6 h-6" />
+                  {christmasCountdown.daysUntil === 0 
+                    ? "🎄 Merry Christmas! 🎄" 
+                    : christmasCountdown.daysUntil < 0 
+                      ? `Christmas was ${Math.abs(christmasCountdown.daysUntil)} days ago` 
+                      : `${christmasCountdown.daysUntil} days until Christmas!`
+                  }
+                </CardTitle>
+                {christmasCountdown.daysUntil > 0 && (
+                  <CardDescription className="text-white/80 text-base">
+                    Christmas {christmasCountdown.year}
+                  </CardDescription>
+                )}
+              </CardHeader>
+            </Card>
+          </div>
+          
+          {/* Navigation buttons - side by side on mobile */}
+          <div className="flex flex-row gap-2 justify-center mt-4 sm:hidden">
             <Button
               variant="outline"
               onClick={() => navigate('/gifts')}
-              className="min-h-[44px] sm:min-h-auto"
+              className="min-h-[44px] flex-1"
             >
               <Package className="w-4 h-4 mr-2" />
               Manage Gifts
@@ -150,7 +174,25 @@ const Summary = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/settings')}
-              className="min-h-[44px] sm:min-h-auto"
+              className="min-h-[44px] flex-1"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+          </div>
+          
+          {/* Desktop layout - original order */}
+          <div className="hidden sm:flex flex-row gap-4 justify-center mt-4">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/gifts')}
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Manage Gifts
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/settings')}
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
@@ -158,25 +200,27 @@ const Summary = () => {
           </div>
         </div>
 
-        {/* Christmas Countdown */}
-        <Card className="mb-8 bg-gradient-festive text-white shadow-festive">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
-              <Calendar className="w-8 h-8" />
-              {christmasCountdown.daysUntil === 0 
-                ? "🎄 Merry Christmas! 🎄" 
-                : christmasCountdown.daysUntil < 0 
-                  ? `Christmas was ${Math.abs(christmasCountdown.daysUntil)} days ago` 
-                  : `${christmasCountdown.daysUntil} days until Christmas!`
-              }
-            </CardTitle>
-            {christmasCountdown.daysUntil > 0 && (
-              <CardDescription className="text-white/80 text-lg">
-                Christmas {christmasCountdown.year}
-              </CardDescription>
-            )}
-          </CardHeader>
-        </Card>
+        {/* Christmas Countdown - Desktop only */}
+        <div className="hidden sm:block">
+          <Card className="mb-8 bg-gradient-festive text-white shadow-festive">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
+                <Calendar className="w-8 h-8" />
+                {christmasCountdown.daysUntil === 0 
+                  ? "🎄 Merry Christmas! 🎄" 
+                  : christmasCountdown.daysUntil < 0 
+                    ? `Christmas was ${Math.abs(christmasCountdown.daysUntil)} days ago` 
+                    : `${christmasCountdown.daysUntil} days until Christmas!`
+                }
+              </CardTitle>
+              {christmasCountdown.daysUntil > 0 && (
+                <CardDescription className="text-white/80 text-lg">
+                  Christmas {christmasCountdown.year}
+                </CardDescription>
+              )}
+            </CardHeader>
+          </Card>
+        </div>
 
         {/* Key Statistics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
