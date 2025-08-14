@@ -53,6 +53,7 @@ interface Person {
   notes: string;
   assignedTo: string | null;
   completed?: boolean;
+  manualComplete?: boolean;
 }
 
 const GiftTracker = () => {
@@ -295,17 +296,46 @@ const GiftTracker = () => {
       title: "Status updated",
       description: `Gift ${action}.`,
     });
+    
+    // Check for auto-completion after gift status changes
+    checkAndUpdateAutoCompletion(personId);
+  };
+
+  // Check if person should be auto-completed
+  const isAutoComplete = (person: Person) => {
+    return person.gifts.length > 0 && 
+           person.gifts.every(gift => gift.purchased && gift.wrapped);
+  };
+
+  // Auto-completion check after gift status changes
+  const checkAndUpdateAutoCompletion = (personId: string) => {
+    setPeople(prevPeople => 
+      prevPeople.map(person => {
+        if (person.id === personId && !person.manualComplete) {
+          const shouldBeComplete = isAutoComplete(person);
+          if (shouldBeComplete !== person.completed) {
+            return { ...person, completed: shouldBeComplete };
+          }
+        }
+        return person;
+      })
+    );
   };
 
   const handleCompletionChange = (person: Person, completed: boolean) => {
-    if (!completed) {
-      // If unchecking, directly update
-      updateCompletion(person.id, false);
-      return;
-    }
-
-    // If checking, directly update without dialog for now
-    updateCompletion(person.id, true);
+    // Manual override - set manualComplete flag
+    setPeople(prevPeople =>
+      prevPeople.map(p =>
+        p.id === person.id
+          ? { ...p, completed, manualComplete: true }
+          : p
+      )
+    );
+    
+    toast({
+      title: completed ? "Person marked complete" : "Person marked incomplete",
+      description: `${person.name} manually ${completed ? 'completed' : 'marked incomplete'}.`,
+    });
   };
 
   const updateCompletion = (personId: string, completed: boolean) => {
@@ -745,7 +775,9 @@ const GiftTracker = () => {
                       onMarkAllPurchased={() => markAllPurchased(person.id)}
                       onMarkAllWrapped={() => markAllWrapped(person.id)}
                       onDeletePerson={() => {/* TODO: Delete person */}}
+                      onMarkComplete={() => handleCompletionChange(person, !person.completed)}
                       hasGifts={person.gifts.length > 0}
+                      isComplete={person.completed || false}
                     >
                        <TableRow 
                          data-person-id={person.id}
@@ -772,34 +804,17 @@ const GiftTracker = () => {
                       </TableCell>
                       <TableCell className="p-3">
                         <div className="flex items-center gap-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCompletionChange(person, !person.completed);
-                                  }}
-                                  className={`h-5 w-5 p-0 ${person.completed 
-                                    ? "text-christmas-green hover:text-christmas-green/80" 
-                                    : "text-muted-foreground hover:text-foreground"
-                                  }`}
-                                >
-                                  {person.completed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {person.completed ? "Mark as Incomplete" : "Mark as Complete"}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className={`font-semibold text-base ${person.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                                 {person.name}
                               </span>
+                              {person.completed && (
+                                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Complete
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                               <span>{stats.total} gifts • {stats.purchased} purchased • {stats.wrapped} wrapped</span>
@@ -834,7 +849,9 @@ const GiftTracker = () => {
                         <div className="w-full max-w-20">
                           <div className="w-full bg-muted rounded-full h-2">
                             <div 
-                              className="bg-primary h-2 rounded-full transition-all" 
+                              className={`h-2 rounded-full transition-all ${
+                                person.completed ? 'bg-green-500' : 'bg-primary'
+                              }`}
                               style={{ width: `${progressPercent}%` }}
                             />
                           </div>

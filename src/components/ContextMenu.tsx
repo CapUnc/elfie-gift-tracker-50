@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, ShoppingCart, Package, Trash2, Plus } from 'lucide-react';
+import { Edit2, ShoppingCart, Package, Trash2, Plus, CheckCircle } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -90,7 +90,9 @@ interface PersonContextMenuProps {
   onMarkAllPurchased: () => void;
   onMarkAllWrapped: () => void;
   onDeletePerson: () => void;
+  onMarkComplete: () => void;
   hasGifts: boolean;
+  isComplete: boolean;
 }
 
 export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
@@ -101,7 +103,9 @@ export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
   onMarkAllPurchased,
   onMarkAllWrapped,
   onDeletePerson,
-  hasGifts
+  onMarkComplete,
+  hasGifts,
+  isComplete
 }) => {
   return (
     <ContextMenu>
@@ -124,6 +128,13 @@ export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
         <ContextMenuItem onClick={onEditAssignment}>
           <Edit2 className="mr-2 h-4 w-4" />
           Edit Assignment
+        </ContextMenuItem>
+        
+        <ContextMenuSeparator />
+        
+        <ContextMenuItem onClick={onMarkComplete}>
+          <CheckCircle className="mr-2 h-4 w-4" />
+          {isComplete ? 'Mark Not Complete' : 'Mark Complete'}
         </ContextMenuItem>
         
         {hasGifts && (
