@@ -81,9 +81,9 @@ export const GiftNotes: React.FC<GiftNotesProps> = ({
         <div 
           onClick={handleNotesClick}
           className="
-            flex items-center gap-2 py-1 px-1 mt-2 cursor-pointer 
+            flex items-center gap-2 py-1 px-1 cursor-pointer 
             transition-all duration-200 hover:bg-muted/20 rounded
-            min-h-[20px]
+            min-h-[16px]
           "
         >
           <StickyNote className="h-3 w-3 text-muted-foreground/60 flex-shrink-0" />

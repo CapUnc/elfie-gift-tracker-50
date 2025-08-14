@@ -816,15 +816,26 @@ const GiftTracker = () => {
                                 </Badge>
                               )}
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                              <span>{stats.total} gifts • {stats.purchased} purchased • {stats.wrapped} wrapped</span>
+                            <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
+                              <span className="flex items-center gap-1">
+                                <Gift className="h-3 w-3" />
+                                {stats.total}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <ShoppingCart className="h-3 w-3" />
+                                {stats.purchased}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                {stats.wrapped}
+                              </span>
                             </div>
                             {/* Notes Preview */}
                             <GiftNotes
                               notes={person.notes}
                               onNotesChange={(notes) => updatePersonNotes(person.id, notes)}
                               personName={person.name}
-                              className="mt-1"
+                              className="mt-0.5"
                               isEditing={editingNotes === person.id}
                               onEditStart={() => handleNotesEditStart(person.id)}
                               onEditEnd={handleNotesEditEnd}
@@ -846,18 +857,18 @@ const GiftTracker = () => {
                         <span className="font-medium">{formatCurrency(getTotalCost(person.gifts), currency)}</span>
                       </TableCell>
                       <TableCell className="p-3 text-center">
-                        <div className="w-full max-w-20">
-                          <div className="w-full bg-muted rounded-full h-2">
+                        <div className="flex items-center gap-2 w-full max-w-24">
+                          <div className="flex-1 bg-muted rounded-full h-1.5">
                             <div 
-                              className={`h-2 rounded-full transition-all ${
+                              className={`h-1.5 rounded-full transition-all ${
                                 person.completed ? 'bg-green-500' : 'bg-primary'
                               }`}
                               style={{ width: `${progressPercent}%` }}
                             />
                           </div>
-                          <div className="text-xs text-muted-foreground mt-1">
+                          <span className="text-xs text-muted-foreground min-w-[28px]">
                             {Math.round(progressPercent)}%
-                          </div>
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="p-2">
