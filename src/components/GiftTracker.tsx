@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { useAnimatedButton } from '@/hooks/useAnimatedButton';
+import { RippleButton } from './RippleButton';
 import FloatingActionButton from './FloatingActionButton';
 import { SwipeableGiftItem } from './SwipeableGiftItem';
 import { GiftSearch } from './GiftSearch';
@@ -54,6 +57,7 @@ interface Person {
 const GiftTracker = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const haptic = useHapticFeedback();
   const [people, setPeople] = useState<Person[]>([]);
   const [buyers, setBuyers] = useState<Buyer[]>([
     { id: '1', name: 'Matt', emoji: '👨' },
@@ -579,9 +583,9 @@ const GiftTracker = () => {
                 </Select>
               )}
               <div className="flex flex-col gap-3 pt-4 border-t">
-                <Button onClick={addPerson} className="w-full h-11" disabled={!newPersonName.trim()}>
+                <RippleButton onClick={addPerson} className="w-full h-11" disabled={!newPersonName.trim()}>
                   Save Recipient
-                </Button>
+                </RippleButton>
                 <Button 
                   variant="outline" 
                   onClick={() => {
@@ -701,10 +705,17 @@ const GiftTracker = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleRow(person.id)}
+                          onClick={() => {
+                            haptic.tap();
+                            toggleRow(person.id);
+                          }}
                           className="p-1 h-6 w-6"
                         >
-                          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <ChevronRight 
+                            className={`w-4 h-4 transition-transform duration-200 ${
+                              isExpanded ? 'rotate-90' : 'rotate-0'
+                            }`} 
+                          />
                         </Button>
                       </TableCell>
                       <TableCell className="p-3">
@@ -949,14 +960,14 @@ const QuickAddGiftForm: React.FC<{
         />
       </div>
       <div className="flex flex-col gap-3 pt-4 border-t mt-6">
-        <Button 
+        <RippleButton 
           type="submit" 
           className="w-full h-11"
           disabled={!giftName.trim()}
         >
           <Plus className="w-4 h-4 mr-2" />
           Save Gift
-        </Button>
+        </RippleButton>
         <Button 
           type="button" 
           variant="outline" 

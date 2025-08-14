@@ -150,10 +150,36 @@ All colors MUST be HSL.
 
   /* Enhanced status indicators */
   .status-complete {
-    @apply bg-success/5 border-success/20 opacity-75;
+    @apply bg-christmas-green/5 border-christmas-green/20 opacity-75;
   }
 
   .status-indicator {
     @apply transition-all duration-200;
+  }
+
+  /* Accessibility improvements */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-highlight-pulse,
+    .animate-stagger-in,
+    .animate-bounce-subtle,
+    .transition-transform {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* Focus improvements for accessibility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-christmas-green focus-visible:ring-offset-2;
+  }
+
+  /* Mobile button improvements */
+  .mobile-button {
+    @apply touch-target rounded-lg transition-all duration-200 active:scale-95;
+  }
+
+  /* Ripple effect container */
+  .ripple-container {
+    @apply relative overflow-hidden;
   }
 }

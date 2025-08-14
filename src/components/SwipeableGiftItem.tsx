@@ -3,6 +3,8 @@ import { Trash2, ShoppingCart, Package, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatCurrency } from '@/lib/currency';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { cn } from '@/lib/utils';
 
 interface Gift {
   id: string;
@@ -33,9 +35,11 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [isHighlighted, setIsHighlighted] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startTimeRef = useRef(0);
+  const haptic = useHapticFeedback();
 
   const SWIPE_THRESHOLD = 60;
   const QUICK_ACTION_THRESHOLD = 120;
@@ -67,13 +71,18 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
     if (Math.abs(swipeOffset) > QUICK_ACTION_THRESHOLD && duration < 300) {
       if (swipeOffset > 0) {
         // Right swipe - toggle purchased
+        haptic.success();
+        setIsHighlighted(true);
+        setTimeout(() => setIsHighlighted(false), 2000);
         onUpdate('purchased', !gift.purchased);
       } else {
         // Left swipe - delete (with confirmation for now)
+        haptic.tap();
         setShowActions(true);
       }
     } else if (Math.abs(swipeOffset) > SWIPE_THRESHOLD) {
       // Show action buttons
+      haptic.tap();
       setShowActions(true);
     }
     
@@ -160,7 +169,10 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
       {/* Main content */}
       <div
         ref={itemRef}
-        className="relative bg-card p-3 select-none transition-transform duration-200"
+        className={cn(
+          "relative bg-card p-3 select-none transition-all duration-200 touch-target",
+          isHighlighted && "animate-highlight-pulse"
+        )}
         style={{ 
           transform: `translateX(${swipeOffset}px)`,
           cursor: isDragging ? 'grabbing' : 'grab'
@@ -175,16 +187,30 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1">
             <div className="flex space-x-2">
-              <Checkbox
-                checked={gift.purchased}
-                onCheckedChange={(checked) => onUpdate('purchased', checked as boolean)}
-                className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-              />
-              <Checkbox
-                checked={gift.wrapped}
-                onCheckedChange={(checked) => onUpdate('wrapped', checked as boolean)}
-                className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-              />
+              <div className="touch-target flex items-center justify-center">
+                <Checkbox
+                  checked={gift.purchased}
+                  onCheckedChange={(checked) => {
+                    haptic.success();
+                    setIsHighlighted(true);
+                    setTimeout(() => setIsHighlighted(false), 2000);
+                    onUpdate('purchased', checked as boolean);
+                  }}
+                  className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 gift-status-button"
+                />
+              </div>
+              <div className="touch-target flex items-center justify-center">
+                <Checkbox
+                  checked={gift.wrapped}
+                  onCheckedChange={(checked) => {
+                    haptic.success();
+                    setIsHighlighted(true);
+                    setTimeout(() => setIsHighlighted(false), 2000);
+                    onUpdate('wrapped', checked as boolean);
+                  }}
+                  className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 gift-status-button"
+                />
+              </div>
             </div>
 
             <div className="flex-1 min-w-0">
