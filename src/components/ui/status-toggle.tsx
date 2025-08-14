@@ -32,17 +32,18 @@ const StatusToggle = React.forwardRef<
       ref={ref}
       checked={checked}
       className={cn(
-        "peer h-6 w-6 shrink-0 rounded-sm border-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200",
+        "peer h-6 w-6 shrink-0 rounded-sm border-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 hover:scale-105",
         colorMap[type],
         className
       )}
+      aria-label={`Mark as ${type}`}
       {...props}
     >
       <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
         <Icon 
           className={cn(
-            "h-3.5 w-3.5 transition-all duration-200",
-            checked ? "fill-current" : "stroke-current fill-none opacity-40"
+            "h-4 w-4 transition-all duration-200",
+            checked ? "fill-current" : "stroke-current fill-none opacity-60"
           )}
           strokeWidth={checked ? 0 : 2}
         />
@@ -53,7 +54,7 @@ const StatusToggle = React.forwardRef<
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <Icon 
             className={cn(
-              "h-3.5 w-3.5 opacity-30 transition-opacity duration-200",
+              "h-4 w-4 opacity-50 transition-opacity duration-200",
               type === 'purchased' ? "text-emerald-400" : "text-blue-400"
             )}
             strokeWidth={1.5}

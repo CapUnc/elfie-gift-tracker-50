@@ -180,7 +180,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
       <div
         ref={itemRef}
         className={cn(
-          "relative bg-card p-3 select-none transition-all duration-200 touch-target",
+          "relative bg-card p-3 select-none transition-all duration-200 touch-target hover:bg-muted/20",
           isHighlighted && "animate-highlight-pulse"
         )}
         style={{ 
@@ -229,7 +229,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
               className="flex-1 min-w-0 cursor-pointer"
               onClick={handleContentClick}
             >
-              <div className="flex items-center gap-2 p-2 rounded transition-colors hover:bg-muted/50">
+              <div className="flex items-center gap-2 p-2 rounded transition-all duration-200 hover:bg-muted/60 hover:scale-[1.01] active:scale-[0.99]">
                 <span className={`font-medium ${gift.purchased ? 'line-through text-muted-foreground' : ''}`}>
                   {gift.name}
                 </span>
