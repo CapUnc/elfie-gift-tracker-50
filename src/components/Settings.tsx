@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users, DollarSign } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users, DollarSign, Edit2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +35,9 @@ const Settings = () => {
   const [people, setPeople] = useState<Person[]>([]);
   const [deletingPerson, setDeletingPerson] = useState<Person | null>(null);
   const [currency, setCurrency] = useState('$');
+  const [editingBuyer, setEditingBuyer] = useState<string | null>(null);
+  const [editBuyerName, setEditBuyerName] = useState('');
+  const [editBuyerEmoji, setEditBuyerEmoji] = useState('');
 
   // Load buyers from localStorage
   useEffect(() => {
@@ -152,6 +155,43 @@ const Settings = () => {
     setPeople(updatedPeople);
     localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
     setDeletingPerson(null);
+  };
+
+  const startEditBuyer = (buyer: Buyer) => {
+    setEditingBuyer(buyer.id);
+    setEditBuyerName(buyer.name);
+    setEditBuyerEmoji(buyer.emoji);
+  };
+
+  const saveEditBuyer = (buyerId: string) => {
+    if (!editBuyerName.trim()) return;
+    
+    const oldBuyer = buyers.find(b => b.id === buyerId);
+    const updatedBuyers = buyers.map(buyer => 
+      buyer.id === buyerId 
+        ? { ...buyer, name: editBuyerName.trim(), emoji: editBuyerEmoji }
+        : buyer
+    );
+    setBuyers(updatedBuyers);
+    
+    // Update assignments if buyer name changed
+    if (oldBuyer && oldBuyer.name !== editBuyerName.trim()) {
+      const updatedPeople = people.map(person => 
+        person.assignedTo === oldBuyer.name 
+          ? { ...person, assignedTo: editBuyerName.trim() }
+          : person
+      );
+      setPeople(updatedPeople);
+      localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
+    }
+    
+    cancelEditBuyer();
+  };
+
+  const cancelEditBuyer = () => {
+    setEditingBuyer(null);
+    setEditBuyerName('');
+    setEditBuyerEmoji('');
   };
 
   return (
@@ -321,25 +361,74 @@ const Settings = () => {
                   Current Buyers
                 </label>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {buyers.map((buyer) => (
-                    <Badge
-                      key={buyer.id}
-                      variant="secondary"
-                      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 text-xs sm:text-sm"
-                    >
-                      <span className="text-base">{buyer.emoji}</span>
-                      <span className="truncate max-w-[120px] sm:max-w-none">{buyer.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeBuyer(buyer.id)}
-                        className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
-                      >
-                        <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-                      </Button>
-                    </Badge>
-                  ))}
-                </div>
+                   {buyers.map((buyer) => (
+                     <div key={buyer.id} className="flex items-center gap-2">
+                       {editingBuyer === buyer.id ? (
+                         <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-background">
+                           <div className="flex flex-wrap gap-1">
+                             {['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'].map((emoji) => (
+                               <Button
+                                 key={emoji}
+                                 variant={editBuyerEmoji === emoji ? "default" : "ghost"}
+                                 size="sm"
+                                 className="h-6 w-6 p-0 text-sm"
+                                 onClick={() => setEditBuyerEmoji(emoji)}
+                               >
+                                 {emoji}
+                               </Button>
+                             ))}
+                           </div>
+                           <Input
+                             value={editBuyerName}
+                             onChange={(e) => setEditBuyerName(e.target.value)}
+                             className="h-8 w-32"
+                             autoFocus
+                           />
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => saveEditBuyer(buyer.id)}
+                             className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                           >
+                             <Check className="w-4 h-4" />
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={cancelEditBuyer}
+                             className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                           >
+                             <X className="w-4 h-4" />
+                           </Button>
+                         </div>
+                       ) : (
+                         <Badge
+                           variant="secondary"
+                           className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 text-xs sm:text-sm"
+                         >
+                           <span className="text-base">{buyer.emoji}</span>
+                           <span className="truncate max-w-[120px] sm:max-w-none">{buyer.name}</span>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => startEditBuyer(buyer)}
+                             className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
+                           >
+                             <Edit2 className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => removeBuyer(buyer.id)}
+                             className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
+                           >
+                             <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                           </Button>
+                         </Badge>
+                       )}
+                     </div>
+                   ))}
+                 </div>
               </div>
 
               <div className="space-y-4">

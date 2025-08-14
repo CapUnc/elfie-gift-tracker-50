@@ -772,12 +772,21 @@ const GiftTracker = () => {
                                </Tooltip>
                              </TooltipProvider>
                            </div>
-                          {/* Mobile-only assignment display */}
-                          {buyers.length > 1 && (
-                            <div className="md:hidden text-xs text-muted-foreground">
-                              {person.assignedTo ? `Assigned to: ${person.assignedTo}` : 'Unassigned'}
-                            </div>
-                          )}
+                           {/* Mobile-only assignment display */}
+                           {buyers.length > 1 && (
+                             <div className="md:hidden text-xs text-muted-foreground flex items-center gap-1">
+                               {person.assignedTo ? (
+                                 <span 
+                                   className="text-lg" 
+                                   title={`Assigned to ${person.assignedTo}`}
+                                 >
+                                   {buyers.find(b => b.name === person.assignedTo)?.emoji}
+                                 </span>
+                               ) : (
+                                 'Unassigned'
+                               )}
+                             </div>
+                           )}
                           {/* Mobile-only cost display */}
                           <div className="sm:hidden text-xs text-muted-foreground">
                             {formatCurrency(getTotalCost(person.gifts), currency)}
