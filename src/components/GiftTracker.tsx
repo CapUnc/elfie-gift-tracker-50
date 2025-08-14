@@ -771,16 +771,15 @@ const GiftTracker = () => {
 
           {/* Responsive Card Layout */}
           <div className="flex-1 space-y-3 max-w-full overflow-hidden" ref={tableRef}>
-            {/* Sort Controls */}
+            {/* Sort Controls - Compact Segmented Design */}
             {sortedAndFilteredPeople.length > 0 && (
-              <div className="flex items-center gap-2 mb-4 overflow-x-auto">
-                <span className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0">Sort by:</span>
-                <div className="flex items-center gap-1 flex-wrap">
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-1.5">
                   <Button
                     variant={sortConfig.key === 'name' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleSort('name')}
-                    className="h-7 px-2 text-xs whitespace-nowrap"
+                    className="h-7 px-3 text-xs"
                   >
                     Name {sortConfig.key === 'name' && getSortIcon('name')}
                   </Button>
@@ -789,7 +788,7 @@ const GiftTracker = () => {
                       variant={sortConfig.key === 'assignedTo' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => handleSort('assignedTo')}
-                      className="h-7 px-2 text-xs whitespace-nowrap"
+                      className="h-7 px-3 text-xs"
                     >
                       Assignment {sortConfig.key === 'assignedTo' && getSortIcon('assignedTo')}
                     </Button>
@@ -798,7 +797,7 @@ const GiftTracker = () => {
                     variant={sortConfig.key === 'totalCost' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleSort('totalCost')}
-                    className="h-7 px-2 text-xs whitespace-nowrap"
+                    className="h-7 px-3 text-xs"
                   >
                     Cost {sortConfig.key === 'totalCost' && getSortIcon('totalCost')}
                   </Button>
@@ -806,7 +805,7 @@ const GiftTracker = () => {
                     variant={sortConfig.key === 'progress' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleSort('progress')}
-                    className="h-7 px-2 text-xs whitespace-nowrap"
+                    className="h-7 px-3 text-xs"
                   >
                     Progress {sortConfig.key === 'progress' && getSortIcon('progress')}
                   </Button>
@@ -849,22 +848,22 @@ const GiftTracker = () => {
                     isComplete={person.completed || false}
                   >
                     <div className="max-w-full overflow-hidden">
-                      {/* Main Recipient Card */}
+                      {/* Main Recipient Card - Two Row Layout */}
                       <div 
-                        className={`bg-card rounded-lg border p-4 cursor-pointer transition-colors duration-200 max-w-full ${
+                        className={`bg-card rounded-lg border cursor-pointer transition-colors duration-200 max-w-full ${
                           isHighlighted ? 'bg-primary/10 border-primary/30' : ''
                         } ${person.completed ? 'opacity-75' : ''}`}
                         data-person-id={person.id}
                         onClick={() => toggleRow(person.id)}
                       >
-                        <div className="flex items-center gap-3 min-w-0 w-full">
-                          {/* Left Section - Expand, Avatar, Name */}
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="px-3 py-2.5 space-y-2">
+                          {/* Top Row: Caret + Avatar + Name + Done Chip */}
+                          <div className="flex items-center gap-2 min-w-0">
                             {/* Expand/Collapse Button */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 flex-shrink-0"
+                              className="h-6 w-6 p-0 flex-shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 haptic.tap();
@@ -872,161 +871,98 @@ const GiftTracker = () => {
                               }}
                             >
                               {isExpanded ? (
-                                <ChevronDown className="h-4 w-4" />
+                                <ChevronDown className="h-3 w-3" />
                               ) : (
-                                <ChevronRight className="h-4 w-4" />
+                                <ChevronRight className="h-3 w-3" />
                               )}
                             </Button>
 
-                            {/* Avatar */}
+                            {/* Avatar (24px) */}
                             <div className="flex-shrink-0">
                               {assignedBuyer?.emoji ? (
-                                <span className="text-2xl">{assignedBuyer.emoji}</span>
+                                <span className="text-xl leading-none">{assignedBuyer.emoji}</span>
                               ) : (
-                                <Avatar className="h-8 w-8">
+                                <Avatar className="h-6 w-6">
                                   <AvatarFallback className="bg-muted">
-                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                    <Users className="h-3 w-3 text-muted-foreground" />
                                   </AvatarFallback>
                                 </Avatar>
                               )}
                             </div>
 
-                            {/* Name and Details */}
+                            {/* Name (allow 2 lines) */}
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <div className="font-semibold text-sm truncate max-w-40 sm:max-w-60 md:max-w-80">
-                                  {person.name}
-                                </div>
-                                {person.completed && (
-                                  <Badge variant="secondary" className="text-xs px-2 py-0.5 flex-shrink-0">
-                                    Done
-                                  </Badge>
-                                )}
+                              <div className="font-semibold text-sm text-foreground line-clamp-2">
+                                {person.name}
                               </div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap mt-0.5">
-                                <span className="flex items-center gap-1">
-                                  <Gift className="h-3 w-3" />
-                                  {person.gifts.length}
-                                </span>
-                                {person.gifts.length > 0 && (
-                                  <>
-                                    <span>•</span>
-                                    <span>{getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(2)}</span>
-                                    <span>•</span>
-                                    <span className="flex items-center gap-1">
-                                      <ShoppingCart className="h-3 w-3" />
-                                      {stats.purchased}
-                                    </span>
-                                    <span>•</span>
-                                    <span className="flex items-center gap-1">
-                                      <Package className="h-3 w-3" />
-                                      {stats.wrapped}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
+                            </div>
+
+                            {/* Done Chip */}
+                            <div className="flex-shrink-0">
+                              <Button
+                                variant={person.completed ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleManualComplete(person);
+                                }}
+                              >
+                                Done
+                              </Button>
                             </div>
                           </div>
 
-                          {/* Right Section - Assignment, Progress, Actions */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {/* Assignment Popover */}
-                            {buyers.length > 1 && (
-                              <Popover 
-                                open={openAssignmentPopover === person.id} 
-                                onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : null)}
-                              >
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 px-2 hidden sm:flex"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenAssignmentPopover(openAssignmentPopover === person.id ? null : person.id);
-                                    }}
-                                  >
-                                    {assignedBuyer ? (
-                                      <span className="flex items-center gap-1 text-xs">
-                                        <span>{assignedBuyer.emoji}</span>
-                                        <span className="hidden md:inline">{assignedBuyer.name}</span>
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">Assign</span>
-                                    )}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-48 p-2" align="center">
-                                  <div className="space-y-1">
-                                    <div 
-                                      className="px-2 py-1.5 text-sm rounded cursor-pointer hover:bg-accent"
-                                      onClick={() => {
-                                        updatePersonAssignment(person.id, null);
-                                        setOpenAssignmentPopover(null);
-                                      }}
-                                    >
-                                      Unassigned
-                                    </div>
-                                    {buyers.map(buyer => (
-                                      <div 
-                                        key={buyer.id}
-                                        className="px-2 py-1.5 text-sm rounded cursor-pointer hover:bg-accent flex items-center gap-2"
-                                        onClick={() => {
-                                          updatePersonAssignment(person.id, buyer.name);
-                                          setOpenAssignmentPopover(null);
-                                        }}
-                                      >
-                                        <span>{buyer.emoji}</span>
-                                        <span>{buyer.name}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            )}
-
-                            {/* Progress Bar */}
-                            <div className="flex flex-col items-center gap-1 min-w-16">
-                              <div className="w-12 sm:w-16 bg-secondary rounded-full h-2">
-                                <div 
-                                  className="h-2 bg-primary rounded-full transition-all duration-300" 
-                                  style={{ width: `${progressPercent}%` }}
-                                />
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {Math.round(progressPercent)}%
-                              </span>
+                          {/* Bottom Row: Stats + Progress + Add Gift */}
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {/* Condensed Stats */}
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span>🎁 {person.gifts.length}</span>
+                              {person.gifts.length > 0 && (
+                                <>
+                                  <span>·</span>
+                                  <span>🛒 {stats.purchased}</span>
+                                  <span>·</span>
+                                  <span>🎀 {stats.wrapped}</span>
+                                  {getTotalCost(person.gifts) > 0 && (
+                                    <>
+                                      <span>·</span>
+                                      <span>{getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(0)}</span>
+                                    </>
+                                  )}
+                                </>
+                              )}
                             </div>
 
-                            {/* Completion Status */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 flex-shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleManualComplete(person);
-                              }}
-                            >
-                              {person.completed ? (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <Circle className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </Button>
+                            {/* Micro Progress Bar */}
+                            {person.gifts.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <div className="relative bg-secondary rounded-full h-1.5 w-20">
+                                  <div 
+                                    className="h-1.5 bg-primary rounded-full transition-all duration-300" 
+                                    style={{ width: `${progressPercent}%` }}
+                                  />
+                                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-white">
+                                    {Math.round(progressPercent)}%
+                                  </span>
+                                </div>
+                              </div>
+                            )}
 
-                            {/* Add Gift Button */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 flex-shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingGift({ personId: person.id });
-                              }}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                            {/* Add Gift Button (only when expanded) */}
+                            {isExpanded && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 flex-shrink-0 ml-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingGift({ personId: person.id });
+                                }}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>

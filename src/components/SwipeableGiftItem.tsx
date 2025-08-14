@@ -194,50 +194,48 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 flex-1">
-            <div className="flex space-x-2">
-              <div className="touch-target flex items-center justify-center">
-                <StatusToggle
-                  type="purchased"
-                  checked={gift.purchased}
-                  onCheckedChange={(checked) => {
-                    haptic.success();
-                    setIsHighlighted(true);
-                    setTimeout(() => setIsHighlighted(false), 2000);
-                    onUpdate(gift.id, 'purchased', checked as boolean);
-                  }}
-                  className="gift-status-button"
-                />
-              </div>
-              <div className="touch-target flex items-center justify-center">
-                <StatusToggle
-                  type="wrapped"
-                  checked={gift.wrapped}
-                  onCheckedChange={(checked) => {
-                    haptic.success();
-                    setIsHighlighted(true);
-                    setTimeout(() => setIsHighlighted(false), 2000);
-                    onUpdate(gift.id, 'wrapped', checked as boolean);
-                  }}
-                  className="gift-status-button"
-                />
-              </div>
+        <div className="flex items-start justify-between">
+          {/* Left Side: Status Toggles with Clear Icons */}
+          <div className="flex items-center space-x-2">
+            <div className="touch-target flex items-center justify-center">
+              <StatusToggle
+                type="purchased"
+                checked={gift.purchased}
+                onCheckedChange={(checked) => {
+                  haptic.success();
+                  setIsHighlighted(true);
+                  setTimeout(() => setIsHighlighted(false), 2000);
+                  onUpdate(gift.id, 'purchased', checked as boolean);
+                }}
+                className="gift-status-button"
+              />
             </div>
+            <div className="touch-target flex items-center justify-center">
+              <StatusToggle
+                type="wrapped"
+                checked={gift.wrapped}
+                onCheckedChange={(checked) => {
+                  haptic.success();
+                  setIsHighlighted(true);
+                  setTimeout(() => setIsHighlighted(false), 2000);
+                  onUpdate(gift.id, 'wrapped', checked as boolean);
+                }}
+                className="gift-status-button"
+              />
+            </div>
+          </div>
 
-            <div 
-              className="flex-1 min-w-0 cursor-pointer"
-              onClick={handleContentClick}
-            >
-              <div className="flex items-center gap-2 p-2 rounded transition-all duration-200 hover:bg-muted/60 hover:scale-[1.01] active:scale-[0.99]">
-                <span className={`font-medium ${gift.purchased ? 'line-through text-muted-foreground' : ''}`}>
-                  {gift.name}
-                </span>
-                {gift.purchased && <ShoppingCart className="h-4 w-4 text-emerald-600" />}
-                {gift.wrapped && <Package className="h-4 w-4 text-blue-600" />}
+          {/* Center: Gift Info (tappable to edit) */}
+          <div 
+            className="flex-1 min-w-0 cursor-pointer ml-3"
+            onClick={handleContentClick}
+          >
+            <div className="p-2 rounded transition-all duration-200 hover:bg-muted/60 hover:scale-[1.01] active:scale-[0.99]">
+              <div className={`font-medium ${gift.purchased ? 'line-through text-muted-foreground' : ''}`}>
+                {gift.name}
               </div>
               {gift.cost !== null && (
-                <div className="text-sm text-muted-foreground px-2">
+                <div className="text-sm text-muted-foreground mt-1">
                   {formatCurrency(gift.cost, currency)}
                 </div>
               )}
