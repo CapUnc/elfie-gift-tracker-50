@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,6 +77,11 @@ const GiftTracker = () => {
     incompleteParts: { purchased: number; wrapped: number };
   }>({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
   const [quickAddGift, setQuickAddGift] = useState<{ personId: string; isOpen: boolean } | null>(null);
+  const [editingRecipient, setEditingRecipient] = useState<{
+    personId: string;
+    field: 'assignment' | 'notes';
+    value: string;
+  } | null>(null);
 
   // Initial data from spreadsheet
   const initialPeople: Person[] = [
@@ -314,6 +319,33 @@ const GiftTracker = () => {
     setPeople(people.map(person => 
       person.id === personId ? { ...person, assignedTo } : person
     ));
+  };
+
+  const startEditingRecipient = (personId: string, field: 'assignment' | 'notes') => {
+    const person = people.find(p => p.id === personId);
+    if (!person) return;
+    
+    const value = field === 'assignment' ? (person.assignedTo || 'unassigned') : person.notes;
+    setEditingRecipient({ personId, field, value });
+  };
+
+  const saveRecipientEdit = () => {
+    if (!editingRecipient) return;
+    
+    const { personId, field, value } = editingRecipient;
+    
+    if (field === 'assignment') {
+      const assignedTo = value === 'unassigned' ? null : value;
+      updateAssignment(personId, assignedTo);
+    } else if (field === 'notes') {
+      updateNotes(personId, value);
+    }
+    
+    setEditingRecipient(null);
+  };
+
+  const cancelRecipientEdit = () => {
+    setEditingRecipient(null);
   };
 
   const handleCompletionChange = (person: Person, completed: boolean) => {
@@ -846,68 +878,178 @@ const GiftTracker = () => {
                       </TableCell>
                     </TableRow>
                     
-                     {/* Expanded row content */}
+                      {/* Expanded row content */}
                      {isExpanded && (
                        <TableRow>
                          <TableCell colSpan={6} className="bg-muted/30 p-2 sm:p-4 smooth-accordion">
-                          <div className="space-y-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <h4 className="font-semibold flex items-center gap-2">
-                                <Gift className="w-4 h-4" />
-                                Gifts for {person.name}
-                              </h4>
-                               <Button
-                                 onClick={() => setEditingGift({ personId: person.id })}
-                                 size="sm"
-                                 className="gap-2 w-full sm:w-auto touch-target quick-action-btn"
-                               >
-                                <Plus className="w-4 h-4" />
-                                Add Gift
-                              </Button>
-                            </div>
-                            
-                            {/* Mobile: Assignment and Notes when hidden from main table */}
-                            <div className="space-y-3 lg:hidden">
-                              {buyers.length > 1 && (
-                                <div className="md:hidden">
-                                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                    Assigned To
-                                  </label>
-                                  <Select 
-                                    value={person.assignedTo || "unassigned"} 
-                                    onValueChange={(value) => updateAssignment(person.id, value === "unassigned" ? null : value)}
-                                  >
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue placeholder="Assign to..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                                      {buyers.map((buyer) => (
-                                        <SelectItem key={buyer.id} value={buyer.name}>
-                                          {buyer.emoji} {buyer.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              )}
+                          <div className="space-y-6">
+                            {/* Recipient Information Section */}
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                                <Gift className="w-4 h-4 text-primary" />
+                                <h3 className="font-semibold text-base">Recipient Information</h3>
+                              </div>
                               
-                              <div className="lg:hidden">
-                                <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                                  Notes
-                                </label>
-                                <Textarea
-                                  placeholder="Add notes..."
-                                  value={person.notes}
-                                  onChange={(e) => updateNotes(person.id, e.target.value)}
-                                  className="min-h-[60px] text-sm resize-none"
-                                />
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Assignment */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-muted-foreground">Assigned to:</span>
+                                    {editingRecipient?.personId === person.id && editingRecipient.field === 'assignment' ? (
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={saveRecipientEdit}
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <Save className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={cancelRecipientEdit}
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <XCircle className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => startEditingRecipient(person.id, 'assignment')}
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  
+                                  {editingRecipient?.personId === person.id && editingRecipient.field === 'assignment' ? (
+                                    <Select
+                                      value={editingRecipient.value}
+                                      onValueChange={(value) => setEditingRecipient({ ...editingRecipient, value })}
+                                    >
+                                      <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                                        {buyers.map(buyer => (
+                                          <SelectItem key={buyer.id} value={buyer.name}>
+                                            {buyer.emoji} {buyer.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <div className="text-sm">
+                                      {person.assignedTo ? (
+                                        <span className="flex items-center gap-2">
+                                          {buyers.find(b => b.name === person.assignedTo)?.emoji} 
+                                          {person.assignedTo}
+                                        </span>
+                                      ) : (
+                                        <span className="text-muted-foreground">Unassigned</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Notes */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-muted-foreground">Notes:</span>
+                                    {editingRecipient?.personId === person.id && editingRecipient.field === 'notes' ? (
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={saveRecipientEdit}
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <Save className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={cancelRecipientEdit}
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <XCircle className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => startEditingRecipient(person.id, 'notes')}
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  
+                                  {editingRecipient?.personId === person.id && editingRecipient.field === 'notes' ? (
+                                    <Textarea
+                                      value={editingRecipient.value}
+                                      onChange={(e) => setEditingRecipient({ ...editingRecipient, value: e.target.value })}
+                                      placeholder="Add notes about this person..."
+                                      className="min-h-[80px]"
+                                    />
+                                  ) : (
+                                    <div className="text-sm min-h-[80px]">
+                                      {person.notes ? (
+                                        <p className="whitespace-pre-wrap">{person.notes}</p>
+                                      ) : (
+                                        <span className="text-muted-foreground italic">No notes</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Summary Stats */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border/50">
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold">{person.gifts.length}</div>
+                                  <div className="text-xs text-muted-foreground">Gifts</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold">{formatCurrency(getTotalCost(person.gifts), currency)}</div>
+                                  <div className="text-xs text-muted-foreground">Total Cost</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold">{getCompletionStats(person).purchased}/{person.gifts.length}</div>
+                                  <div className="text-xs text-muted-foreground">Purchased</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold">{getCompletionStats(person).wrapped}/{person.gifts.length}</div>
+                                  <div className="text-xs text-muted-foreground">Wrapped</div>
+                                </div>
                               </div>
                             </div>
                             
-                            {/* Gifts List */}
-                            {/* Gift List with Enhanced Visual Structure */}
-                            <div className="ml-4 border-l-2 border-muted pl-4 space-y-3">
+                            {/* Gift List */}
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                                  <Package className="w-4 h-4 text-primary" />
+                                  <h3 className="font-semibold text-base">Gifts</h3>
+                                </div>
+                                <Button
+                                  onClick={() => setEditingGift({ personId: person.id })}
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-2"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Add Gift
+                                </Button>
+                              </div>
+                              <div className="space-y-3">
                               {person.gifts.map((gift) => {
                                 const assignedBuyer = buyers.find(buyer => buyer.name === (gift.assignedTo || person.assignedTo));
                                 const hasNotes = gift.trackingNumber || gift.carrier;
@@ -1152,10 +1294,11 @@ const GiftTracker = () => {
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Gift
                               </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                             )}
+                            </div>
+                           </div>
+                         </TableCell>
+                       </TableRow>
                     )}
                   </React.Fragment>
                 );
