@@ -900,7 +900,7 @@ const GiftTracker = () => {
                             {/* Gift List with Enhanced Visual Structure */}
                             <div className="ml-4 border-l-2 border-muted pl-4 space-y-3">
                               {person.gifts.map((gift) => {
-                                const assignedBuyer = buyers.find(buyer => buyer.name === person.assignedTo);
+                                const assignedBuyer = buyers.find(buyer => buyer.name === (gift.assignedTo || person.assignedTo));
                                 const hasNotes = gift.trackingNumber || gift.carrier;
                                 
                                 return (
