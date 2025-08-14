@@ -1100,14 +1100,14 @@ const GiftTracker = () => {
                                               <AlertCircle className="w-3 h-3 text-amber-500" />
                                             </div>
                                           )}
-                                          {assignedBuyer && buyers.length > 1 && (
-                                            <div 
-                                              title={`Assigned to ${assignedBuyer.name}`}
-                                              className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs"
-                                            >
-                                              {assignedBuyer.emoji}
-                                            </div>
-                                          )}
+                                           {assignedBuyer && assignedBuyer.emoji && buyers.length > 1 && (
+                                             <div 
+                                               title={`Assigned to ${assignedBuyer.name}`}
+                                               className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs"
+                                             >
+                                               {assignedBuyer.emoji}
+                                             </div>
+                                           )}
                                         </div>
                                       </div>
                                       
