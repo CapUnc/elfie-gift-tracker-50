@@ -943,11 +943,11 @@ const GiftTracker = () => {
                                     </Select>
                                   ) : (
                                     <div className="text-sm">
-                                      {person.assignedTo ? (
-                                        <span className="flex items-center gap-2">
-                                          {buyers.find(b => b.name === person.assignedTo)?.emoji} 
-                                          {person.assignedTo}
-                                        </span>
+                                       {person.assignedTo ? (
+                                         <span className="flex items-center gap-2">
+                                           {buyers.find(b => b.name === person.assignedTo)?.emoji || '?'} 
+                                           {person.assignedTo}
+                                         </span>
                                       ) : (
                                         <span className="text-muted-foreground">Unassigned</span>
                                       )}
