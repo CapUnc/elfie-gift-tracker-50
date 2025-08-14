@@ -666,7 +666,7 @@ const GiftTracker = () => {
               )}
               <div className="flex flex-col gap-3 pt-4 border-t">
                 <RippleButton onClick={addPerson} className="w-full h-11" disabled={!newPersonName.trim()}>
-                  Save Recipient
+                  Add Recipient
                 </RippleButton>
                 <Button 
                   variant="outline" 
@@ -695,7 +695,10 @@ const GiftTracker = () => {
         </Dialog>
 
         {/* Floating Action Button */}
-        <FloatingActionButton onClick={() => setIsAddPersonOpen(true)} />
+        <FloatingActionButton 
+          onClick={() => setIsAddPersonOpen(true)} 
+          isVisible={!isAddPersonOpen && !editingGift}
+        />
 
         {/* Main Content Area with Alphabet Index */}
         <div className="flex gap-4">
@@ -893,7 +896,18 @@ const GiftTracker = () => {
                         <TableCell colSpan={buyers.length > 1 ? 6 : 5} className="p-0">
                           <div className="bg-muted/20 p-4 border-t">
                             <div className="space-y-3">
-                              <h4 className="font-medium text-sm">Gifts for {person.name}</h4>
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-sm">Gifts for {person.name}</h4>
+                                <Button
+                                  onClick={() => setEditingGift({ personId: person.id })}
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add Gift
+                                </Button>
+                              </div>
                               {person.gifts.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">No gifts added yet</p>
                               ) : (
