@@ -911,7 +911,7 @@ const GiftTracker = () => {
                                 {person.gifts.length > 0 && (
                                   <>
                                     <span>•</span>
-                                    <span>{getCurrencySymbol(currency)}{getTotalCost(person.gifts).toFixed(2)}</span>
+                                    <span>{getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(2)}</span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
                                       <ShoppingCart className="h-3 w-3" />
