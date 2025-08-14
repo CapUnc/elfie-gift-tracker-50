@@ -93,7 +93,7 @@ const GiftTracker = () => {
     person: Person | null;
     incompleteParts: { purchased: number; wrapped: number };
   }>({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
-  
+  const [openAssignmentPopover, setOpenAssignmentPopover] = useState<string | null>(null);
   const [editingRecipient, setEditingRecipient] = useState<{
     personId: string;
     field: 'assignment' | 'notes';
@@ -866,52 +866,54 @@ const GiftTracker = () => {
                                </span>
                                
                                {/* Assignment Avatar */}
-                               <Popover>
-                                 <PopoverTrigger asChild>
-                                   <button className="h-5 w-5 rounded-full cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all flex items-center justify-center">
-                                     <Avatar className="h-5 w-5">
-                                       {person.assignedTo ? (
-                                         <AvatarFallback className="bg-primary/10 text-xs">
-                                           {buyers.find(b => b.name === person.assignedTo)?.emoji || '👤'}
-                                         </AvatarFallback>
-                                       ) : (
-                                         <AvatarFallback className="bg-muted hover:bg-muted/80 text-muted-foreground">
-                                           <Users className="h-3 w-3" />
-                                         </AvatarFallback>
-                                       )}
-                                     </Avatar>
-                                   </button>
-                                 </PopoverTrigger>
-                                 <PopoverContent className="w-48 p-2" align="start">
-                                   <div className="space-y-1">
-                                     <Button
-                                       variant="ghost"
-                                       size="sm"
-                                       className="w-full justify-start"
-                                       onClick={() => {
-                                         updatePersonAssignment(person.id, null);
-                                       }}
-                                     >
-                                       <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
-                                       Unassigned
-                                     </Button>
-                                     {buyers.map(buyer => (
-                                       <Button
-                                         key={buyer.id}
-                                         variant="ghost"
-                                         size="sm"
-                                         className="w-full justify-start"
-                                         onClick={() => {
-                                           updatePersonAssignment(person.id, buyer.name);
-                                         }}
-                                       >
-                                         <span className="mr-2 text-sm">{buyer.emoji}</span>
-                                         {buyer.name}
-                                       </Button>
-                                     ))}
-                                   </div>
-                                 </PopoverContent>
-                               </Popover>
+                                <Popover open={openAssignmentPopover === person.id} onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : null)}>
+                                  <PopoverTrigger asChild>
+                                    <button className="h-5 w-5 rounded-full cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all flex items-center justify-center">
+                                      <Avatar className="h-5 w-5">
+                                        {person.assignedTo ? (
+                                          <AvatarFallback className="bg-primary/10 text-xs">
+                                            {buyers.find(b => b.name === person.assignedTo)?.emoji || '👤'}
+                                          </AvatarFallback>
+                                        ) : (
+                                          <AvatarFallback className="bg-muted hover:bg-muted/80 text-muted-foreground">
+                                            <Users className="h-3 w-3" />
+                                          </AvatarFallback>
+                                        )}
+                                      </Avatar>
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-2 bg-popover z-50" align="start">
+                                    <div className="space-y-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full justify-start"
+                                        onClick={() => {
+                                          updatePersonAssignment(person.id, null);
+                                          setOpenAssignmentPopover(null);
+                                        }}
+                                      >
+                                        <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
+                                        Unassigned
+                                      </Button>
+                                      {buyers.map(buyer => (
+                                        <Button
+                                          key={buyer.id}
+                                          variant="ghost"
+                                          size="sm"
+                                          className="w-full justify-start"
+                                          onClick={() => {
+                                            updatePersonAssignment(person.id, buyer.name);
+                                            setOpenAssignmentPopover(null);
+                                          }}
+                                        >
+                                          <span className="mr-2 text-sm">{buyer.emoji}</span>
+                                          {buyer.name}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
                                <Button
                                  variant={person.completed ? "default" : "outline"}
                                  size="sm"
