@@ -26,10 +26,19 @@ interface Person {
   completed?: boolean;
 }
 
+interface Buyer {
+  id: string;
+  name: string;
+  emoji: string;
+}
+
 const Summary = () => {
   const navigate = useNavigate();
   const [people, setPeople] = useState<Person[]>([]);
-  const [buyers, setBuyers] = useState<string[]>(['Matt', 'Maddie']);
+  const [buyers, setBuyers] = useState<Buyer[]>([
+    { id: '1', name: 'Matt', emoji: '👨' },
+    { id: '2', name: 'Maddie', emoji: '👩' }
+  ]);
   const [currency, setCurrency] = useState('$');
 
   // Load data from localStorage
@@ -41,7 +50,18 @@ const Summary = () => {
 
     const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
     if (savedBuyers) {
-      setBuyers(JSON.parse(savedBuyers));
+      const parsed = JSON.parse(savedBuyers);
+      // Handle migration from old string array format
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+        const migratedBuyers = parsed.map((name: string, index: number) => ({
+          id: (index + 1).toString(),
+          name,
+          emoji: index === 0 ? '👨' : '👩'
+        }));
+        setBuyers(migratedBuyers);
+      } else {
+        setBuyers(parsed);
+      }
     }
 
     const savedCurrency = localStorage.getItem('christmas-gifts-currency');
@@ -105,7 +125,7 @@ const Summary = () => {
     if (buyers.length <= 1) return [];
     
     return buyers.map(buyer => {
-      const assignedPeople = people.filter(person => person.assignedTo === buyer);
+      const assignedPeople = people.filter(person => person.assignedTo === buyer.name);
       const completedAssignedPeople = assignedPeople.filter(person => person.completed === true).length;
       const buyerGifts = assignedPeople.flatMap(person => person.gifts);
       const buyerCost = buyerGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
@@ -113,7 +133,7 @@ const Summary = () => {
       const buyerWrapped = buyerGifts.filter(gift => gift.wrapped).length;
 
       return {
-        name: buyer,
+        name: buyer.name,
         people: assignedPeople.length,
         completedPeople: completedAssignedPeople,
         gifts: buyerGifts.length,
