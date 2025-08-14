@@ -20,9 +20,9 @@ interface Gift {
 interface SwipeableGiftItemProps {
   gift: Gift;
   currency: string;
-  onUpdate: (field: 'purchased' | 'wrapped', value: boolean) => void;
-  onDelete: () => void;
-  onEdit: () => void;
+  onUpdate: (giftId: string, field: 'purchased' | 'wrapped', value: boolean) => void;
+  onDelete: (giftId: string) => void;
+  onEdit: (giftId: string) => void;
 }
 
 export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
@@ -74,7 +74,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
         haptic.success();
         setIsHighlighted(true);
         setTimeout(() => setIsHighlighted(false), 2000);
-        onUpdate('purchased', !gift.purchased);
+        onUpdate(gift.id, 'purchased', !gift.purchased);
       } else {
         // Left swipe - delete (with confirmation for now)
         haptic.tap();
@@ -150,7 +150,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
     if ((e.target as HTMLElement).closest('button')) return;
     
     haptic.tap();
-    onEdit();
+    onEdit(gift.id);
   };
 
   return (
@@ -205,7 +205,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                     haptic.success();
                     setIsHighlighted(true);
                     setTimeout(() => setIsHighlighted(false), 2000);
-                    onUpdate('purchased', checked as boolean);
+                    onUpdate(gift.id, 'purchased', checked as boolean);
                   }}
                   className="gift-status-button"
                 />
@@ -218,7 +218,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                     haptic.success();
                     setIsHighlighted(true);
                     setTimeout(() => setIsHighlighted(false), 2000);
-                    onUpdate('wrapped', checked as boolean);
+                    onUpdate(gift.id, 'wrapped', checked as boolean);
                   }}
                   className="gift-status-button"
                 />
@@ -253,7 +253,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                onEdit();
+                onEdit(gift.id);
               }}
               className="h-8 w-8 p-0"
             >
@@ -264,7 +264,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete();
+                onDelete(gift.id);
               }}
               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
             >

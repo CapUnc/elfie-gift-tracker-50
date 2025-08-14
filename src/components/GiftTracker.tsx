@@ -666,28 +666,30 @@ const GiftTracker = () => {
   }, [filteredPeople, sortConfig]);
 
   return (
-    <div className="p-4 sm:p-6 pb-20">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 pb-20 max-w-full overflow-hidden">
+      <div className="max-w-7xl mx-auto max-w-full">
         {/* Compact Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-primary flex items-center gap-2">
-                <Gift className="h-5 w-5 text-christmas-red" />
-                Gift Tracker
+        <div className="mb-6 max-w-full">
+          <div className="flex items-center justify-between mb-4 min-w-0">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-primary flex items-center gap-2 min-w-0">
+                <Gift className="h-5 w-5 text-christmas-red flex-shrink-0" />
+                <span className="truncate">Gift Tracker</span>
               </h1>
               <p className="text-sm text-muted-foreground">Manage holiday gifts</p>
             </div>
           </div>
 
           {/* Enhanced Search and Filter System */}
-          <GiftSearch
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            filters={filters}
-            onFiltersChange={setFilters}
-            buyers={buyers}
-          />
+          <div className="max-w-full overflow-hidden">
+            <GiftSearch
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              filters={filters}
+              onFiltersChange={setFilters}
+              buyers={buyers}
+            />
+          </div>
         </div>
 
         {/* Add Person Dialog */}
@@ -753,10 +755,10 @@ const GiftTracker = () => {
         />
 
         {/* Main Content Area with Alphabet Index */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 max-w-full overflow-hidden">
           {/* Alphabet Index - Desktop Only */}
           {sortedAndFilteredPeople.length > 10 && (
-            <div className="hidden xl:block">
+            <div className="hidden xl:block flex-shrink-0">
               <div className="sticky top-4">
                 <AlphabetIndex
                   people={sortedAndFilteredPeople}
@@ -767,297 +769,337 @@ const GiftTracker = () => {
             </div>
           )}
 
-          {/* Compact Table */}
-          <div className="flex-1 rounded-lg border bg-card overflow-hidden shadow-sm" ref={tableRef}>
-            <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="border-b">
-                <TableHead className="w-10 p-2">
-                  <span className="sr-only">Expand</span>
-                </TableHead>
-                <TableHead className="font-semibold text-left p-3">
+          {/* Responsive Card Layout */}
+          <div className="flex-1 space-y-3 max-w-full overflow-hidden" ref={tableRef}>
+            {/* Sort Controls */}
+            {sortedAndFilteredPeople.length > 0 && (
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto">
+                <span className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0">Sort by:</span>
+                <div className="flex items-center gap-1 flex-wrap">
                   <Button
-                    variant="ghost"
+                    variant={sortConfig.key === 'name' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleSort('name')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent text-left -ml-1"
+                    className="h-7 px-2 text-xs whitespace-nowrap"
                   >
-                    Name {getSortIcon('name')}
+                    Name {sortConfig.key === 'name' && getSortIcon('name')}
                   </Button>
-                </TableHead>
-                {buyers.length > 1 && (
-                  <TableHead className="hidden md:table-cell font-semibold p-3">
+                  {buyers.length > 1 && (
                     <Button
-                      variant="ghost"
+                      variant={sortConfig.key === 'assignedTo' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => handleSort('assignedTo')}
-                      className="h-auto p-0 font-semibold hover:bg-transparent -ml-1"
+                      className="h-7 px-2 text-xs whitespace-nowrap"
                     >
-                      Assignment {getSortIcon('assignedTo')}
+                      Assignment {sortConfig.key === 'assignedTo' && getSortIcon('assignedTo')}
                     </Button>
-                  </TableHead>
-                )}
-                <TableHead className="hidden sm:table-cell font-semibold p-3">
+                  )}
                   <Button
-                    variant="ghost"
+                    variant={sortConfig.key === 'totalCost' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleSort('totalCost')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent -ml-1"
+                    className="h-7 px-2 text-xs whitespace-nowrap"
                   >
-                    Cost {getSortIcon('totalCost')}
+                    Cost {sortConfig.key === 'totalCost' && getSortIcon('totalCost')}
                   </Button>
-                </TableHead>
-                <TableHead className="font-semibold p-3 text-center">
-                  Progress
-                </TableHead>
-                <TableHead className="w-12 p-2">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedAndFilteredPeople.map((person) => {
+                  <Button
+                    variant={sortConfig.key === 'progress' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSort('progress')}
+                    className="h-7 px-2 text-xs whitespace-nowrap"
+                  >
+                    Progress {sortConfig.key === 'progress' && getSortIcon('progress')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Responsive Card List */}
+            {sortedAndFilteredPeople.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">
+                  {people.length === 0 ? "No recipients added yet" : "No recipients match your search"}
+                </p>
+                {people.length === 0 && (
+                  <Button onClick={() => setIsAddPersonOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Recipient
+                  </Button>
+                )}
+              </div>
+            ) : (
+              sortedAndFilteredPeople.map((person) => {
                 const stats = getCompletionStats(person);
                 const isExpanded = expandedRows.has(person.id);
-                const progressPercent = stats.total > 0 ? (stats.purchased / stats.total) * 100 : 0;
-                
+                const isHighlighted = highlightedItems.has(`person-${person.id}`);
+                const assignedBuyer = buyers.find(b => b.name === person.assignedTo);
+                const progressPercent = stats.total > 0 ? ((stats.purchased + stats.wrapped) / (stats.total * 2)) * 100 : 0;
+
                 return (
-                  <React.Fragment key={person.id}>
-                    <PersonContextMenu
-                      onAddGift={() => setEditingGift({ personId: person.id })}
-                      onEditNotes={() => {/* TODO: Open notes edit */}}
-                      onEditAssignment={() => {/* TODO: Open assignment edit */}}
-                      onMarkAllPurchased={() => markAllPurchased(person.id)}
-                      onMarkAllWrapped={() => markAllWrapped(person.id)}
-                      onDeletePerson={() => {/* TODO: Delete person */}}
-                      onMarkComplete={() => handleCompletionChange(person, !person.completed)}
-                      hasGifts={person.gifts.length > 0}
-                      isComplete={person.completed || false}
-                    >
-                       <TableRow 
-                         data-person-id={person.id}
-                         className={`hover:bg-muted/50 border-b border-border/50 cursor-pointer ${person.completed ? 'bg-accent/20' : ''} ${
-                           highlightedItems.has(`person-${person.id}`) ? 'animate-fade-in bg-primary/10 border-primary/20' : ''
-                         }`}
-                       >
-                      <TableCell className="p-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            haptic.tap();
-                            toggleRow(person.id);
-                          }}
-                          className="p-1 h-6 w-6"
-                        >
-                          <ChevronRight 
-                            className={`w-4 h-4 transition-transform duration-200 ${
-                              isExpanded ? 'rotate-90' : 'rotate-0'
-                            }`} 
-                          />
-                        </Button>
-                      </TableCell>
-                      <TableCell className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                             <div className="flex items-center gap-2">
-                               <span className={`font-semibold text-base ${person.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                                 {person.name}
-                               </span>
-                               
-                               {/* Assignment Avatar */}
-                                <Popover open={openAssignmentPopover === person.id} onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : null)}>
-                                  <PopoverTrigger asChild>
-                                    <button className="h-5 w-5 rounded-full cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all flex items-center justify-center">
-                                      <Avatar className="h-5 w-5">
-                                        {person.assignedTo ? (
-                                          <AvatarFallback className="bg-primary/10 text-xs">
-                                            {buyers.find(b => b.name === person.assignedTo)?.emoji || '👤'}
-                                          </AvatarFallback>
-                                        ) : (
-                                          <AvatarFallback className="bg-muted hover:bg-muted/80 text-muted-foreground">
-                                            <Users className="h-3 w-3" />
-                                          </AvatarFallback>
-                                        )}
-                                      </Avatar>
-                                    </button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-48 p-2 bg-popover z-50" align="start">
-                                    <div className="space-y-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start"
+                  <PersonContextMenu
+                    key={person.id}
+                    onAddGift={() => setEditingGift({ personId: person.id })}
+                    onEditNotes={() => handleNotesEditStart(person.id)}
+                    onEditAssignment={() => setOpenAssignmentPopover(person.id)}
+                    onMarkAllPurchased={() => markAllPurchased(person.id)}
+                    onMarkAllWrapped={() => markAllWrapped(person.id)}
+                    onDeletePerson={() => {/* TODO: Delete person */}}
+                    onMarkComplete={() => handleCompletionChange(person, !person.completed)}
+                    hasGifts={person.gifts.length > 0}
+                    isComplete={person.completed || false}
+                  >
+                    <div className="max-w-full overflow-hidden">
+                      {/* Main Recipient Card */}
+                      <div 
+                        className={`bg-card rounded-lg border p-4 cursor-pointer transition-colors duration-200 max-w-full ${
+                          isHighlighted ? 'bg-primary/10 border-primary/30' : ''
+                        } ${person.completed ? 'opacity-75' : ''}`}
+                        data-person-id={person.id}
+                        onClick={() => toggleRow(person.id)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 w-full">
+                          {/* Left Section - Expand, Avatar, Name */}
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            {/* Expand/Collapse Button */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                haptic.tap();
+                                toggleRow(person.id);
+                              }}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+
+                            {/* Avatar */}
+                            <div className="flex-shrink-0">
+                              {assignedBuyer?.emoji ? (
+                                <span className="text-2xl">{assignedBuyer.emoji}</span>
+                              ) : (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback className="bg-muted">
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                            </div>
+
+                            {/* Name and Details */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className="font-semibold text-sm truncate max-w-40 sm:max-w-60 md:max-w-80">
+                                  {person.name}
+                                </div>
+                                {person.completed && (
+                                  <Badge variant="secondary" className="text-xs px-2 py-0.5 flex-shrink-0">
+                                    Done
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap mt-0.5">
+                                <span className="flex items-center gap-1">
+                                  <Gift className="h-3 w-3" />
+                                  {person.gifts.length}
+                                </span>
+                                {person.gifts.length > 0 && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{getCurrencySymbol(currency)}{getTotalCost(person.gifts).toFixed(2)}</span>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                      <ShoppingCart className="h-3 w-3" />
+                                      {stats.purchased}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                      <Package className="h-3 w-3" />
+                                      {stats.wrapped}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Section - Assignment, Progress, Actions */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Assignment Popover */}
+                            {buyers.length > 1 && (
+                              <Popover 
+                                open={openAssignmentPopover === person.id} 
+                                onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : null)}
+                              >
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-2 hidden sm:flex"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenAssignmentPopover(openAssignmentPopover === person.id ? null : person.id);
+                                    }}
+                                  >
+                                    {assignedBuyer ? (
+                                      <span className="flex items-center gap-1 text-xs">
+                                        <span>{assignedBuyer.emoji}</span>
+                                        <span className="hidden md:inline">{assignedBuyer.name}</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">Assign</span>
+                                    )}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-2" align="center">
+                                  <div className="space-y-1">
+                                    <div 
+                                      className="px-2 py-1.5 text-sm rounded cursor-pointer hover:bg-accent"
+                                      onClick={() => {
+                                        updatePersonAssignment(person.id, null);
+                                        setOpenAssignmentPopover(null);
+                                      }}
+                                    >
+                                      Unassigned
+                                    </div>
+                                    {buyers.map(buyer => (
+                                      <div 
+                                        key={buyer.id}
+                                        className="px-2 py-1.5 text-sm rounded cursor-pointer hover:bg-accent flex items-center gap-2"
                                         onClick={() => {
-                                          updatePersonAssignment(person.id, null);
+                                          updatePersonAssignment(person.id, buyer.name);
                                           setOpenAssignmentPopover(null);
                                         }}
                                       >
-                                        <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
-                                        Unassigned
-                                      </Button>
-                                      {buyers.map(buyer => (
-                                        <Button
-                                          key={buyer.id}
-                                          variant="ghost"
-                                          size="sm"
-                                          className="w-full justify-start"
-                                          onClick={() => {
-                                            updatePersonAssignment(person.id, buyer.name);
-                                            setOpenAssignmentPopover(null);
-                                          }}
-                                        >
-                                          <span className="mr-2 text-sm">{buyer.emoji}</span>
-                                          {buyer.name}
-                                        </Button>
-                                      ))}
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
-                               <Button
-                                 variant={person.completed ? "default" : "outline"}
-                                 size="sm"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   haptic.tap();
-                                   handleManualComplete(person);
-                                 }}
-                                 className={`h-6 px-2 text-xs ${
-                                   person.completed 
-                                     ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' 
-                                     : 'border-muted-foreground/30 text-muted-foreground hover:bg-muted/50'
-                                 }`}
-                               >
-                                 <Check className="w-3 h-3 mr-1" />
-                                 Done
-                               </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
-                              <span className="flex items-center gap-1">
-                                <Gift className="h-3 w-3" />
-                                {stats.total}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <ShoppingCart className="h-3 w-3" />
-                                {stats.purchased}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Package className="h-3 w-3" />
-                                {stats.wrapped}
+                                        <span>{buyer.emoji}</span>
+                                        <span>{buyer.name}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+
+                            {/* Progress Bar */}
+                            <div className="flex flex-col items-center gap-1 min-w-16">
+                              <div className="w-12 sm:w-16 bg-secondary rounded-full h-2">
+                                <div 
+                                  className="h-2 bg-primary rounded-full transition-all duration-300" 
+                                  style={{ width: `${progressPercent}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {Math.round(progressPercent)}%
                               </span>
                             </div>
-                            {/* Notes Preview */}
+
+                            {/* Completion Status */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleManualComplete(person);
+                              }}
+                            >
+                              {person.completed ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+
+                            {/* Add Gift Button */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingGift({ personId: person.id });
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="mt-2 bg-muted/20 rounded-lg border p-4 max-w-full overflow-hidden">
+                          {/* Notes Section */}
+                          <div className="mb-4">
                             <GiftNotes
                               notes={person.notes}
                               onNotesChange={(notes) => updatePersonNotes(person.id, notes)}
                               personName={person.name}
-                              className="mt-0.5"
                               isEditing={editingNotes === person.id}
                               onEditStart={() => handleNotesEditStart(person.id)}
                               onEditEnd={handleNotesEditEnd}
                             />
                           </div>
-                        </div>
-                      </TableCell>
-                      {buyers.length > 1 && (
-                        <TableCell className="hidden md:table-cell p-3">
-                          <span className="text-sm">
-                            {person.assignedTo ? 
-                              buyers.find(b => b.name === person.assignedTo)?.emoji + ' ' + person.assignedTo 
-                              : 'Unassigned'
-                            }
-                          </span>
-                        </TableCell>
-                      )}
-                      <TableCell className="hidden sm:table-cell p-3">
-                        <span className="font-medium">{formatCurrency(getTotalCost(person.gifts), currency)}</span>
-                      </TableCell>
-                      <TableCell className="p-3 text-center">
-                        <div className="flex items-center gap-2 w-full max-w-24">
-                          <div className="flex-1 bg-muted rounded-full h-1.5">
-                            <div 
-                              className={`h-1.5 rounded-full transition-all ${
-                                person.completed ? 'bg-green-500' : 'bg-primary'
-                              }`}
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-muted-foreground min-w-[28px]">
-                            {Math.round(progressPercent)}%
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="p-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingGift({ personId: person.id });
-                          }}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    </PersonContextMenu>
-                    
-                    {/* Expanded Gift Details */}
-                    {isExpanded && (
-                      <TableRow>
-                        <TableCell colSpan={buyers.length > 1 ? 6 : 5} className="p-0">
-                          <div className="bg-muted/20 p-4 border-t">
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-sm">Gifts for {person.name}</h4>
-                                <Button
-                                  onClick={() => setEditingGift({ personId: person.id })}
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 px-2 text-xs"
+
+                          {/* Gift List */}
+                          {person.gifts.length > 0 ? (
+                            <div className="space-y-2 max-w-full">
+                              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                                Gifts ({person.gifts.length})
+                              </h4>
+                              {person.gifts.map((gift) => (
+                                <GiftContextMenu
+                                  key={gift.id}
+                                  gift={gift}
+                                  onEdit={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
+                                  onTogglePurchased={() => updateGiftStatus(person.id, gift.id, 'purchased', !gift.purchased)}
+                                  onToggleWrapped={() => updateGiftStatus(person.id, gift.id, 'wrapped', !gift.wrapped)}
+                                  onDelete={() => deleteGift(person.id, gift.id)}
+                                  onDuplicate={() => duplicateGift(person.id, gift)}
                                 >
-                                  <Plus className="h-3 w-3 mr-1" />
-                                  Add Gift
-                                </Button>
-                              </div>
-                              {person.gifts.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">No gifts added yet</p>
-                              ) : (
-                                 <div className="space-y-2">
-                                   {person.gifts.map((gift) => (
-                                     <GiftContextMenu
-                                       key={gift.id}
+                                  <div
+                                    className={`transition-colors duration-200 max-w-full overflow-hidden ${
+                                      highlightedItems.has(`gift-${gift.id}`) ? 'bg-primary/10 border-primary/30 rounded-lg' : ''
+                                    }`}
+                                  >
+                                     <SwipeableGiftItem
                                        gift={gift}
-                                        onEdit={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
-                                       onTogglePurchased={() => updateGiftStatus(person.id, gift.id, 'purchased', !gift.purchased)}
-                                       onToggleWrapped={() => updateGiftStatus(person.id, gift.id, 'wrapped', !gift.wrapped)}
-                                       onDelete={() => deleteGift(person.id, gift.id)}
-                                       onDuplicate={() => duplicateGift(person.id, gift)}
-                                     >
-                                        <div className={highlightedItems.has(`gift-${gift.id}`) ? 'animate-fade-in bg-primary/10 rounded-md p-1' : ''}>
-                                          <SwipeableGiftItem
-                                            gift={gift}
-                                            currency={currency}
-                                            onUpdate={(field, value) => updateGiftStatus(person.id, gift.id, field, value)}
-                                            onDelete={() => deleteGift(person.id, gift.id)}
-                                            onEdit={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
-                                          />
-                                        </div>
-                                     </GiftContextMenu>
-                                   ))}
-                                 </div>
-                              )}
+                                       currency={currency}
+                                       onUpdate={(giftId, field, value) => updateGiftStatus(person.id, giftId, field, value)}
+                                       onDelete={(giftId) => setDeletingGift({ personId: person.id, giftId, giftName: gift.name })}
+                                       onEdit={(giftId) => setEditingGift({ personId: person.id, giftId, gift })}
+                                     />
+                                  </div>
+                                </GiftContextMenu>
+                              ))}
                             </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
+                          ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Gift className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                              <p className="text-sm">No gifts added yet</p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => setEditingGift({ personId: person.id })}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Gift
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </PersonContextMenu>
                 );
-              })}
-            </TableBody>
-            </Table>
+              })
+            )}
           </div>
         </div>
 

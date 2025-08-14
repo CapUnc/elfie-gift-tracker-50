@@ -132,7 +132,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       </div>
 
       {/* Compact Horizontal Chip Rail */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1.5 flex-wrap max-w-full overflow-hidden">
         {/* Filter Sheet Trigger */}
         <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
           <SheetTrigger asChild>
@@ -151,24 +151,35 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
             </Button>
           </SheetTrigger>
 
-        {/* Active Filter Chips */}
-        {activeFilterChips.map(chip => (
-          <Badge
-            key={chip.id}
-            variant="secondary"
-            className="h-7 px-2 pr-1 flex items-center gap-1 text-xs"
-          >
-            <span>{chip.label}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={chip.onRemove}
-              className="h-4 w-4 p-0 hover:bg-destructive/20"
+        {/* Active Filter Chips - Collapsible */}
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+          {activeFilterChips.slice(0, 2).map(chip => (
+            <Badge
+              key={chip.id}
+              variant="secondary"
+              className="h-7 px-2 pr-1 flex items-center gap-1 text-xs flex-shrink-0"
             >
-              <X className="h-3 w-3" />
-            </Button>
-          </Badge>
-        ))}
+              <span className="truncate max-w-24">{chip.label}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={chip.onRemove}
+                className="h-4 w-4 p-0 hover:bg-destructive/20 flex-shrink-0"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+          {activeFilterChips.length > 2 && (
+            <Badge
+              variant="secondary"
+              className="h-7 px-2 text-xs cursor-pointer flex-shrink-0"
+              onClick={() => setIsFilterSheetOpen(true)}
+            >
+              +{activeFilterChips.length - 2} more
+            </Badge>
+          )}
+        </div>
           <SheetContent side="bottom" className="max-h-[80vh]">
             <SheetHeader>
               <SheetTitle>Filter Options</SheetTitle>
