@@ -663,26 +663,6 @@ const GiftTracker = () => {
             filters={filters}
             onFiltersChange={setFilters}
             buyers={buyers}
-            quickFilters={[
-              {
-                label: 'Need Shopping',
-                icon: <ShoppingCart className="h-3 w-3" />,
-                onClick: () => setFilters(prev => ({ ...prev, completion: prev.completion === 'incomplete' ? 'all' : 'incomplete' })),
-                active: filters.completion === 'incomplete'
-              },
-              {
-                label: 'No Gifts',
-                icon: <Users className="h-3 w-3" />,
-                onClick: () => setFilters(prev => ({ ...prev, hasGifts: prev.hasGifts === 'no-gifts' ? 'all' : 'no-gifts' })),
-                active: filters.hasGifts === 'no-gifts'
-              },
-              {
-                label: 'Need Wrapping',
-                icon: <Package className="h-3 w-3" />,
-                onClick: () => setFilters(prev => ({ ...prev, wrapping: prev.wrapping === 'needs-wrapping' ? 'all' : 'needs-wrapping' })),
-                active: filters.wrapping === 'needs-wrapping'
-              }
-            ]}
           />
         </div>
 

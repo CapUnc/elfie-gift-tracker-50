@@ -26,12 +26,6 @@ interface GiftSearchProps {
   filters: SearchFilters;
   onFiltersChange: (filters: SearchFilters) => void;
   buyers: Buyer[];
-  quickFilters?: {
-    label: string;
-    icon: React.ReactNode;
-    onClick: () => void;
-    active: boolean;
-  }[];
 }
 
 export const GiftSearch: React.FC<GiftSearchProps> = ({
@@ -39,8 +33,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
   onSearchChange,
   filters,
   onFiltersChange,
-  buyers,
-  quickFilters = []
+  buyers
 }) => {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
@@ -68,6 +61,53 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
     onSearchChange('');
   };
 
+  const activeFilterChips = useMemo(() => {
+    const chips = [];
+    
+    if (filters.assignedTo !== 'all') {
+      const buyer = buyers.find(b => b.name === filters.assignedTo);
+      chips.push({
+        id: 'assignedTo',
+        label: buyer ? `${buyer.emoji} ${buyer.name}` : filters.assignedTo === 'unassigned' ? 'Unassigned' : filters.assignedTo,
+        onRemove: () => onFiltersChange({ ...filters, assignedTo: 'all' })
+      });
+    }
+    
+    if (filters.completion !== 'all') {
+      chips.push({
+        id: 'completion',
+        label: filters.completion === 'completed' ? 'Fully purchased' : 'Needs shopping',
+        onRemove: () => onFiltersChange({ ...filters, completion: 'all' })
+      });
+    }
+    
+    if (filters.wrapping !== 'all') {
+      chips.push({
+        id: 'wrapping', 
+        label: filters.wrapping === 'needs-wrapping' ? 'Needs wrapping' : 'Fully wrapped',
+        onRemove: () => onFiltersChange({ ...filters, wrapping: 'all' })
+      });
+    }
+    
+    if (filters.hasGifts !== 'all') {
+      chips.push({
+        id: 'hasGifts',
+        label: filters.hasGifts === 'with-gifts' ? 'Has gifts' : 'No gifts',
+        onRemove: () => onFiltersChange({ ...filters, hasGifts: 'all' })
+      });
+    }
+
+    if (!filters.showCompleted) {
+      chips.push({
+        id: 'showCompleted',
+        label: 'Hide completed',
+        onRemove: () => onFiltersChange({ ...filters, showCompleted: true })
+      });
+    }
+    
+    return chips;
+  }, [filters, buyers, onFiltersChange]);
+
   return (
     <div className="space-y-3">
       {/* Search Bar - Own Row */}
@@ -92,22 +132,8 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       </div>
 
       {/* Compact Horizontal Chip Rail */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-        {/* Quick Filter Chips */}
-        {quickFilters.map((filter, index) => (
-          <Button
-            key={index}
-            variant={filter.active ? "default" : "outline"}
-            size="sm"
-            onClick={filter.onClick}
-            className="whitespace-nowrap h-7 px-2.5 flex items-center gap-1 flex-shrink-0"
-          >
-            <span className="w-3 h-3">{filter.icon}</span>
-            <span className="text-xs">{filter.label}</span>
-          </Button>
-        ))}
-
-        {/* Advanced Filter Sheet Trigger */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Filter Sheet Trigger */}
         <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
           <SheetTrigger asChild>
             <Button
@@ -124,6 +150,25 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
               )}
             </Button>
           </SheetTrigger>
+
+        {/* Active Filter Chips */}
+        {activeFilterChips.map(chip => (
+          <Badge
+            key={chip.id}
+            variant="secondary"
+            className="h-7 px-2 pr-1 flex items-center gap-1 text-xs"
+          >
+            <span>{chip.label}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={chip.onRemove}
+              className="h-4 w-4 p-0 hover:bg-destructive/20"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        ))}
           <SheetContent side="bottom" className="max-h-[80vh]">
             <SheetHeader>
               <SheetTitle>Filter Options</SheetTitle>
@@ -228,16 +273,12 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
         </Sheet>
       </div>
 
-      {/* Compact Summary Line */}
+      {/* Clean Status Line */}
       {(activeFilterCount > 0 || searchTerm) && (
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            {activeFilterCount > 0 && (
-              <span>{activeFilterCount} active</span>
-            )}
-            {searchTerm && activeFilterCount > 0 && <span>•</span>}
-            {searchTerm && <span>searching</span>}
-          </div>
+          <span>
+            {activeFilterCount > 0 && `${activeFilterCount} active`}
+          </span>
           <Button
             variant="ghost"
             size="sm"
