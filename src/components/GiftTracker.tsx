@@ -461,8 +461,6 @@ const GiftTracker = () => {
     });
   };
 
-
-
   // Filter people based on current filters
   const filteredPeople = people.filter(person => {
     // Filter by shopping completion status
@@ -812,7 +810,7 @@ const GiftTracker = () => {
                                    className="text-lg" 
                                    title={`Assigned to ${person.assignedTo}`}
                                  >
-                                   {buyers.find(b => b.name === person.assignedTo)?.emoji}
+                                   {buyers.find(b => b.name === person.assignedTo)?.emoji || '?'}
                                  </span>
                                ) : (
                                  'Unassigned'
