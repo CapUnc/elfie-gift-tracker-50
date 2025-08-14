@@ -130,7 +130,7 @@ const GiftTracker = () => {
     if (savedBuyers) {
       const parsed = JSON.parse(savedBuyers);
       // Handle migration from old string array format
-      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
         const migratedBuyers = parsed.map((name: string, index: number) => ({
           id: (index + 1).toString(),
           name,
@@ -812,7 +812,8 @@ const GiftTracker = () => {
                                  >
                                     {(() => {
                                       const buyer = buyers.find(b => b.name === person.assignedTo);
-                                      return buyer?.emoji || '?';
+                                      const emoji = buyer?.emoji;
+                                      return typeof emoji === 'string' ? emoji : '?';
                                     })()}
                                  </span>
                                ) : (
@@ -950,7 +951,8 @@ const GiftTracker = () => {
                                          <span className="flex items-center gap-2">
                                             {(() => {
                                               const buyer = buyers.find(b => b.name === person.assignedTo);
-                                              return buyer?.emoji || '?';
+                                              const emoji = buyer?.emoji;
+                                              return typeof emoji === 'string' ? emoji : '?';
                                             })()}
                                            {person.assignedTo}
                                          </span>
@@ -1111,7 +1113,7 @@ const GiftTracker = () => {
                                                title={`Assigned to ${assignedBuyer.name}`}
                                                className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs"
                                              >
-                                               {assignedBuyer.emoji}
+                                               {typeof assignedBuyer.emoji === 'string' ? assignedBuyer.emoji : '?'}
                                              </div>
                                            )}
                                         </div>
