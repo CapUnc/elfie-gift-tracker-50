@@ -3,7 +3,7 @@ import { Search, X, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Buyer {
@@ -42,7 +42,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
   buyers,
   quickFilters = []
 }) => {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -70,7 +70,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Search Bar */}
+      {/* Search Bar - Own Row */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -91,58 +91,50 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
         )}
       </div>
 
-      {/* Quick Filters and Main Filter Button */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {/* Quick Filter Pills */}
+      {/* Compact Horizontal Chip Rail */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        {/* Quick Filter Chips */}
         {quickFilters.map((filter, index) => (
           <Button
             key={index}
             variant={filter.active ? "default" : "outline"}
             size="sm"
             onClick={filter.onClick}
-            className="whitespace-nowrap h-8 px-3 flex items-center gap-1.5"
+            className="whitespace-nowrap h-7 px-2.5 flex items-center gap-1 flex-shrink-0"
           >
-            {filter.icon}
+            <span className="w-3 h-3">{filter.icon}</span>
             <span className="text-xs">{filter.label}</span>
           </Button>
         ))}
 
-        {/* Advanced Filter Button */}
-        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <PopoverTrigger asChild>
+        {/* Advanced Filter Sheet Trigger */}
+        <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+          <SheetTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              className="whitespace-nowrap h-8 px-3 relative"
+              className="whitespace-nowrap h-7 px-2.5 relative flex-shrink-0"
             >
-              <Filter className="h-4 w-4 mr-1.5" />
+              <Filter className="h-3 w-3 mr-1" />
               <span className="text-xs">Filter</span>
               {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-1.5 px-1 py-0 text-xs h-4 min-w-4">
+                <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs h-3.5 min-w-3.5 text-[10px]">
                   {activeFilterCount}
                 </Badge>
               )}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80" align="start">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Advanced Filters</h4>
-                {activeFilterCount > 0 && (
-                  <Button 
-                    variant="ghost" 
-                    onClick={clearAllFilters}
-                    size="sm"
-                    className="h-8 px-2"
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    Clear all
-                  </Button>
-                )}
-              </div>
-
+          </SheetTrigger>
+          <SheetContent side="bottom" className="max-h-[80vh]">
+            <SheetHeader>
+              <SheetTitle>Filter Options</SheetTitle>
+              <SheetDescription>
+                Choose filters to narrow down your recipient list
+              </SheetDescription>
+            </SheetHeader>
+            
+            <div className="space-y-6 py-6">
               {buyers.length > 1 && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <label className="text-sm font-medium">Assignment</label>
                   <Select 
                     value={filters.assignedTo} 
@@ -164,7 +156,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                 </div>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Gift Status</label>
                 <Select 
                   value={filters.hasGifts} 
@@ -183,7 +175,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Purchase Status</label>
                 <Select 
                   value={filters.completion} 
@@ -202,7 +194,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium">Wrapping Status</label>
                 <Select 
                   value={filters.wrapping} 
@@ -220,25 +212,32 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {activeFilterCount > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={clearAllFilters}
+                  className="w-full"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Clear All Filters
+                </Button>
+              )}
             </div>
-          </PopoverContent>
-        </Popover>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      {/* Active Filter Summary */}
+      {/* Compact Summary Line */}
       {(activeFilterCount > 0 || searchTerm) && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Active filters:</span>
-          {searchTerm && (
-            <Badge variant="secondary" className="text-xs">
-              Search: "{searchTerm}"
-            </Badge>
-          )}
-          {activeFilterCount > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''}
-            </Badge>
-          )}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            {activeFilterCount > 0 && (
+              <span>{activeFilterCount} active</span>
+            )}
+            {searchTerm && activeFilterCount > 0 && <span>•</span>}
+            {searchTerm && <span>searching</span>}
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -246,9 +245,9 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
               clearSearch();
               clearAllFilters();
             }}
-            className="h-6 px-2 text-xs"
+            className="h-5 px-2 text-xs text-muted-foreground hover:text-foreground"
           >
-            Clear all
+            Clear
           </Button>
         </div>
       )}
