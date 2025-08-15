@@ -189,24 +189,6 @@ const Summary = () => {
               <p className="text-sm text-muted-foreground">Gift planning overview</p>
             </div>
             
-            {/* Quick Action Buttons */}
-            <div className="flex gap-2 sm:flex-shrink-0">
-              <Button 
-                onClick={() => navigate('/gifts')}
-                variant="outline"
-                className="flex-1 sm:flex-none"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Add Person
-              </Button>
-              <Button 
-                onClick={() => navigate('/gifts')}
-                className="flex-1 sm:flex-none bg-gradient-festive hover:opacity-90 text-white"
-              >
-                <Gift className="h-4 w-4 mr-2" />
-                Add Gift
-              </Button>
-            </div>
           </div>
 
           {/* Compact Countdown Pill */}
@@ -301,7 +283,7 @@ const Summary = () => {
               <div className="flex items-center gap-2 flex-1 max-w-[200px]">
                 <Progress value={overallStats.completionProgress} className="h-2 flex-1" />
                 <span className="text-xs text-muted-foreground w-8 text-right">
-                  {overallStats.completionProgress.toFixed(0)}%
+                  {Math.round(overallStats.completionProgress)}%
                 </span>
               </div>
             </div>
@@ -317,7 +299,7 @@ const Summary = () => {
               <div className="flex items-center gap-2 flex-1 max-w-[200px]">
                 <Progress value={overallStats.purchaseProgress} className="h-2 flex-1" />
                 <span className="text-xs text-muted-foreground w-8 text-right">
-                  {overallStats.purchaseProgress.toFixed(0)}%
+                  {Math.round(overallStats.purchaseProgress)}%
                 </span>
               </div>
             </div>
@@ -333,7 +315,7 @@ const Summary = () => {
               <div className="flex items-center gap-2 flex-1 max-w-[200px]">
                 <Progress value={overallStats.wrappingProgress} className="h-2 flex-1" />
                 <span className="text-xs text-muted-foreground w-8 text-right">
-                  {overallStats.wrappingProgress.toFixed(0)}%
+                  {Math.round(overallStats.wrappingProgress)}%
                 </span>
               </div>
             </div>
@@ -450,7 +432,7 @@ const Summary = () => {
                             <h4 className="text-sm font-medium mb-2">Progress Summary</h4>
                             <div className="space-y-2">
                               <div className="flex items-center justify-between text-sm">
-                                <span>Shopping Complete</span>
+                                <span>People done</span>
                                 <div className="flex items-center gap-2">
                                   <span className="text-muted-foreground">
                                     {buyer.completedPeople} of {buyer.people}
