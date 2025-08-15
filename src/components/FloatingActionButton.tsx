@@ -1,7 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
-import addPeopleIcon from '@/assets/add-people-button-56.png';
 
 interface FloatingActionButtonProps {
   onClick: () => void;
@@ -23,7 +22,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
     <button
       onClick={onClick}
       className={cn(
-        "fixed h-14 w-14 rounded-full transition-all duration-300 ease-in-out z-40 p-0 border-0 bg-transparent",
+        "fixed h-16 w-16 rounded-full overflow-hidden transition-all duration-300 ease-in-out z-40 p-0 border-0 bg-transparent",
         "hover:scale-105 active:scale-95",
         // Safe area spacing
         "bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))]",
@@ -36,9 +35,9 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       aria-label="Add people"
     >
       <img 
-        src={addPeopleIcon} 
+        src="/lovable-uploads/332a5b47-b5be-4730-a93a-bd4a884bbaca.png" 
         alt="Add people" 
-        className="h-14 w-14"
+        className="h-16 w-16 object-cover"
       />
     </button>
   );
