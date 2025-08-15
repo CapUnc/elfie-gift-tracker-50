@@ -255,53 +255,61 @@ const Summary = () => {
           </CardContent>
         </Card>
 
-        {/* Progress Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shopping Completion</CardTitle>
-              <CardDescription>
-                {overallStats.completedPeople} of {overallStats.totalPeople} people complete
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Progress value={overallStats.completionProgress} className="mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {overallStats.completionProgress.toFixed(1)}% complete
-              </p>
-            </CardContent>
-          </Card>
+        {/* Progress Card */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* People done row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-sm font-medium w-24 flex-shrink-0">People done:</span>
+                <span className="text-sm text-muted-foreground">
+                  {overallStats.completedPeople} of {overallStats.totalPeople}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-1 max-w-[200px]">
+                <Progress value={overallStats.completionProgress} className="h-2 flex-1" />
+                <span className="text-xs text-muted-foreground w-8 text-right">
+                  {overallStats.completionProgress.toFixed(0)}%
+                </span>
+              </div>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Purchase Progress</CardTitle>
-              <CardDescription>
-                {overallStats.purchasedGifts} of {overallStats.totalGifts} gifts purchased
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Progress value={overallStats.purchaseProgress} className="mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {overallStats.purchaseProgress.toFixed(1)}% complete
-              </p>
-            </CardContent>
-          </Card>
+            {/* Purchased row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-sm font-medium w-24 flex-shrink-0">Purchased:</span>
+                <span className="text-sm text-muted-foreground">
+                  {overallStats.purchasedGifts} of {overallStats.totalGifts}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-1 max-w-[200px]">
+                <Progress value={overallStats.purchaseProgress} className="h-2 flex-1" />
+                <span className="text-xs text-muted-foreground w-8 text-right">
+                  {overallStats.purchaseProgress.toFixed(0)}%
+                </span>
+              </div>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Wrapping Progress</CardTitle>
-              <CardDescription>
-                {overallStats.wrappedGifts} of {overallStats.totalGifts} gifts wrapped
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Progress value={overallStats.wrappingProgress} className="mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {overallStats.wrappingProgress.toFixed(1)}% complete
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Wrapped row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-sm font-medium w-24 flex-shrink-0">Wrapped:</span>
+                <span className="text-sm text-muted-foreground">
+                  {overallStats.wrappedGifts} of {overallStats.totalGifts}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-1 max-w-[200px]">
+                <Progress value={overallStats.wrappingProgress} className="h-2 flex-1" />
+                <span className="text-xs text-muted-foreground w-8 text-right">
+                  {overallStats.wrappingProgress.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Buyer Statistics */}
         {buyerStats.length > 0 && (
