@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Gift, Package, BarChart3, Settings } from 'lucide-react';
+import { Package, BarChart3, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -19,9 +19,13 @@ const TopNavigation = () => {
       <div className="flex h-14 items-center px-4 max-w-7xl mx-auto">
         {/* App Logo/Name */}
         <div className="flex items-center gap-2 mr-6">
-          <Gift className="h-6 w-6 text-christmas-red" />
-          <span className="font-bold text-lg hidden sm:inline">Christmas Gifts</span>
-          <span className="font-bold text-sm sm:hidden">Gifts</span>
+          <img 
+            src="/lovable-uploads/b41502bb-c906-4193-b385-e800e2c4357b.png" 
+            alt="Elfie Logo" 
+            className="h-6 w-6" 
+          />
+          <span className="font-bold text-lg hidden sm:inline">Elfie</span>
+          <span className="font-bold text-sm sm:hidden">Elfie</span>
         </div>
 
         {/* Navigation Items */}
