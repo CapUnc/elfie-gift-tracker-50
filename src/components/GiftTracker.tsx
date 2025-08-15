@@ -874,18 +874,56 @@ const GiftTracker = () => {
                               )}
                             </Button>
 
-                            {/* Avatar (24px) */}
-                            <div className="flex-shrink-0">
-                              {assignedBuyer?.emoji ? (
-                                <span className="text-xl leading-none">{assignedBuyer.emoji}</span>
-                              ) : (
-                                <Avatar className="h-6 w-6">
-                                  <AvatarFallback className="bg-muted">
-                                    <Users className="h-3 w-3 text-muted-foreground" />
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
-                            </div>
+                            {/* Avatar (24px) - Clickable Buyer Assignment */}
+                            <Popover 
+                              open={openAssignmentPopover === person.id} 
+                              onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : '')}
+                            >
+                              <PopoverTrigger asChild>
+                                <button 
+                                  className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent/50 transition-colors touch-manipulation"
+                                  onClick={(e) => e.stopPropagation()}
+                                  type="button"
+                                >
+                                  {assignedBuyer?.emoji ? (
+                                    <span className="text-xl leading-none">{assignedBuyer.emoji}</span>
+                                  ) : (
+                                    <div className="h-6 w-6 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
+                                      <Users className="h-3 w-3 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2" align="start">
+                                <div className="space-y-1">
+                                  <button
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                                    onClick={() => {
+                                      updatePersonAssignment(person.id, null);
+                                      setOpenAssignmentPopover('');
+                                    }}
+                                  >
+                                    <div className="h-4 w-4 rounded-full border border-muted-foreground/30 flex items-center justify-center">
+                                      <Users className="h-3 w-3 text-muted-foreground" />
+                                    </div>
+                                    Unassigned
+                                  </button>
+                                  {buyers.map((buyer) => (
+                                    <button
+                                      key={buyer.id}
+                                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                                      onClick={() => {
+                                        updatePersonAssignment(person.id, buyer.name);
+                                        setOpenAssignmentPopover('');
+                                      }}
+                                    >
+                                      <span className="text-lg leading-none">{buyer.emoji}</span>
+                                      {buyer.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
 
                             {/* Name (allow 2 lines) */}
                             <div className="min-w-0 flex-1">
