@@ -319,9 +319,6 @@ const GiftTracker = () => {
       title: "Status updated",
       description: `Gift ${action}.`,
     });
-    
-    // Check for auto-completion after gift status changes
-    checkAndUpdateAutoCompletion(personId);
   };
 
   // Check if person should be auto-completed
@@ -900,7 +897,7 @@ const GiftTracker = () => {
                             {/* Done Chip */}
                             <div className="flex-shrink-0">
                               <Button
-                                variant={person.completed ? "default" : "outline"}
+                                variant={person.completed || isAutoComplete(person) ? "default" : "outline"}
                                 size="sm"
                                 className="h-6 px-2 text-xs"
                                 onClick={(e) => {
