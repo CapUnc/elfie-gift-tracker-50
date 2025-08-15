@@ -244,7 +244,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
 
           {/* Action buttons (always visible on desktop, shown on mobile after swipe) */}
           <div className={`flex items-center space-x-1 transition-opacity duration-200 ${
-            showActions || window.innerWidth >= 768 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            showActions || window.innerWidth >= 768 ? 'opacity-100' : 'opacity-70 md:opacity-100'
           }`}>
             <Button
               variant="ghost"
@@ -253,7 +253,8 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                 e.stopPropagation();
                 onEdit(gift.id);
               }}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 touch-target"
+              aria-label="Edit gift"
             >
               <Edit2 className="h-4 w-4" />
             </Button>
@@ -264,7 +265,8 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                 e.stopPropagation();
                 onDelete(gift.id);
               }}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              className="h-8 w-8 p-0 text-destructive hover:text-destructive touch-target"
+              aria-label="Delete gift"
             >
               <Trash2 className="h-4 w-4" />
             </Button>

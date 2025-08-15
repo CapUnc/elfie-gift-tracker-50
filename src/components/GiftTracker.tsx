@@ -864,33 +864,38 @@ const GiftTracker = () => {
                   >
                     <div className="max-w-full overflow-hidden">
                       {/* Main Recipient Card - Two Row Layout */}
-                      <div 
-                        className={`bg-card rounded-lg border cursor-pointer transition-colors duration-200 max-w-full ${
-                          isHighlighted ? 'bg-primary/10 border-primary/30' : ''
-                        } ${person.completed ? 'opacity-75' : ''}`}
-                        data-person-id={person.id}
-                        onClick={() => toggleRow(person.id)}
-                      >
+                         <div 
+                         className={`bg-card rounded-lg border cursor-pointer transition-colors duration-200 max-w-full hover:bg-muted/30 ${
+                           isHighlighted ? 'bg-primary/10 border-primary/30' : ''
+                         } ${person.completed ? 'opacity-75' : ''}`}
+                         data-person-id={person.id}
+                         onClick={() => toggleRow(person.id)}
+                         role="button"
+                         aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${person.name}'s gift details`}
+                         aria-expanded={isExpanded}
+                       >
                         <div className="px-3 py-2.5 space-y-2">
-                          {/* Top Row: Caret + Avatar + Name + Done Chip */}
-                          <div className="flex items-center gap-2 min-w-0">
-                            {/* Expand/Collapse Button */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 flex-shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                haptic.tap();
-                                toggleRow(person.id);
-                              }}
-                            >
-                              {isExpanded ? (
-                                <ChevronDown className="h-3 w-3" />
-                              ) : (
-                                <ChevronRight className="h-3 w-3" />
-                              )}
-                            </Button>
+                           {/* Top Row: Caret + Avatar + Name + Done Badge */}
+                           <div className="flex items-center gap-2 min-w-0">
+                             {/* Expand/Collapse Button with accessibility */}
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               className="h-6 w-6 p-0 flex-shrink-0 touch-target"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 haptic.tap();
+                                 toggleRow(person.id);
+                               }}
+                               aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${person.name}'s gift details`}
+                               aria-expanded={isExpanded}
+                             >
+                               {isExpanded ? (
+                                 <ChevronDown className="h-3 w-3" />
+                               ) : (
+                                 <ChevronRight className="h-3 w-3" />
+                               )}
+                             </Button>
 
                             {/* Avatar (24px) - Clickable Buyer Assignment */}
                             <Popover 
@@ -943,27 +948,40 @@ const GiftTracker = () => {
                               </PopoverContent>
                             </Popover>
 
-                            {/* Name (allow 2 lines) */}
-                            <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-sm text-foreground line-clamp-2">
-                                {person.name}
-                              </div>
-                            </div>
+                             {/* Name (allow 2 lines) */}
+                             <div className="min-w-0 flex-1">
+                               <div className="font-semibold text-sm text-foreground line-clamp-2">
+                                 {person.name}
+                               </div>
+                               {/* Call-to-action for empty state */}
+                               {person.gifts.length === 0 && (
+                                 <div className="text-xs text-muted-foreground italic">
+                                   Tap to add gifts →
+                                 </div>
+                               )}
+                             </div>
 
-                            {/* Done Chip */}
-                            <div className="flex-shrink-0">
-                              <Button
-                                variant={person.completed || isAutoComplete(person) ? "default" : "outline"}
-                                size="sm"
-                                className="h-6 px-2 text-xs"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleManualComplete(person);
-                                }}
-                              >
-                                Done
-                              </Button>
-                            </div>
+                             {/* Done Badge vs Action Button */}
+                             <div className="flex-shrink-0">
+                               {person.completed ? (
+                                 <Badge variant="secondary" className="text-xs">
+                                   ✓ Done
+                                 </Badge>
+                               ) : (
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   className="h-6 w-6 p-0 touch-target"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleManualComplete(person);
+                                   }}
+                                   aria-label={`Mark ${person.name} as done`}
+                                 >
+                                   <Circle className="h-3 w-3" />
+                                 </Button>
+                               )}
+                             </div>
                           </div>
 
                            {/* Bottom Row: Stats + Progress + Add Gift */}
@@ -1040,20 +1058,20 @@ const GiftTracker = () => {
                               </div>
                             )}
 
-                            {/* Add Gift Button (only when expanded) */}
-                            {isExpanded && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 flex-shrink-0 ml-auto"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingGift({ personId: person.id });
-                                }}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            )}
+                             {/* Add Gift Button - Always visible for quick access */}
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               className="h-6 px-2 text-xs flex-shrink-0 ml-auto touch-target"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setEditingGift({ personId: person.id });
+                               }}
+                               aria-label={`Add gift for ${person.name}`}
+                             >
+                               <Plus className="h-3 w-3 mr-1" />
+                               Add
+                             </Button>
                           </div>
                         </div>
                       </div>
