@@ -20,7 +20,7 @@ const TopNavigation = () => {
         {/* App Logo/Name */}
         <div className="flex items-center gap-2 mr-6">
           <img 
-            src="/lovable-uploads/b41502bb-c906-4193-b385-e800e2c4357b.png" 
+            src="/lovable-uploads/79932488-8d3b-4e37-9a10-353af25135ba.png" 
             alt="Elfie Logo" 
             className="h-6 w-6" 
           />
