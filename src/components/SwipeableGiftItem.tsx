@@ -76,9 +76,9 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
         setTimeout(() => setIsHighlighted(false), 2000);
         onUpdate(gift.id, 'purchased', !gift.purchased);
       } else {
-        // Left swipe - delete (with confirmation for now)
-        haptic.tap();
-        setShowActions(true);
+        // Left swipe - delete
+        haptic.error();
+        onDelete(gift.id);
       }
     } else if (Math.abs(swipeOffset) > SWIPE_THRESHOLD) {
       // Show action buttons
@@ -194,58 +194,53 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
-        <div className="flex items-start justify-between">
-          {/* Left Side: Status Toggles with Clear Icons */}
-          <div className="flex items-center space-x-2">
-            <div className="touch-target flex items-center justify-center">
-              <StatusToggle
-                type="purchased"
-                checked={gift.purchased}
-                onCheckedChange={(checked) => {
-                  haptic.success();
-                  setIsHighlighted(true);
-                  setTimeout(() => setIsHighlighted(false), 2000);
-                  onUpdate(gift.id, 'purchased', checked as boolean);
-                }}
-                className="gift-status-button"
-              />
-            </div>
-            <div className="touch-target flex items-center justify-center">
-              <StatusToggle
-                type="wrapped"
-                checked={gift.wrapped}
-                onCheckedChange={(checked) => {
-                  haptic.success();
-                  setIsHighlighted(true);
-                  setTimeout(() => setIsHighlighted(false), 2000);
-                  onUpdate(gift.id, 'wrapped', checked as boolean);
-                }}
-                className="gift-status-button"
-              />
-            </div>
-          </div>
-
-          {/* Center: Gift Info (tappable to edit) */}
-          <div 
-            className="flex-1 min-w-0 cursor-pointer ml-3"
-            onClick={handleContentClick}
-          >
-            <div className="p-2 rounded transition-all duration-200 hover:bg-muted/60 hover:scale-[1.01] active:scale-[0.99]">
-              <div className={`font-medium ${gift.purchased ? 'line-through text-muted-foreground' : ''}`}>
+        <div 
+          className="flex items-center gap-2 min-h-[44px] cursor-pointer"
+          onClick={handleContentClick}
+        >
+          {/* Left Group: Status Toggles + Gift Name */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <StatusToggle
+              type="purchased"
+              checked={gift.purchased}
+              onCheckedChange={(checked) => {
+                haptic.success();
+                setIsHighlighted(true);
+                setTimeout(() => setIsHighlighted(false), 2000);
+                onUpdate(gift.id, 'purchased', checked as boolean);
+              }}
+              className="flex-shrink-0"
+              aria-label={`${gift.purchased ? 'Mark as not purchased' : 'Mark as purchased'} for ${gift.name}`}
+            />
+            <StatusToggle
+              type="wrapped"
+              checked={gift.wrapped}
+              onCheckedChange={(checked) => {
+                haptic.success();
+                setIsHighlighted(true);
+                setTimeout(() => setIsHighlighted(false), 2000);
+                onUpdate(gift.id, 'wrapped', checked as boolean);
+              }}
+              className="flex-shrink-0"
+              aria-label={`${gift.wrapped ? 'Mark as not wrapped' : 'Mark as wrapped'} for ${gift.name}`}
+            />
+            <div className="min-w-0 flex-1">
+              <div className={cn(
+                "font-medium text-sm truncate",
+                gift.purchased && "line-through text-muted-foreground"
+              )}>
                 {gift.name}
               </div>
-              {gift.cost !== null && (
-                <div className="text-sm text-muted-foreground mt-1">
-                  {formatCurrency(gift.cost, currency)}
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Action buttons (always visible on desktop, shown on mobile after swipe) */}
-          <div className={`flex items-center space-x-1 transition-opacity duration-200 ${
-            showActions || window.innerWidth >= 768 ? 'opacity-100' : 'opacity-70 md:opacity-100'
-          }`}>
+          {/* Right Group: Cost + Single Action */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {gift.cost !== null && (
+              <span className="text-sm text-muted-foreground font-medium">
+                {formatCurrency(gift.cost, currency)}
+              </span>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -253,22 +248,10 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                 e.stopPropagation();
                 onEdit(gift.id);
               }}
-              className="h-8 w-8 p-0 touch-target"
-              aria-label="Edit gift"
+              className="h-8 w-8 p-0 touch-target opacity-70 hover:opacity-100"
+              aria-label={`Edit ${gift.name}`}
             >
               <Edit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(gift.id);
-              }}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive touch-target"
-              aria-label="Delete gift"
-            >
-              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>

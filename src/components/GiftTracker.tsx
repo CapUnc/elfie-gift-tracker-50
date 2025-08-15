@@ -1023,21 +1023,21 @@ const GiftTracker = () => {
                                          <p>{stats.wrapped} of {person.gifts.length} wrapped</p>
                                        </TooltipContent>
                                      </Tooltip>
-                                     {getTotalCost(person.gifts) > 0 && (
-                                       <>
-                                         <span>·</span>
-                                         <Tooltip>
-                                           <TooltipTrigger asChild>
-                                             <span className="cursor-help" aria-label={`Total cost ${getCurrencySymbol()}${getTotalCost(person.gifts).toFixed(0)}`}>
-                                               {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(0)}
-                                             </span>
-                                           </TooltipTrigger>
-                                           <TooltipContent>
-                                             <p>Total cost: {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(2)}</p>
-                                           </TooltipContent>
-                                         </Tooltip>
-                                       </>
-                                     )}
+                                      {getTotalCost(person.gifts) > 0 && (
+                                        <>
+                                          <span>·</span>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="cursor-help text-xs" aria-label={`Total cost ${getCurrencySymbol()}${getTotalCost(person.gifts).toFixed(0)}`}>
+                                                {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(0)}
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              <p>Total cost: {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(2)}</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </>
+                                      )}
                                    </>
                                  )}
                                </div>
@@ -1067,20 +1067,6 @@ const GiftTracker = () => {
                                </span>
                              )}
 
-                             {/* Add Gift Button - Always visible for quick access */}
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               className="h-6 px-2 text-xs flex-shrink-0 ml-auto touch-target"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 setEditingGift({ personId: person.id });
-                               }}
-                               aria-label={`Add gift for ${person.name}`}
-                             >
-                               <Plus className="h-3 w-3 mr-1" />
-                               Add
-                             </Button>
                           </div>
                         </div>
                       </div>
@@ -1100,12 +1086,24 @@ const GiftTracker = () => {
                             />
                           </div>
 
-                          {/* Gift List */}
-                          {person.gifts.length > 0 ? (
-                            <div className="space-y-2 max-w-full">
-                              <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                                Gifts ({person.gifts.length})
-                              </h4>
+                           {/* Gift List */}
+                           {person.gifts.length > 0 ? (
+                             <div className="space-y-2 max-w-full">
+                               <div className="flex items-center justify-between mb-3">
+                                 <h4 className="text-sm font-medium text-muted-foreground">
+                                   Gifts ({person.gifts.length})
+                                 </h4>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   className="h-6 px-2 text-xs touch-target"
+                                   onClick={() => setEditingGift({ personId: person.id })}
+                                   aria-label={`Add gift for ${person.name}`}
+                                 >
+                                   <Plus className="h-3 w-3 mr-1" />
+                                   Add Gift
+                                 </Button>
+                               </div>
                               {person.gifts.map((gift) => (
                                 <GiftContextMenu
                                   key={gift.id}

@@ -160,23 +160,39 @@ export const GiftForm: React.FC<GiftFormProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="gift-cost" className="text-sm font-medium">
-              Cost ({currency})
+              Cost
             </Label>
-            <Input
-              id="gift-cost"
-              type="number"
-              placeholder="0.00"
-              value={giftCost}
-              onChange={(e) => setGiftCost(e.target.value)}
-              step="0.01"
-              min="0"
-              className="touch-target"
-              autoComplete="off"
-            />
-            {giftCost && !isNaN(parseFloat(giftCost)) && (
-              <p className="text-sm text-muted-foreground">
-                {formatCurrency(parseFloat(giftCost), currency)}
-              </p>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                {currency}
+              </span>
+              <Input
+                id="gift-cost"
+                type="text"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={giftCost}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow only numbers, decimals, and one decimal point
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setGiftCost(value);
+                  }
+                }}
+                onBlur={() => {
+                  // Format on blur if valid number
+                  if (giftCost && !isNaN(parseFloat(giftCost))) {
+                    const formatted = parseFloat(giftCost).toFixed(2);
+                    setGiftCost(formatted);
+                  }
+                }}
+                className="pl-8 touch-target"
+                autoComplete="off"
+              />
+            </div>
+            {/* Helper text only for validation errors */}
+            {giftCost && isNaN(parseFloat(giftCost)) && (
+              <p className="text-xs text-destructive">Numbers only</p>
             )}
           </div>
 
