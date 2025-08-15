@@ -17,8 +17,8 @@ const iconMap = {
 }
 
 const colorMap = {
-  purchased: "data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 data-[state=unchecked]:border-emerald-300",
-  wrapped: "data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=unchecked]:border-blue-300"
+  purchased: "data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 data-[state=checked]:text-white data-[state=unchecked]:border-emerald-300 data-[state=unchecked]:text-emerald-600",
+  wrapped: "data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:text-white data-[state=unchecked]:border-blue-300 data-[state=unchecked]:text-blue-600"
 }
 
 const StatusToggle = React.forwardRef<
@@ -39,29 +39,16 @@ const StatusToggle = React.forwardRef<
       aria-label={`Mark as ${type}`}
       {...props}
     >
-      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
+      {/* Always show icon - no ghost icons */}
+      <div className="flex items-center justify-center text-current">
         <Icon 
           className={cn(
             "h-4 w-4 transition-all duration-200",
-            checked ? "fill-current" : "stroke-current fill-none opacity-60"
+            checked ? "fill-current" : "stroke-current fill-none"
           )}
-          strokeWidth={checked ? 0 : 2}
+          strokeWidth={checked ? 0 : 1.5}
         />
-      </CheckboxPrimitive.Indicator>
-      
-      {/* Show ghost icon when unchecked */}
-      {!checked && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Icon 
-            className={cn(
-              "h-4 w-4 opacity-50 transition-opacity duration-200",
-              type === 'purchased' ? "text-emerald-400" : "text-blue-400"
-            )}
-            strokeWidth={1.5}
-            fill="none"
-          />
-        </div>
-      )}
+      </div>
     </CheckboxPrimitive.Root>
   )
 })
