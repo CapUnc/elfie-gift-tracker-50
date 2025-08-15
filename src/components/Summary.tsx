@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Shirt } from 'lucide-react';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { differenceInDays } from 'date-fns';
 
@@ -519,23 +519,78 @@ const Summary = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2">
                 {overallStats.totalPeople - overallStats.completedPeople > 0 && (
-                  <p>• Complete shopping for {overallStats.totalPeople - overallStats.completedPeople} people</p>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
+                    onClick={() => {
+                      navigate('/gifts');
+                      // Filter will be applied by the gifts page based on completion status
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Users className="h-5 w-5 text-primary" />
+                      <span>Complete shopping for {overallStats.totalPeople - overallStats.completedPeople} people</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 )}
                 {overallStats.totalGifts - overallStats.purchasedGifts > 0 && (
-                  <p>• Purchase {overallStats.totalGifts - overallStats.purchasedGifts} remaining gifts</p>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
+                    onClick={() => {
+                      navigate('/gifts');
+                      // Filter will be applied by the gifts page based on purchase status
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <ShoppingCart className="h-5 w-5 text-primary" />
+                      <span>Purchase {overallStats.totalGifts - overallStats.purchasedGifts} gifts</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 )}
                 {overallStats.totalGifts - overallStats.wrappedGifts > 0 && (
-                  <p>• Wrap {overallStats.totalGifts - overallStats.wrappedGifts} remaining gifts</p>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
+                    onClick={() => {
+                      navigate('/gifts');
+                      // Filter will be applied by the gifts page based on wrapping status
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Shirt className="h-5 w-5 text-primary" />
+                      <span>Wrap {overallStats.totalGifts - overallStats.wrappedGifts} gifts</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 )}
                 {overallStats.totalGiftsWithoutCost > 0 && (
-                  <p>• Set costs for {overallStats.totalGiftsWithoutCost} gifts</p>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
+                    onClick={() => {
+                      navigate('/gifts');
+                      // Filter will be applied by the gifts page based on cost status
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5 text-primary" />
+                      <span>Set costs for {overallStats.totalGiftsWithoutCost} gifts</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 )}
                 {overallStats.totalPeople === overallStats.completedPeople && 
                  overallStats.totalGifts === overallStats.purchasedGifts && 
                  overallStats.totalGifts === overallStats.wrappedGifts && (
-                  <p className="text-christmas-green font-medium">🎉 All shopping complete! You're ready for Christmas!</p>
+                  <div className="flex items-center gap-3 p-4 text-christmas-green font-medium">
+                    <CheckCircle className="h-5 w-5" />
+                    <span>🎉 All shopping complete! You're ready for Christmas!</span>
+                  </div>
                 )}
               </div>
             </CardContent>
