@@ -1043,20 +1043,29 @@ const GiftTracker = () => {
                                </div>
                              </TooltipProvider>
 
-                            {/* Micro Progress Bar */}
-                            {person.gifts.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <div className="relative bg-secondary rounded-full h-1.5 w-20">
-                                  <div 
-                                    className="h-1.5 bg-primary rounded-full transition-all duration-300" 
-                                    style={{ width: `${progressPercent}%` }}
-                                  />
-                                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-white">
-                                    {Math.round(progressPercent)}%
-                                  </span>
-                                </div>
-                              </div>
-                            )}
+                             {/* Progress Bar with Outside Label */}
+                             {person.gifts.length > 0 ? (
+                               <div className="flex items-center gap-2">
+                                 <div className="bg-secondary/50 rounded-full h-1.5 w-24 overflow-hidden">
+                                   <div 
+                                     className="h-full bg-primary rounded-full transition-all duration-300" 
+                                     style={{ width: `${progressPercent}%` }}
+                                     role="progressbar"
+                                     aria-valuenow={stats.purchased + stats.wrapped}
+                                     aria-valuemin={0}
+                                     aria-valuemax={stats.total * 2}
+                                     aria-label={`Gift progress: ${stats.purchased + stats.wrapped} out of ${stats.total * 2} tasks done`}
+                                   />
+                                 </div>
+                                 <span className="text-xs text-muted-foreground font-medium min-w-0 flex-shrink-0">
+                                   {stats.purchased + stats.wrapped}/{stats.total * 2}
+                                 </span>
+                               </div>
+                             ) : (
+                               <span className="text-xs text-muted-foreground/70 italic">
+                                 No gifts yet
+                               </span>
+                             )}
 
                              {/* Add Gift Button - Always visible for quick access */}
                              <Button
