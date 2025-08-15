@@ -105,6 +105,7 @@ const Summary = () => {
     const totalGiftsWithoutCost = people.reduce((sum, person) => 
       sum + person.gifts.filter(gift => gift.cost === null).length, 0
     );
+    const giftsCostSet = totalGifts - totalGiftsWithoutCost;
 
     return {
       totalPeople,
@@ -114,6 +115,7 @@ const Summary = () => {
       purchasedGifts,
       wrappedGifts,
       totalGiftsWithoutCost,
+      giftsCostSet,
       purchaseProgress: totalGifts > 0 ? (purchasedGifts / totalGifts) * 100 : 0,
       wrappingProgress: totalGifts > 0 ? (wrappedGifts / totalGifts) * 100 : 0,
       completionProgress: totalPeople > 0 ? (completedPeople / totalPeople) * 100 : 0
@@ -199,52 +201,59 @@ const Summary = () => {
           </div>
         </div>
 
-        {/* Key Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total People</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{overallStats.totalPeople}</div>
-              {overallStats.completedPeople > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {overallStats.completedPeople} shopping complete
-                </p>
-              )}
-            </CardContent>
-          </Card>
+        {/* KPI Strip */}
+        <Card className="mb-8">
+          <CardContent className="p-0">
+            <div className="grid grid-cols-3 divide-x divide-border">
+              {/* People Stat */}
+              <button 
+                onClick={() => navigate('/gifts')}
+                className="p-6 text-center hover:bg-muted/50 transition-colors group"
+                aria-label={`View ${overallStats.totalPeople} people, ${overallStats.completedPeople} completed`}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Users className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <div className="text-2xl font-bold">{overallStats.totalPeople}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {overallStats.completedPeople} done
+                  </div>
+                </div>
+              </button>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {overallStats.totalGiftsWithoutCost > 0 ? 'Partial: ' : ''}{formatCurrency(overallStats.totalCost, currency)}
-              </div>
-              {overallStats.totalGiftsWithoutCost > 0 && (
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {overallStats.totalGiftsWithoutCost} gift{overallStats.totalGiftsWithoutCost > 1 ? 's' : ''} without cost
-                </p>
-              )}
-            </CardContent>
-          </Card>
+              {/* Gifts Stat */}
+              <button 
+                onClick={() => navigate('/gifts')}
+                className="p-6 text-center hover:bg-muted/50 transition-colors group"
+                aria-label={`View ${overallStats.totalGifts} gifts, ${overallStats.purchasedGifts} purchased`}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Gift className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <div className="text-2xl font-bold">{overallStats.totalGifts}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {overallStats.purchasedGifts} purchased
+                  </div>
+                </div>
+              </button>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Gifts</CardTitle>
-              <Gift className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{overallStats.totalGifts}</div>
-            </CardContent>
-          </Card>
-
-        </div>
+              {/* Cost Stat */}
+              <button 
+                onClick={() => navigate('/gifts')}
+                className="p-6 text-center hover:bg-muted/50 transition-colors group"
+                aria-label={`View total cost ${formatCurrency(overallStats.totalCost, currency)}`}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <DollarSign className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <div className="text-2xl font-bold">
+                    {overallStats.totalGiftsWithoutCost > 0 ? 'Partial: ' : ''}{formatCurrency(overallStats.totalCost, currency)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {overallStats.totalGifts > 0 ? `${overallStats.giftsCostSet} priced` : 'No gifts'}
+                  </div>
+                </div>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Progress Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
