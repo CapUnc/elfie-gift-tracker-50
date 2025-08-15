@@ -150,35 +150,54 @@ const Summary = () => {
   return (
     <div className="p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Compact Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-1 flex items-center justify-center gap-2">
-            <Gift className="h-5 w-5 sm:h-6 sm:w-6 text-christmas-red" />
-            Christmas {christmasCountdown.year}
-            <Gift className="h-5 w-5 sm:h-6 sm:w-6 text-christmas-green" />
-          </h1>
-          <p className="text-sm text-muted-foreground">Gift planning overview</p>
-        </div>
+        {/* Compact Header with Quick Actions */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary">Christmas Planning</h1>
+              <p className="text-sm text-muted-foreground">Gift planning overview</p>
+            </div>
+            
+            {/* Quick Action Buttons */}
+            <div className="flex gap-2 sm:flex-shrink-0">
+              <Button 
+                onClick={() => navigate('/gifts')}
+                variant="outline"
+                className="flex-1 sm:flex-none"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Add Person
+              </Button>
+              <Button 
+                onClick={() => navigate('/gifts')}
+                className="flex-1 sm:flex-none bg-gradient-festive hover:opacity-90 text-white"
+              >
+                <Gift className="h-4 w-4 mr-2" />
+                Add Gift
+              </Button>
+            </div>
+          </div>
 
-        {/* Compact Christmas Countdown */}
-        <Card className="mb-6 bg-gradient-festive text-white shadow-festive">
-          <CardHeader className="text-center py-4">
-            <CardTitle className="text-lg sm:text-xl font-bold flex items-center justify-center gap-2">
-              <Calendar className="w-5 h-5" />
-              {christmasCountdown.daysUntil === 0 
-                ? "🎄 Merry Christmas! 🎄" 
-                : christmasCountdown.daysUntil < 0 
-                  ? `Christmas was ${Math.abs(christmasCountdown.daysUntil)} days ago` 
-                  : `${christmasCountdown.daysUntil} days until Christmas!`
-              }
-            </CardTitle>
+          {/* Compact Countdown Pill */}
+          <div className="flex items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-festive text-white rounded-full shadow-festive">
+              <span className="text-lg">🎄</span>
+              <span className="font-semibold">
+                {christmasCountdown.daysUntil === 0 
+                  ? "Merry Christmas!" 
+                  : christmasCountdown.daysUntil < 0 
+                    ? `Christmas was ${Math.abs(christmasCountdown.daysUntil)} days ago` 
+                    : `${christmasCountdown.daysUntil} days`
+                }
+              </span>
+            </div>
             {christmasCountdown.daysUntil > 0 && (
-              <CardDescription className="text-white/80 text-sm">
-                Christmas {christmasCountdown.year}
-              </CardDescription>
+              <span className="text-sm text-muted-foreground">
+                until Christmas {christmasCountdown.year}
+              </span>
             )}
-          </CardHeader>
-        </Card>
+          </div>
+        </div>
 
         {/* Key Statistics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
