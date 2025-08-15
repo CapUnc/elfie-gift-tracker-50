@@ -35,7 +35,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       aria-label="Add people"
     >
       <img 
-        src="/lovable-uploads/b41502bb-c906-4193-b385-e800e2c4357b.png" 
+        src="/lovable-uploads/bba46810-45aa-4599-92f1-d17e806f0d34.png" 
         alt="Add people" 
         className="w-full h-full object-cover block"
       />
