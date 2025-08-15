@@ -966,26 +966,64 @@ const GiftTracker = () => {
                             </div>
                           </div>
 
-                          {/* Bottom Row: Stats + Progress + Add Gift */}
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            {/* Condensed Stats */}
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <span>🎁 {person.gifts.length}</span>
-                              {person.gifts.length > 0 && (
-                                <>
-                                  <span>·</span>
-                                  <span>🛒 {stats.purchased}</span>
-                                  <span>·</span>
-                                  <span>🎀 {stats.wrapped}</span>
-                                  {getTotalCost(person.gifts) > 0 && (
-                                    <>
-                                      <span>·</span>
-                                      <span>{getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(0)}</span>
-                                    </>
-                                  )}
-                                </>
-                              )}
-                            </div>
+                           {/* Bottom Row: Stats + Progress + Add Gift */}
+                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                             {/* Condensed Stats with Tooltips */}
+                             <TooltipProvider>
+                               <div className="flex items-center gap-1 flex-wrap">
+                                 <Tooltip>
+                                   <TooltipTrigger asChild>
+                                     <span className="cursor-help" aria-label={`${person.gifts.length} gifts total`}>
+                                       🎁 {person.gifts.length}
+                                     </span>
+                                   </TooltipTrigger>
+                                   <TooltipContent>
+                                     <p>{person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''} total</p>
+                                   </TooltipContent>
+                                 </Tooltip>
+                                 {person.gifts.length > 0 && (
+                                   <>
+                                     <span>·</span>
+                                     <Tooltip>
+                                       <TooltipTrigger asChild>
+                                         <span className="cursor-help" aria-label={`${stats.purchased} purchased out of ${person.gifts.length}`}>
+                                           🛒 {stats.purchased}
+                                         </span>
+                                       </TooltipTrigger>
+                                       <TooltipContent>
+                                         <p>{stats.purchased} of {person.gifts.length} purchased</p>
+                                       </TooltipContent>
+                                     </Tooltip>
+                                     <span>·</span>
+                                     <Tooltip>
+                                       <TooltipTrigger asChild>
+                                         <span className="cursor-help" aria-label={`${stats.wrapped} wrapped out of ${person.gifts.length}`}>
+                                           🎀 {stats.wrapped}
+                                         </span>
+                                       </TooltipTrigger>
+                                       <TooltipContent>
+                                         <p>{stats.wrapped} of {person.gifts.length} wrapped</p>
+                                       </TooltipContent>
+                                     </Tooltip>
+                                     {getTotalCost(person.gifts) > 0 && (
+                                       <>
+                                         <span>·</span>
+                                         <Tooltip>
+                                           <TooltipTrigger asChild>
+                                             <span className="cursor-help" aria-label={`Total cost ${getCurrencySymbol()}${getTotalCost(person.gifts).toFixed(0)}`}>
+                                               {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(0)}
+                                             </span>
+                                           </TooltipTrigger>
+                                           <TooltipContent>
+                                             <p>Total cost: {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(2)}</p>
+                                           </TooltipContent>
+                                         </Tooltip>
+                                       </>
+                                     )}
+                                   </>
+                                 )}
+                               </div>
+                             </TooltipProvider>
 
                             {/* Micro Progress Bar */}
                             {person.gifts.length > 0 && (

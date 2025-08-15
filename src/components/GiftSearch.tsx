@@ -284,12 +284,9 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
         </Sheet>
       </div>
 
-      {/* Clean Status Line */}
+      {/* Clean Status Line - only show clear button */}
       {(activeFilterCount > 0 || searchTerm) && (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            {activeFilterCount > 0 && `${activeFilterCount} active`}
-          </span>
+        <div className="flex items-center justify-end text-xs text-muted-foreground">
           <Button
             variant="ghost"
             size="sm"
@@ -298,8 +295,9 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
               clearAllFilters();
             }}
             className="h-5 px-2 text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Clear all filters and search"
           >
-            Clear
+            Clear all
           </Button>
         </div>
       )}
