@@ -1,0 +1,1 @@
+export { DeleteRecipientsDialog } from './DeleteRecipientsDialog';

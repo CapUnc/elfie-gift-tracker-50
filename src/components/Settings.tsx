@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users, DollarSign, Edit2, Check, X } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users, DollarSign, Edit2, Check, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { DeleteRecipientsDialog } from './settings/DeleteRecipientsDialog';
 
 interface Buyer {
   id: string;
@@ -25,6 +27,7 @@ interface Person {
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [buyers, setBuyers] = useState<Buyer[]>([
     { id: '1', name: 'Matt', emoji: '👨' },
     { id: '2', name: 'Maddie', emoji: '👩' }
@@ -33,11 +36,11 @@ const Settings = () => {
   const [newBuyerEmoji, setNewBuyerEmoji] = useState('👤');
   const [bulkNames, setBulkNames] = useState('');
   const [people, setPeople] = useState<Person[]>([]);
-  const [deletingPerson, setDeletingPerson] = useState<Person | null>(null);
   const [currency, setCurrency] = useState('$');
   const [editingBuyer, setEditingBuyer] = useState<string | null>(null);
   const [editBuyerName, setEditBuyerName] = useState('');
   const [editBuyerEmoji, setEditBuyerEmoji] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Load buyers from localStorage
   useEffect(() => {
@@ -86,7 +89,14 @@ const Settings = () => {
   }, [currency]);
 
   const addBuyer = () => {
-    if (!newBuyer.trim() || buyers.some(buyer => buyer.name === newBuyer.trim())) return;
+    if (!newBuyer.trim() || buyers.some(buyer => buyer.name === newBuyer.trim())) {
+      toast({
+        title: "Cannot add buyer",
+        description: newBuyer.trim() ? "A buyer with this name already exists." : "Please enter a buyer name.",
+        variant: "destructive",
+      });
+      return;
+    }
     const newBuyerObj: Buyer = {
       id: Date.now().toString(),
       name: newBuyer.trim(),
@@ -95,6 +105,10 @@ const Settings = () => {
     setBuyers([...buyers, newBuyerObj]);
     setNewBuyer('');
     setNewBuyerEmoji('👤');
+    toast({
+      title: "Buyer added",
+      description: `${newBuyerObj.name} has been added as a buyer.`,
+    });
   };
 
   const removeBuyer = (buyerIdToRemove: string) => {
@@ -111,6 +125,11 @@ const Settings = () => {
     );
     setPeople(updatedPeople);
     localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
+    
+    toast({
+      title: "Buyer removed",
+      description: `${buyerToRemove.name} has been removed. Their assignments have been cleared.`,
+    });
   };
 
   const handleBulkAdd = () => {
@@ -128,7 +147,11 @@ const Settings = () => {
     const newNames = names.filter(name => !existingNames.includes(name.toLowerCase()));
 
     if (newNames.length === 0) {
-      alert('All names already exist in your list!');
+      toast({
+        title: "No new recipients",
+        description: "All names already exist in your list!",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -147,14 +170,21 @@ const Settings = () => {
     localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
 
     setBulkNames('');
-    alert(`Added ${newNames.length} new people: ${newNames.join(', ')}`);
+    toast({
+      title: "Recipients added",
+      description: `Added ${newNames.length} new recipient${newNames.length !== 1 ? 's' : ''}: ${newNames.join(', ')}`,
+    });
   };
 
-  const deletePerson = (personToDelete: Person) => {
-    const updatedPeople = people.filter(person => person.id !== personToDelete.id);
+  const handleDeletePeople = (peopleIds: string[]) => {
+    const updatedPeople = people.filter(person => !peopleIds.includes(person.id));
     setPeople(updatedPeople);
     localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
-    setDeletingPerson(null);
+    
+    toast({
+      title: "Recipients deleted",
+      description: `${peopleIds.length} recipient${peopleIds.length !== 1 ? 's' : ''} ${peopleIds.length !== 1 ? 'have' : 'has'} been permanently deleted.`,
+    });
   };
 
   const startEditBuyer = (buyer: Buyer) => {
@@ -195,14 +225,14 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
+    <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 min-h-[44px] sm:min-h-auto"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Summary
@@ -213,9 +243,10 @@ const Settings = () => {
           </div>
         </div>
 
-        <div className="grid gap-6">
-          {/* Currency Section */}
-          <Card>
+        {/* Desktop: Two-column layout, Mobile: Single column */}
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+          {/* Currency Section - Always visible at top */}
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5" />
@@ -228,7 +259,7 @@ const Settings = () => {
                   Select Currency Symbol
                 </label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full max-w-md">
                     <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
                   <SelectContent>
@@ -243,13 +274,13 @@ const Settings = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-2">
-                  This will be used throughout the app to display gift costs and totals.
+                  This only changes the display symbol - existing prices are not converted.
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Manage Recipients Section */}
+          {/* Recipients Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -257,97 +288,65 @@ const Settings = () => {
                 Manage Recipients
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Bulk Add */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground">Bulk Add People</h3>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Add multiple people (comma-separated)
-                  </label>
-                  <Textarea
-                    placeholder="John Doe, Jane Smith, Bob Johnson, etc..."
-                    value={bulkNames}
-                    onChange={(e) => setBulkNames(e.target.value)}
-                    className="resize-none"
-                    rows={3}
-                  />
-                </div>
-                <Button onClick={handleBulkAdd} className="w-full min-h-[44px] sm:min-h-auto">
-                  Add People
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Names will be added as unassigned. You can assign them to buyers later.
-                </p>
-              </div>
-
-              {/* Delete People */}
-              <div className="space-y-4 border-t pt-4">
-                <h3 className="text-sm font-semibold text-foreground">Delete People</h3>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Current Recipients ({people.length} total)
-                  </label>
-                  {people.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto border rounded-md p-2 sm:p-3 bg-muted/30">
-                      {people.map((person) => (
-                        <Badge
-                          key={person.id}
-                          variant="secondary"
-                          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 text-xs sm:text-sm"
-                        >
-                          <span className="truncate max-w-[120px] sm:max-w-none">{person.name}</span>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
-                                onClick={() => setDeletingPerson(person)}
-                              >
-                                <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete {person.name}?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete {person.name} and all associated data:
-                                  <br />• {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''}
-                                  <br />• Notes: {person.notes ? 'Yes' : 'None'}
-                                  <br />• Assignment: {person.assignedTo || '(blank)'}
-                                  <br /><br />
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deletePerson(person)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </Badge>
-                      ))}
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="add-recipients">
+                  <AccordionTrigger className="text-sm font-medium">
+                    Add Multiple Recipients
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                        Add recipients (comma-separated)
+                      </label>
+                      <Textarea
+                        placeholder="John Doe, Jane Smith, Bob Johnson, etc..."
+                        value={bulkNames}
+                        onChange={(e) => setBulkNames(e.target.value)}
+                        className="resize-none"
+                        rows={3}
+                      />
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-md">
-                      No recipients added yet. Use the bulk add feature above to get started.
+                    <Button onClick={handleBulkAdd} className="w-full min-h-[44px] sm:min-h-auto">
+                      Add Recipients
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Names will be added as unassigned. You can assign them to buyers later.
                     </p>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  <strong>Warning:</strong> Deleting a person will remove all their gifts, notes, and assignments permanently.
-                </p>
-              </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="delete-recipients">
+                  <AccordionTrigger className="text-sm font-medium">
+                    Delete Recipients ({people.length} total)
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    {people.length > 0 ? (
+                      <>
+                        <Button
+                          variant="destructive"
+                          onClick={() => setDeleteDialogOpen(true)}
+                          className="w-full min-h-[44px] sm:min-h-auto"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Recipients...
+                        </Button>
+                        <p className="text-xs text-destructive">
+                          <strong>Warning:</strong> Deleting recipients will remove all their gifts, notes, and assignments permanently.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-md">
+                        No recipients added yet. Use "Add Multiple Recipients" above to get started.
+                      </p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </CardContent>
           </Card>
 
-          {/* Buyers Management Section */}
+          {/* Buyers Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -355,134 +354,154 @@ const Settings = () => {
                 Manage Buyers
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                  Current Buyers
-                </label>
-                <div className="flex flex-wrap gap-2 mb-4">
-                   {buyers.map((buyer) => (
-                     <div key={buyer.id} className="flex items-center gap-2">
-                       {editingBuyer === buyer.id ? (
-                         <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-background">
-                           <div className="flex flex-wrap gap-1">
-                             {['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'].map((emoji) => (
-                               <Button
-                                 key={emoji}
-                                 variant={editBuyerEmoji === emoji ? "default" : "ghost"}
-                                 size="sm"
-                                 className="h-6 w-6 p-0 text-sm"
-                                 onClick={() => setEditBuyerEmoji(emoji)}
-                               >
-                                 {emoji}
-                               </Button>
-                             ))}
-                           </div>
-                           <Input
-                             value={editBuyerName}
-                             onChange={(e) => setEditBuyerName(e.target.value)}
-                             className="h-8 w-32"
-                             autoFocus
-                           />
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={() => saveEditBuyer(buyer.id)}
-                             className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                           >
-                             <Check className="w-4 h-4" />
-                           </Button>
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={cancelEditBuyer}
-                             className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                           >
-                             <X className="w-4 h-4" />
-                           </Button>
-                         </div>
-                       ) : (
-                         <Badge
-                           variant="secondary"
-                           className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 text-xs sm:text-sm"
-                         >
-                           <span className="text-base">{buyer.emoji}</span>
-                           <span className="truncate max-w-[120px] sm:max-w-none">{buyer.name}</span>
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={() => startEditBuyer(buyer)}
-                             className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
-                           >
-                             <Edit2 className="w-3 h-3 text-muted-foreground hover:text-primary" />
-                           </Button>
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={() => removeBuyer(buyer.id)}
-                             className="h-auto p-0 hover:bg-transparent min-h-[44px] sm:min-h-auto"
-                           >
-                             <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-                           </Button>
-                         </Badge>
-                       )}
-                     </div>
-                   ))}
-                 </div>
-              </div>
-
+            <CardContent>
+              {/* Current Buyers */}
               <div className="space-y-4">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Add New Buyer
-                </label>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      Choose Emoji/Avatar
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'].map((emoji) => (
-                        <Button
-                          key={emoji}
-                          variant={newBuyerEmoji === emoji ? "default" : "outline"}
-                          size="sm"
-                          className="h-10 w-10 p-0 text-lg"
-                          onClick={() => setNewBuyerEmoji(emoji)}
-                        >
-                          {emoji}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex items-center gap-2 border rounded-md px-3 py-2 flex-1">
-                      <span className="text-lg">{newBuyerEmoji}</span>
-                      <Input
-                        placeholder="Buyer name"
-                        value={newBuyer}
-                        onChange={(e) => setNewBuyer(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addBuyer()}
-                        className="border-0 p-0 focus-visible:ring-0 flex-1"
-                      />
-                    </div>
-                    <Button onClick={addBuyer} className="min-h-[44px] sm:min-h-auto">
-                      <Plus className="w-4 h-4" />
-                    </Button>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Current Buyers
+                  </label>
+                  <div className="space-y-2">
+                    {buyers.map((buyer) => (
+                      <div key={buyer.id} className="flex items-center gap-2">
+                        {editingBuyer === buyer.id ? (
+                          <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-background flex-1">
+                            <div className="flex flex-wrap gap-1">
+                              {['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'].map((emoji) => (
+                                <Button
+                                  key={emoji}
+                                  variant={editBuyerEmoji === emoji ? "default" : "ghost"}
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-sm"
+                                  onClick={() => setEditBuyerEmoji(emoji)}
+                                >
+                                  {emoji}
+                                </Button>
+                              ))}
+                            </div>
+                            <Input
+                              value={editBuyerName}
+                              onChange={(e) => setEditBuyerName(e.target.value)}
+                              className="h-8 flex-1 min-w-0"
+                              autoFocus
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => saveEditBuyer(buyer.id)}
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelEditBuyer}
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="flex items-center gap-2 px-3 py-2 text-sm flex-1 justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{buyer.emoji}</span>
+                              <span className="truncate">{buyer.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startEditBuyer(buyer)}
+                                className="h-auto p-1 hover:bg-transparent min-h-[44px] sm:min-h-auto"
+                                aria-label={`Edit ${buyer.name}`}
+                              >
+                                <Edit2 className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeBuyer(buyer.id)}
+                                className="h-auto p-1 hover:bg-transparent min-h-[44px] sm:min-h-auto"
+                                aria-label={`Delete ${buyer.name}`}
+                              >
+                                <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                              </Button>
+                            </div>
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>
-                  Buyers are the people who can be assigned to purchase gifts. Changes will apply to all assignment dropdowns.
-                </p>
-                <p className="bg-muted/50 p-2 rounded border-l-2 border-primary/50">
-                  <strong>Note:</strong> The assignment column will only appear in the gift tracker when you have more than one buyer. This keeps the interface clean for solo users while enabling collaboration for couples, families, or groups.
-                </p>
+                {/* Add New Buyer */}
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="add-buyer">
+                    <AccordionTrigger className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add New Buyer
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 pt-4">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-2 block">
+                          Choose Emoji/Avatar
+                        </label>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'].map((emoji) => (
+                            <Button
+                              key={emoji}
+                              variant={newBuyerEmoji === emoji ? "default" : "outline"}
+                              size="sm"
+                              className="h-10 w-10 p-0 text-lg"
+                              onClick={() => setNewBuyerEmoji(emoji)}
+                            >
+                              {emoji}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex items-center gap-2 border rounded-md px-3 py-2 flex-1">
+                          <span className="text-lg">{newBuyerEmoji}</span>
+                          <Input
+                            placeholder="Buyer name"
+                            value={newBuyer}
+                            onChange={(e) => setNewBuyer(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && addBuyer()}
+                            className="border-0 p-0 focus-visible:ring-0 flex-1"
+                          />
+                        </div>
+                        <Button onClick={addBuyer} className="min-h-[44px] sm:min-h-auto">
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                <div className="space-y-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded-md border-l-2 border-primary/50">
+                  <p>
+                    <strong>Note:</strong> The assignment column will only appear in the gift tracker when you have more than one buyer. This keeps the interface clean for solo users while enabling collaboration for couples, families, or groups.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Delete Recipients Dialog */}
+        <DeleteRecipientsDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          people={people}
+          onDeletePeople={handleDeletePeople}
+        />
       </div>
     </div>
   );
