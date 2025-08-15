@@ -22,11 +22,10 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   return (
     <Button
       onClick={onClick}
-      variant="festive"
-      size="touch"
+      variant="outline"
       className={cn(
-        "fixed rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out z-40",
-        "hover:scale-105 active:scale-95 gap-2 px-6",
+        "fixed h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out z-40",
+        "hover:scale-105 active:scale-95 border border-border bg-background",
         // Safe area spacing
         "bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))]",
         // Hide/show animation
@@ -35,9 +34,9 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
           : "translate-y-[calc(100%+2rem)] opacity-0 pointer-events-none",
         className
       )}
+      aria-label="Add people"
     >
-      <img src="/lovable-uploads/4b621e2c-54dd-4bff-ab87-5b825b9559f0.png" alt="Add People" className="h-5 w-5" />
-      Add People
+      <img src="/lovable-uploads/4b621e2c-54dd-4bff-ab87-5b825b9559f0.png" alt="Add People" className="h-7 w-7" />
     </Button>
   );
 };
