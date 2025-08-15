@@ -1,5 +1,4 @@
 import React from 'react';
-import { UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
@@ -37,7 +36,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         className
       )}
     >
-      <UserPlus className="h-5 w-5" />
+      <img src="/lovable-uploads/4b621e2c-54dd-4bff-ab87-5b825b9559f0.png" alt="Add People" className="h-5 w-5" />
       Add People
     </Button>
   );
