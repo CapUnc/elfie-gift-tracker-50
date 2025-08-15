@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
+import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { differenceInDays } from 'date-fns';
 
@@ -122,11 +124,13 @@ const Summary = () => {
     };
   }, [people]);
 
-  // Calculate buyer statistics
+  // Calculate enhanced buyer statistics with remaining tasks
+  const [showCompletedBuyers, setShowCompletedBuyers] = useState(false);
+  
   const buyerStats = useMemo(() => {
     if (buyers.length <= 1) return [];
     
-    return buyers.map(buyer => {
+    const stats = buyers.map(buyer => {
       const assignedPeople = people.filter(person => person.assignedTo === buyer.name);
       const completedAssignedPeople = assignedPeople.filter(person => person.completed === true).length;
       const buyerGifts = assignedPeople.flatMap(person => person.gifts);
@@ -134,18 +138,43 @@ const Summary = () => {
       const buyerPurchased = buyerGifts.filter(gift => gift.purchased).length;
       const buyerWrapped = buyerGifts.filter(gift => gift.wrapped).length;
 
+      // Calculate remaining tasks
+      const remainingToShop = assignedPeople.length - completedAssignedPeople;
+      const remainingToPurchase = buyerGifts.length - buyerPurchased;
+      const remainingToWrap = buyerGifts.length - buyerWrapped;
+      const totalRemaining = remainingToShop + remainingToPurchase + remainingToWrap;
+
       return {
         name: buyer.name,
+        emoji: buyer.emoji,
         people: assignedPeople.length,
         completedPeople: completedAssignedPeople,
         gifts: buyerGifts.length,
         cost: buyerCost,
         purchased: buyerPurchased,
         wrapped: buyerWrapped,
+        remainingToShop,
+        remainingToPurchase,
+        remainingToWrap,
+        totalRemaining,
+        isCompleted: totalRemaining === 0,
+        assignedPeople,
+        buyerGifts,
         purchaseProgress: buyerGifts.length > 0 ? (buyerPurchased / buyerGifts.length) * 100 : 0,
         wrappingProgress: buyerGifts.length > 0 ? (buyerWrapped / buyerGifts.length) * 100 : 0,
         completionProgress: assignedPeople.length > 0 ? (completedAssignedPeople / assignedPeople.length) * 100 : 0
       };
+    });
+
+    // Sort by most remaining work (primary), then by people (secondary), then by cost (tertiary)
+    return stats.sort((a, b) => {
+      if (a.totalRemaining !== b.totalRemaining) {
+        return b.totalRemaining - a.totalRemaining; // Most remaining first
+      }
+      if (a.people !== b.people) {
+        return b.people - a.people; // More people first
+      }
+      return b.cost - a.cost; // Higher cost first
     });
   }, [people, buyers]);
 
@@ -314,58 +343,152 @@ const Summary = () => {
         {/* Buyer Statistics */}
         {buyerStats.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-primary mb-4 flex items-center gap-2">
-              <Users className="w-6 h-6" />
-              Buyer Breakdown
-            </h2>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {buyerStats.map((buyer) => (
-                <Card key={buyer.name}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{buyer.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">People:</span>
-                        <span className="ml-2 font-medium">{buyer.people}</span>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
+                <Users className="w-6 h-6" />
+                Buyer Breakdown
+              </h2>
+              {buyerStats.some(buyer => buyer.isCompleted) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCompletedBuyers(!showCompletedBuyers)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showCompletedBuyers ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                  {showCompletedBuyers ? 'Hide completed' : 'Show completed'}
+                </Button>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              {buyerStats
+                .filter(buyer => showCompletedBuyers || !buyer.isCompleted)
+                .map((buyer) => (
+                  <Collapsible key={buyer.name} className="border rounded-lg">
+                    <CollapsibleTrigger className="w-full p-4 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 text-left w-full">
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          <AvatarFallback className="text-sm">{buyer.emoji}</AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="font-medium">{buyer.name}</span>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="text-sm text-muted-foreground">
+                            People {buyer.people} · Gifts {buyer.gifts}
+                          </span>
+                          
+                          {buyer.totalRemaining > 0 ? (
+                            <>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 px-2 py-1 rounded-full">
+                                Remaining: {buyer.remainingToShop > 0 && `${buyer.remainingToShop} to shop`}
+                                {buyer.remainingToShop > 0 && (buyer.remainingToPurchase > 0 || buyer.remainingToWrap > 0) && ', '}
+                                {buyer.remainingToPurchase > 0 && `${buyer.remainingToPurchase} to purchase`}
+                                {buyer.remainingToPurchase > 0 && buyer.remainingToWrap > 0 && ', '}
+                                {buyer.remainingToWrap > 0 && `${buyer.remainingToWrap} to wrap`}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-full">
+                                ✅ All done
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {formatCurrency(buyer.cost, currency)}
+                          </span>
+                          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Complete:</span>
-                        <span className="ml-2 font-medium">{buyer.completedPeople}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Gifts:</span>
-                        <span className="ml-2 font-medium">{buyer.gifts}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Total Cost:</span>
-                        <span className="ml-2 font-medium">{formatCurrency(buyer.cost, currency)}</span>
-                      </div>
-                    </div>
+                    </CollapsibleTrigger>
                     
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Shopping Complete</span>
-                        <span>{buyer.completedPeople} of {buyer.people}</span>
+                    <CollapsibleContent className="px-4 pb-4">
+                      <div className="pt-2 border-t space-y-4">
+                        {/* Assigned People */}
+                        {buyer.assignedPeople.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">Assigned People</h4>
+                            <div className="space-y-1">
+                              {buyer.assignedPeople.map((person) => (
+                                <div key={person.id} className="flex items-center justify-between text-sm">
+                                  <span className={person.completed ? 'line-through text-muted-foreground' : ''}>
+                                    {person.name}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">
+                                      {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''}
+                                    </span>
+                                    {person.completed ? (
+                                      <CheckCircle className="w-3 h-3 text-green-500" />
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={() => navigate(`/gifts?person=${person.id}`)}
+                                      >
+                                        View
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Progress Summary */}
+                        {buyer.gifts > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">Progress Summary</h4>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span>Shopping Complete</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">
+                                    {buyer.completedPeople} of {buyer.people}
+                                  </span>
+                                  <Progress value={buyer.completionProgress} className="h-1 w-16" />
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span>Purchased</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">
+                                    {buyer.purchased} of {buyer.gifts}
+                                  </span>
+                                  <Progress value={buyer.purchaseProgress} className="h-1 w-16" />
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span>Wrapped</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">
+                                    {buyer.wrapped} of {buyer.gifts}
+                                  </span>
+                                  <Progress value={buyer.wrappingProgress} className="h-1 w-16" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {buyer.people === 0 && (
+                          <div className="text-center text-muted-foreground text-sm py-4">
+                            No people assigned to this buyer
+                          </div>
+                        )}
                       </div>
-                      <Progress value={buyer.completionProgress} className="h-2" />
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Purchased</span>
-                        <span>{buyer.purchased} of {buyer.gifts}</span>
-                      </div>
-                      <Progress value={buyer.purchaseProgress} className="h-2" />
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Wrapped</span>
-                        <span>{buyer.wrapped} of {buyer.gifts}</span>
-                      </div>
-                      <Progress value={buyer.wrappingProgress} className="h-2" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
             </div>
           </div>
         )}
