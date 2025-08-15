@@ -83,6 +83,24 @@ const GiftTracker = () => {
     showCompleted: false,
     hasGifts: 'all' as 'all' | 'with-gifts' | 'no-gifts'
   });
+
+  // Handle navigation state from Summary page
+  useEffect(() => {
+    const state = window.history.state?.usr?.state;
+    if (state?.applyFilter) {
+      switch (state.applyFilter) {
+        case 'people-incomplete':
+          setFilters(prev => ({ ...prev, completion: 'incomplete' }));
+          break;
+        case 'needs-purchase':
+          setFilters(prev => ({ ...prev, completion: 'incomplete' }));
+          break;
+        case 'needs-wrapping':
+          setFilters(prev => ({ ...prev, wrapping: 'needs-wrapping' }));
+          break;
+      }
+    }
+  }, []);
   const [sortConfig, setSortConfig] = useState<{
     key: 'name' | 'assignedTo' | 'totalCost' | 'progress';
     direction: 'asc' | 'desc';
