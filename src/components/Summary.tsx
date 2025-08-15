@@ -280,14 +280,14 @@ const Summary = () => {
             </button>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* People done row */}
+            {/* All Done row */}
             <button
               onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
               className="w-full flex items-center justify-between hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors min-h-[44px]"
-              aria-label={`People done: ${overallStats.completedPeople} of ${overallStats.totalPeople}. Tap to view incomplete people.`}
+              aria-label={`All Done: ${overallStats.completedPeople} of ${overallStats.totalPeople}. Tap to view incomplete people.`}
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className="text-sm font-medium w-24 flex-shrink-0">People done:</span>
+                <span className="text-sm font-medium w-24 flex-shrink-0">All Done:</span>
                 <span className="text-sm text-muted-foreground">
                   {overallStats.completedPeople} of {overallStats.totalPeople}
                 </span>
@@ -452,15 +452,15 @@ const Summary = () => {
                           <div>
                             <h4 className="text-sm font-medium mb-2">Progress Summary</h4>
                             <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span>People done</span>
-                                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">
-                    {buyer.completedPeople} of {buyer.people}
-                  </span>
-                  <Progress value={buyer.completionProgress} className="h-2 w-16" />
-                </div>
-              </div>
+                               <div className="flex items-center justify-between text-sm">
+                                 <span>All Done</span>
+                                 <div className="flex items-center gap-2">
+                   <span className="text-muted-foreground">
+                     {buyer.completedPeople} of {buyer.people}
+                   </span>
+                   <Progress value={buyer.completionProgress} className="h-2 w-16" />
+                 </div>
+               </div>
               <div className="flex items-center justify-between text-sm">
                 <span>Purchased</span>
                 <div className="flex items-center gap-2">

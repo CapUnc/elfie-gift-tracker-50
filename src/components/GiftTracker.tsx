@@ -121,8 +121,6 @@ const GiftTracker = () => {
   const [highlightedItems, setHighlightedItems] = useState<Set<string>>(new Set());
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingCompletionToggle, setPendingCompletionToggle] = useState<{ person: Person; newState: boolean } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Initial data from spreadsheet
@@ -369,31 +367,46 @@ const GiftTracker = () => {
     const newState = !person.completed;
     
     if (newState && hasIncompleteGifts(person)) {
+      // Calculate incomplete parts for the dialog
+      const purchased = person.gifts.filter(g => !g.purchased).length;
+      const wrapped = person.gifts.filter(g => !g.wrapped).length;
+      
       // Show confirmation dialog for incomplete gifts
-      setPendingCompletionToggle({ person, newState });
-      setShowConfirmDialog(true);
+      setCompletionDialog({
+        isOpen: true,
+        person,
+        incompleteParts: { purchased, wrapped }
+      });
     } else {
       // Direct toggle
       confirmManualComplete(person, newState);
     }
   };
 
-  const confirmManualComplete = (person: Person, completed: boolean) => {
+  const confirmManualComplete = (person: Person, completed: boolean, markGiftsComplete = false) => {
     setPeople(prevPeople =>
       prevPeople.map(p =>
         p.id === person.id
-          ? { ...p, completed, manualComplete: true }
+          ? { 
+              ...p, 
+              completed, 
+              manualComplete: true,
+              gifts: markGiftsComplete && completed 
+                ? p.gifts.map(gift => ({ ...gift, purchased: true, wrapped: true }))
+                : p.gifts
+            }
           : p
       )
     );
     
-    const incompleteGiftsNote = completed && hasIncompleteGifts(person) ? " (with incomplete gifts)" : "";
+    const incompleteGiftsNote = completed && hasIncompleteGifts(person) && !markGiftsComplete ? " (with incomplete gifts)" : "";
+    const markedGiftsNote = markGiftsComplete && completed ? " and marked all gifts as purchased & wrapped" : "";
     
     toast({
-      title: `Marked ${person.name} as ${completed ? "done" : "not done"}.`,
+      title: `Marked ${person.name} as ${completed ? "complete" : "not complete"}.`,
       description: completed 
-        ? `${person.name} marked as done${incompleteGiftsNote}.`
-        : `${person.name} unmarked as done.`,
+        ? `${person.name} marked as complete${incompleteGiftsNote}${markedGiftsNote}.`
+        : `${person.name} unmarked as complete.`,
     });
   };
 
@@ -961,27 +974,32 @@ const GiftTracker = () => {
                                )}
                              </div>
 
-                             {/* Done Badge vs Action Button */}
-                             <div className="flex-shrink-0">
-                               {person.completed ? (
-                                 <Badge variant="secondary" className="text-xs">
-                                   ✓ Done
-                                 </Badge>
-                               ) : (
-                                 <Button
-                                   variant="ghost"
-                                   size="sm"
-                                   className="h-6 w-6 p-0 touch-target"
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     handleManualComplete(person);
-                                   }}
-                                   aria-label={`Mark ${person.name} as done`}
-                                 >
-                                   <Circle className="h-3 w-3" />
-                                 </Button>
-                               )}
-                             </div>
+                              {/* Complete Button */}
+                              <div className="flex-shrink-0">
+                                {(() => {
+                                  const stats = getCompletionStats(person);
+                                  const isFullyComplete = stats.total > 0 && stats.purchased === stats.total && stats.wrapped === stats.total;
+                                  const buttonVariant = person.completed ? 'secondary' : (isFullyComplete ? 'default' : 'outline');
+                                  const buttonClass = isFullyComplete && !person.completed 
+                                    ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
+                                    : '';
+                                  
+                                  return (
+                                    <Button
+                                      variant={buttonVariant}
+                                      size="sm"
+                                      className={`text-xs px-2 py-1 h-auto min-h-[28px] touch-target ${buttonClass}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleManualComplete(person);
+                                      }}
+                                      aria-label={`${person.completed ? 'Mark as not complete' : 'Mark as complete'}: ${person.name}`}
+                                    >
+                                      {person.completed ? '✓ Complete' : 'Complete'}
+                                    </Button>
+                                  );
+                                })()}
+                              </div>
                           </div>
 
                            {/* Bottom Row: Stats + Progress + Add Gift */}
@@ -1178,30 +1196,55 @@ const GiftTracker = () => {
         )}
 
         {/* Confirmation Dialog for Incomplete Gifts */}
-        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialog open={completionDialog.isOpen} onOpenChange={(open) => {
+          if (!open) {
+            setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
+          }
+        }}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Mark as Done?</AlertDialogTitle>
-              <AlertDialogDescription>
-                You still have gifts not purchased or wrapped for {pendingCompletionToggle?.person.name}. 
-                Mark done anyway?
+              <AlertDialogTitle>Mark {completionDialog.person?.name} as Complete?</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  {completionDialog.person?.name} still has:
+                </p>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  {completionDialog.incompleteParts.purchased > 0 && (
+                    <li>{completionDialog.incompleteParts.purchased} gift{completionDialog.incompleteParts.purchased > 1 ? 's' : ''} not purchased</li>
+                  )}
+                  {completionDialog.incompleteParts.wrapped > 0 && (
+                    <li>{completionDialog.incompleteParts.wrapped} gift{completionDialog.incompleteParts.wrapped > 1 ? 's' : ''} not wrapped</li>
+                  )}
+                </ul>
+                <p className="text-sm">
+                  Would you like to mark all remaining gifts as purchased and wrapped, or just mark as complete anyway?
+                </p>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
               <AlertDialogCancel onClick={() => {
-                setShowConfirmDialog(false);
-                setPendingCompletionToggle(null);
+                setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
               }}>
                 Cancel
               </AlertDialogCancel>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (completionDialog.person) {
+                    confirmManualComplete(completionDialog.person, true, false);
+                  }
+                  setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
+                }}
+              >
+                Mark Complete Anyway
+              </Button>
               <AlertDialogAction onClick={() => {
-                if (pendingCompletionToggle) {
-                  confirmManualComplete(pendingCompletionToggle.person, pendingCompletionToggle.newState);
+                if (completionDialog.person) {
+                  confirmManualComplete(completionDialog.person, true, true);
                 }
-                setShowConfirmDialog(false);
-                setPendingCompletionToggle(null);
+                setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
               }}>
-                Mark Done Anyway
+                Complete All Gifts
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
