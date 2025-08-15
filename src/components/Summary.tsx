@@ -434,28 +434,28 @@ const Summary = () => {
                               <div className="flex items-center justify-between text-sm">
                                 <span>People done</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">
-                                    {buyer.completedPeople} of {buyer.people}
-                                  </span>
-                                  <Progress value={buyer.completionProgress} className="h-1 w-16" />
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between text-sm">
-                                <span>Purchased</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">
-                                    {buyer.purchased} of {buyer.gifts}
-                                  </span>
-                                  <Progress value={buyer.purchaseProgress} className="h-1 w-16" />
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between text-sm">
-                                <span>Wrapped</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">
-                                    {buyer.wrapped} of {buyer.gifts}
-                                  </span>
-                                  <Progress value={buyer.wrappingProgress} className="h-1 w-16" />
+                  <span className="text-muted-foreground">
+                    {buyer.completedPeople} of {buyer.people}
+                  </span>
+                  <Progress value={buyer.completionProgress} className="h-2 w-16" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Purchased</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">
+                    {buyer.purchased} of {buyer.gifts}
+                  </span>
+                  <Progress value={buyer.purchaseProgress} className="h-2 w-16" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Wrapped</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">
+                    {buyer.wrapped} of {buyer.gifts}
+                  </span>
+                  <Progress value={buyer.wrappingProgress} className="h-2 w-16" />
                                 </div>
                               </div>
                             </div>
@@ -496,7 +496,7 @@ const Summary = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
+                <CheckCircle className="w-4 h-4" />
                 Next Steps
               </CardTitle>
             </CardHeader>
@@ -512,7 +512,7 @@ const Summary = () => {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-primary" />
+                      <Users className="h-4 w-4 text-primary" />
                       <span>Complete shopping for {overallStats.totalPeople - overallStats.completedPeople} people</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -528,7 +528,7 @@ const Summary = () => {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <ShoppingCart className="h-5 w-5 text-primary" />
+                      <ShoppingCart className="h-4 w-4 text-primary" />
                       <span>Purchase {overallStats.totalGifts - overallStats.purchasedGifts} gifts</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -544,7 +544,7 @@ const Summary = () => {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <Shirt className="h-5 w-5 text-primary" />
+                      <Shirt className="h-4 w-4 text-primary" />
                       <span>Wrap {overallStats.totalGifts - overallStats.wrappedGifts} gifts</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -560,7 +560,7 @@ const Summary = () => {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-primary" />
+                      <DollarSign className="h-4 w-4 text-primary" />
                       <span>Set costs for {overallStats.totalGiftsWithoutCost} gifts</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -569,10 +569,10 @@ const Summary = () => {
                 {overallStats.totalPeople === overallStats.completedPeople && 
                  overallStats.totalGifts === overallStats.purchasedGifts && 
                  overallStats.totalGifts === overallStats.wrappedGifts && (
-                  <div className="flex items-center gap-3 p-4 text-christmas-green font-medium">
-                    <CheckCircle className="h-5 w-5" />
-                    <span>🎉 All shopping complete! You're ready for Christmas!</span>
-                  </div>
+                   <div className="flex items-center gap-3 p-4 text-christmas-green font-medium">
+                     <CheckCircle className="h-4 w-4" />
+                     <span>🎉 All shopping complete! You're ready for Christmas!</span>
+                   </div>
                 )}
               </div>
             </CardContent>
