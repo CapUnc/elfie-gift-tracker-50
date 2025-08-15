@@ -22,7 +22,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
     <button
       onClick={onClick}
       className={cn(
-        "fixed h-16 w-16 rounded-full overflow-hidden transition-all duration-300 ease-in-out z-40 p-0 border-0 bg-transparent",
+        "fixed h-[72px] w-[72px] rounded-full overflow-hidden transition-all duration-300 ease-in-out z-40 p-0 border-0 bg-transparent",
         "hover:scale-105 active:scale-95",
         // Safe area spacing
         "bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))]",
@@ -35,9 +35,9 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       aria-label="Add people"
     >
       <img 
-        src="/lovable-uploads/332a5b47-b5be-4730-a93a-bd4a884bbaca.png" 
+        src="/lovable-uploads/b41502bb-c906-4193-b385-e800e2c4357b.png" 
         alt="Add people" 
-        className="h-16 w-16 object-cover"
+        className="w-full h-full object-cover block"
       />
     </button>
   );
