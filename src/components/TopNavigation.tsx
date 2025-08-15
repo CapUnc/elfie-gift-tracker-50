@@ -20,9 +20,12 @@ const TopNavigation = () => {
         {/* App Logo/Name */}
         <div className="flex items-center gap-2 mr-6">
           <img 
-            src="/lovable-uploads/17df585a-c7e8-4690-bd7c-18aca34e46b9.png" 
+            src="/lovable-uploads/0e618fcf-154e-42aa-af2a-8b9e41c07ddd.png" 
             alt="Elfie Logo" 
             className="h-6 w-6 object-contain"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.svg';
+            }}
           />
           <span className="font-bold text-lg hidden sm:inline">Elfie</span>
           <span className="font-bold text-sm sm:hidden">Elfie</span>
