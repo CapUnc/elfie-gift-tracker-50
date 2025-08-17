@@ -728,6 +728,7 @@ const GiftTracker = () => {
     });
   }, [filteredPeople, sortConfig]);
 
+  console.log("GiftTracker render started");
   return (
     <div className="p-4 sm:p-6 pb-20 max-w-full overflow-hidden">
       <div className="max-w-7xl mx-auto max-w-full">
@@ -840,31 +841,12 @@ const GiftTracker = () => {
           </div>
         </DialogContent>
       </Dialog>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    if (unsavedChanges && newPersonName.trim()) {
-                      if (window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
-                        setIsAddPersonOpen(false);
-                        setNewPersonName('');
-                        setNewPersonAssignment(null);
-                        setUnsavedChanges(false);
-                      }
-                    } else {
-                      setIsAddPersonOpen(false);
-                      setNewPersonName('');
-                      setNewPersonAssignment(null);
-                      setUnsavedChanges(false);
-                    }
-                  }}
-                  className="w-full"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+
+      {/* Floating Action Button */}
+      <FloatingActionButton 
+        onClick={() => setIsAddPersonOpen(true)} 
+        isVisible={!isAddPersonOpen && !editingGift}
+      />
 
         {/* Floating Action Button */}
         <FloatingActionButton 
@@ -1003,7 +985,7 @@ const GiftTracker = () => {
                              {/* Small Assignment Avatar */}
                              <Popover 
                                open={openAssignmentPopover === person.id} 
-                               onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : '')}
+                               onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : null)}
                              >
                                <PopoverTrigger asChild>
                                  <button 
@@ -1026,7 +1008,7 @@ const GiftTracker = () => {
                                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
                                      onClick={() => {
                                        updatePersonAssignment(person.id, null);
-                                       setOpenAssignmentPopover('');
+                                       setOpenAssignmentPopover(null);
                                      }}
                                    >
                                      <div className="h-4 w-4 rounded-full border border-muted-foreground/30 flex items-center justify-center">
@@ -1040,7 +1022,7 @@ const GiftTracker = () => {
                                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
                                         onClick={() => {
                                           updatePersonAssignment(person.id, buyer.id);
-                                          setOpenAssignmentPopover('');
+                                          setOpenAssignmentPopover(null);
                                         }}
                                      >
                                        <span className="text-lg leading-none">{buyer.emoji}</span>
