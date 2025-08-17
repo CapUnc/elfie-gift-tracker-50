@@ -673,10 +673,7 @@ const GiftTracker = () => {
             filters={filters}
             onFiltersChange={setFilters}
             buyers={buyers}
-            sortConfig={sortConfig}
-            onSort={handleSort}
-            getSortIcon={getSortIcon}
-            totalResults={filteredPeople.length}
+            
           />
         </div>
 
@@ -1039,11 +1036,19 @@ const GiftTracker = () => {
                                  >
                                    {/* Left: Gift info and status toggles */}
                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                     <SwipeableGiftItem
-                                       gift={gift}
-                                       onStatusChange={(field, value) => updateGiftStatus(person.id, gift.id, field, value)}
-                                       className="flex-shrink-0"
-                                     />
+                                        <SwipeableGiftItem
+                                          gift={gift}
+                                          currency={getCurrencySymbol()}
+                                          onUpdate={(giftId, field, value) => updateGiftStatus(person.id, giftId, field, value)}
+                                          onDelete={(giftId) => deleteGift(person.id, giftId)}
+                                          onEdit={(giftId) => {
+                                            setEditingGift({
+                                              personId: person.id,
+                                              giftId: giftId,
+                                              gift: gift
+                                            });
+                                          }}
+                                      />
                                      
                                      <div className="min-w-0 flex-1">
                                        <div className="flex items-center gap-2 min-w-0">
@@ -1104,45 +1109,38 @@ const GiftTracker = () => {
 
          {/* Gift Form for Add/Edit */}
          {editingGift && (
-           <GiftForm
-             key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
-             personId={editingGift.personId}
-             gift={editingGift.gift}
-             people={people}
-             buyers={buyers}
-             onSave={(personId, giftData) => {
-               if (editingGift.giftId) {
-                 updateGift(personId, editingGift.giftId, giftData);
-               } else {
-                 const newGift: Gift = {
-                   id: Date.now().toString(),
-                   name: giftData.name,
-                   cost: giftData.cost,
-                   purchased: false,
-                   wrapped: false,
-                   url: giftData.url,
-                   tracking: giftData.tracking,
-                   assignedTo: giftData.assignedTo
-                 };
-                 
-                 setPeople(people.map(person => 
-                   person.id === personId 
-                     ? { ...person, gifts: [...person.gifts, newGift] }
-                     : person
-                 ));
-               }
-               setEditingGift(null);
-             }}
-             onCancel={() => setEditingGift(null)}
-             onDelete={editingGift.giftId ? (personId, giftId) => {
-               deleteGift(personId, giftId);
-               setEditingGift(null);
-             } : undefined}
-             onDuplicate={editingGift.giftId ? (personId, giftId) => {
-               duplicateGift(personId, giftId);
-               setEditingGift(null);
-             } : undefined}
-           />
+            <GiftForm
+              key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
+              isOpen={true}
+              onClose={() => setEditingGift(null)}
+              onSubmit={(giftData) => {
+                if (editingGift.giftId) {
+                  updateGift(editingGift.personId, editingGift.giftId, {
+                    name: giftData.name,
+                    cost: giftData.cost ? parseFloat(giftData.cost) : null
+                  });
+                } else {
+                  const newGift: Gift = {
+                    id: Date.now().toString(),
+                    name: giftData.name,
+                    cost: giftData.cost ? parseFloat(giftData.cost) : null,
+                    purchased: false,
+                    wrapped: false
+                  };
+                  
+                  setPeople(people.map(person => 
+                    person.id === editingGift.personId 
+                      ? { ...person, gifts: [...person.gifts, newGift] }
+                      : person
+                  ));
+                }
+                setEditingGift(null);
+              }}
+              personName={people.find(p => p.id === editingGift.personId)?.name || ''}
+              currency={getCurrencySymbol()}
+              editingGift={editingGift.gift}
+              mode={editingGift.giftId ? 'edit' : 'add'}
+            />
          )}
 
          {/* Completion Dialog */}
