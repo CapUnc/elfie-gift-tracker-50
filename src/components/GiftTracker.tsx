@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { cn } from '@/lib/utils';
 import { GiftForm } from './GiftForm';
 
 // Force rebuild to clear cached Popover references
@@ -900,88 +901,131 @@ const GiftTracker = () => {
                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${person.name}'s gift details`}
                          aria-expanded={isExpanded}
                        >
-                         <div className="px-3 py-3 space-y-3">
-                           {/* Top Row: Caret + Avatar + Name + Progress */}
-                           <div className="flex items-center gap-3 min-w-0">
-                             {/* Expand/Collapse Button */}
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               className="h-5 w-5 p-0 flex-shrink-0"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 haptic.tap();
-                                 toggleRow(person.id);
-                               }}
-                               aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${person.name}'s gift details`}
-                               aria-expanded={isExpanded}
+                          <div className="px-3 py-3 space-y-3">
+                            {/* Top Row: Caret + Avatar + Name + Complete Button */}
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Expand/Collapse Button */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  haptic.tap();
+                                  toggleRow(person.id);
+                                }}
+                                aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${person.name}'s gift details`}
+                                aria-expanded={isExpanded}
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </Button>
+
+                             {/* Small Assignment Avatar */}
+                             <Popover 
+                               open={openAssignmentPopover === person.id} 
+                               onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : '')}
                              >
-                               {isExpanded ? (
-                                 <ChevronDown className="h-4 w-4" />
-                               ) : (
-                                 <ChevronRight className="h-4 w-4" />
-                               )}
-                             </Button>
+                               <PopoverTrigger asChild>
+                                 <button 
+                                   className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent/50 transition-colors"
+                                   onClick={(e) => e.stopPropagation()}
+                                   type="button"
+                                 >
+                                   {assignedBuyer?.emoji ? (
+                                     <span className="text-sm leading-none">{assignedBuyer.emoji}</span>
+                                   ) : (
+                                     <div className="h-4 w-4 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center">
+                                       <Users className="h-2.5 w-2.5 text-muted-foreground" />
+                                     </div>
+                                   )}
+                                 </button>
+                               </PopoverTrigger>
+                               <PopoverContent className="w-48 p-2" align="start">
+                                 <div className="space-y-1">
+                                   <button
+                                     className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                                     onClick={() => {
+                                       updatePersonAssignment(person.id, null);
+                                       setOpenAssignmentPopover('');
+                                     }}
+                                   >
+                                     <div className="h-4 w-4 rounded-full border border-muted-foreground/30 flex items-center justify-center">
+                                       <Users className="h-3 w-3 text-muted-foreground" />
+                                     </div>
+                                     Unassigned
+                                   </button>
+                                   {buyers.map((buyer) => (
+                                     <button
+                                       key={buyer.id}
+                                       className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                                       onClick={() => {
+                                         updatePersonAssignment(person.id, buyer.name);
+                                         setOpenAssignmentPopover('');
+                                       }}
+                                     >
+                                       <span className="text-lg leading-none">{buyer.emoji}</span>
+                                       {buyer.name}
+                                     </button>
+                                   ))}
+                                 </div>
+                               </PopoverContent>
+                             </Popover>
 
-                            {/* Small Assignment Avatar */}
-                            <Popover 
-                              open={openAssignmentPopover === person.id} 
-                              onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : '')}
-                            >
-                              <PopoverTrigger asChild>
-                                <button 
-                                  className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent/50 transition-colors"
-                                  onClick={(e) => e.stopPropagation()}
-                                  type="button"
-                                >
-                                  {assignedBuyer?.emoji ? (
-                                    <span className="text-sm leading-none">{assignedBuyer.emoji}</span>
-                                  ) : (
-                                    <div className="h-4 w-4 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center">
-                                      <Users className="h-2.5 w-2.5 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-48 p-2" align="start">
-                                <div className="space-y-1">
-                                  <button
-                                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-                                    onClick={() => {
-                                      updatePersonAssignment(person.id, null);
-                                      setOpenAssignmentPopover('');
-                                    }}
-                                  >
-                                    <div className="h-4 w-4 rounded-full border border-muted-foreground/30 flex items-center justify-center">
-                                      <Users className="h-3 w-3 text-muted-foreground" />
-                                    </div>
-                                    Unassigned
-                                  </button>
-                                  {buyers.map((buyer) => (
-                                    <button
-                                      key={buyer.id}
-                                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-                                      onClick={() => {
-                                        updatePersonAssignment(person.id, buyer.name);
-                                        setOpenAssignmentPopover('');
-                                      }}
-                                    >
-                                      <span className="text-lg leading-none">{buyer.emoji}</span>
-                                      {buyer.name}
-                                    </button>
-                                  ))}
+                              {/* Name (truncate) */}
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-sm text-foreground truncate">
+                                  {person.name}
                                 </div>
-                              </PopoverContent>
-                            </Popover>
+                              </div>
 
-                             {/* Name (truncate) */}
-                             <div className="min-w-0 flex-1">
-                               <div className="font-semibold text-sm text-foreground truncate">
-                                 {person.name}
+                               {/* Complete Button - Top Right */}
+                               <div className="flex-shrink-0">
+                                 <Button
+                                   variant={(!hasIncompleteGifts(person) && person.gifts.length > 0) || person.completed ? "default" : "outline"}
+                                   size="sm"
+                                   className={cn(
+                                     "h-8 px-3 text-xs font-medium transition-colors",
+                                     (!hasIncompleteGifts(person) && person.gifts.length > 0) || person.completed
+                                       ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
+                                       : "border-border hover:bg-muted"
+                                   )}
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     haptic.tap();
+                                     handleManualComplete(person);
+                                   }}
+                                   aria-label={`Mark ${person.name} as ${person.completed ? 'not complete' : 'complete'}`}
+                                 >
+                                   Complete
+                                 </Button>
                                </div>
-                             </div>
+                          </div>
 
-                              {/* Right-aligned micro progress bar and completion button */}
+                            {/* Bottom Row: Icon Stats + Progress */}
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <span className="flex items-center gap-1">
+                                  🎁 {person.gifts.length}
+                                </span>
+                                <span>·</span>
+                                <span className="flex items-center gap-1">
+                                  🛒 {stats.purchased}
+                                </span>
+                                <span>·</span>
+                                <span className="flex items-center gap-1">
+                                  🎀 {stats.wrapped}
+                                </span>
+                                <span>·</span>
+                                <span className="flex items-center gap-1">
+                                  $ {formatCurrency(getTotalCost(person.gifts), getCurrencySymbol()).replace(getCurrencySymbol(), '')}
+                                </span>
+                              </div>
+                              
+                              {/* Progress in bottom-right */}
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 {person.gifts.length > 0 ? (
                                   <>
@@ -1002,55 +1046,11 @@ const GiftTracker = () => {
                                   </>
                                 ) : (
                                   <span className="text-xs text-muted-foreground italic">
-                                    0 of 0
+                                    No gifts yet
                                   </span>
                                 )}
-                                
-                                {/* Completion Button */}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className={`h-11 w-11 p-0 flex-shrink-0 transition-colors ${
-                                    person.completed 
-                                      ? 'text-green-600 hover:text-green-700 hover:bg-green-50' 
-                                      : !hasIncompleteGifts(person) && person.gifts.length > 0
-                                        ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                  }`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    haptic.tap();
-                                    handleManualComplete(person);
-                                  }}
-                                  aria-label={`Mark ${person.name} as ${person.completed ? 'not complete' : 'complete'}`}
-                                >
-                                  {person.completed ? (
-                                    <CheckCircle className="h-5 w-5 fill-current" />
-                                  ) : (
-                                    <Circle className="h-5 w-5" />
-                                  )}
-                                </Button>
                               </div>
-                          </div>
-
-                           {/* Bottom Row: Icon Stats */}
-                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                             <span className="flex items-center gap-1">
-                               🎁 {person.gifts.length}
-                             </span>
-                             <span>·</span>
-                             <span className="flex items-center gap-1">
-                               🛒 {stats.purchased}
-                             </span>
-                             <span>·</span>
-                             <span className="flex items-center gap-1">
-                               🎀 {stats.wrapped}
-                             </span>
-                             <span>·</span>
-                             <span className="flex items-center gap-1">
-                               $ {formatCurrency(getTotalCost(person.gifts), getCurrencySymbol()).replace(getCurrencySymbol(), '')}
-                             </span>
-                          </div>
+                           </div>
                         </div>
                       </div>
 
