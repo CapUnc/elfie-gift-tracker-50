@@ -18,6 +18,7 @@ interface SearchFilters {
   wrapping: 'all' | 'needs-wrapping' | 'all-wrapped';
   showCompleted: boolean;
   hasGifts: 'all' | 'with-gifts' | 'no-gifts';
+  costStatus: 'all' | 'missing-cost';
 }
 
 interface GiftSearchProps {
@@ -43,6 +44,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
     if (filters.completion !== 'all') count++;
     if (filters.wrapping !== 'all') count++;
     if (filters.hasGifts !== 'all') count++;
+    if (filters.costStatus !== 'all') count++;
     if (!filters.showCompleted) count++;
     return count;
   }, [filters, buyers.length]);
@@ -53,7 +55,8 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       completion: 'all',
       wrapping: 'all',
       showCompleted: false,
-      hasGifts: 'all'
+      hasGifts: 'all',
+      costStatus: 'all'
     });
   };
 

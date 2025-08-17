@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Shirt, Coins } from 'lucide-react';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { pluralize } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
 
 interface Gift {
@@ -181,18 +182,10 @@ const Summary = () => {
   return (
     <div className="p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Compact Header with Quick Actions */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary">Elfie</h1>
-              <p className="text-sm text-muted-foreground">Your Christmas gift planner</p>
-            </div>
-            
-          </div>
-
-          {/* Compact Countdown Pill */}
-          <div className="flex items-center justify-center gap-2">
+        {/* Compact Header Stack */}
+        <div className="mb-6 space-y-4">
+          {/* Row 1: Countdown */}
+          <div className="flex items-center justify-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-festive text-white rounded-full shadow-festive">
               <span className="text-lg">🎄</span>
               <span className="font-semibold">
@@ -204,299 +197,165 @@ const Summary = () => {
                 }
               </span>
             </div>
-            {christmasCountdown.daysUntil > 0 && (
-              <span className="text-sm text-muted-foreground">
-                until Christmas {christmasCountdown.year}
-              </span>
-            )}
           </div>
         </div>
 
-        {/* KPI Strip */}
-        <Card className="mb-8">
-          <CardContent className="p-0">
-            <div className="grid grid-cols-3 divide-x divide-border">
-              {/* People Stat */}
-              <button 
-                onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
-                className="p-4 text-center hover:bg-muted/50 active:bg-muted transition-colors group min-h-[44px]"
-                aria-label={`View ${overallStats.totalPeople} people, ${overallStats.completedPeople} completed. Tap to view incomplete people.`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <div className="text-2xl font-bold">{overallStats.totalPeople}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {overallStats.completedPeople} done
+          {/* Row 2: KPI Strip */}
+          <Card className="mb-6">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-3 divide-x divide-border">
+                {/* People KPI */}
+                <button 
+                  onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
+                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group"
+                  aria-label={`View ${overallStats.totalPeople} people, ${overallStats.completedPeople} completed. Tap to view incomplete people.`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <Users className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <div className="text-xl font-bold">{overallStats.totalPeople}</div>
+                    <div className="text-xs text-muted-foreground">People</div>
                   </div>
-                </div>
-              </button>
+                </button>
 
-              {/* Gifts Stat */}
-              <button 
-                onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-purchase' } })}
-                className="p-4 text-center hover:bg-muted/50 active:bg-muted transition-colors group min-h-[44px]"
-                aria-label={`View ${overallStats.totalGifts} gifts, ${overallStats.purchasedGifts} purchased. Tap to view unpurchased gifts.`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Gift className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <div className="text-2xl font-bold">{overallStats.totalGifts}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {overallStats.purchasedGifts} purchased
-                  </div>
-                </div>
-              </button>
-
-              {/* Cost Stat */}
-              <button 
-                onClick={() => navigate('/gifts')}
-                className="p-4 text-center hover:bg-muted/50 active:bg-muted transition-colors group min-h-[44px]"
-                aria-label={`View total cost ${formatCurrency(overallStats.totalCost, currency)}`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <Coins className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <div className="text-2xl font-bold">
-                    {overallStats.totalGiftsWithoutCost > 0 ? 'Partial: ' : ''}{formatCurrency(overallStats.totalCost, currency)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {overallStats.totalGifts > 0 ? `${overallStats.giftsCostSet} priced` : 'No gifts'}
-                  </div>
-                </div>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Progress Card */}
-        <Card className="mb-8">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle>Progress</CardTitle>
-            <button
-              onClick={() => navigate('/gifts')}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors min-h-[44px] px-2 -mr-2"
-              aria-label="View details in gifts page"
-            >
-              <span>View details</span>
-              <ChevronRight className="w-3 h-3" />
-            </button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* All Done row */}
-            <button
-              onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
-              className="w-full flex items-center justify-between hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors min-h-[44px]"
-              aria-label={`All Done: ${overallStats.completedPeople} of ${overallStats.totalPeople}. Tap to view incomplete people.`}
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className="text-sm font-medium w-24 flex-shrink-0">All Done:</span>
-                <span className="text-sm text-muted-foreground">
-                  {overallStats.completedPeople} of {overallStats.totalPeople}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 flex-1 max-w-[200px]">
-                <Progress value={overallStats.completionProgress} className="h-2 flex-1" />
-              </div>
-            </button>
-
-            {/* Show empty state or progress rows */}
-            {overallStats.totalGifts === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">
-                <Gift className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Add your first gift to start tracking purchase and wrapping</p>
-              </div>
-            ) : (
-              <>
-                {/* Purchased row */}
-                <button
+                {/* Gifts KPI */}
+                <button 
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-purchase' } })}
-                  className="w-full flex items-center justify-between hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors min-h-[44px]"
-                  aria-label={`Purchased: ${overallStats.purchasedGifts} of ${overallStats.totalGifts}. Tap to view unpurchased gifts.`}
+                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group"
+                  aria-label={`View ${overallStats.totalGifts} gifts, ${overallStats.purchasedGifts} purchased. Tap to view unpurchased gifts.`}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="text-sm font-medium w-24 flex-shrink-0">Purchased:</span>
-                    <span className="text-sm text-muted-foreground">
-                      {overallStats.purchasedGifts} of {overallStats.totalGifts}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-1 max-w-[200px]">
-                    <Progress value={overallStats.purchaseProgress} className="h-2 flex-1" />
+                  <div className="flex flex-col items-center gap-1">
+                    <Gift className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <div className="text-xl font-bold">{overallStats.totalGifts}</div>
+                    <div className="text-xs text-muted-foreground">Gifts</div>
                   </div>
                 </button>
 
-                {/* Wrapped row */}
-                <button
-                  onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-wrapping' } })}
-                  className="w-full flex items-center justify-between hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors min-h-[44px]"
-                  aria-label={`Wrapped: ${overallStats.wrappedGifts} of ${overallStats.totalGifts}. Tap to view unwrapped gifts.`}
+                {/* Cost KPI */}
+                <button 
+                  onClick={() => navigate('/gifts', { state: { applyFilter: 'missing-cost' } })}
+                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group"
+                  aria-label={`View total cost ${formatCurrency(overallStats.totalCost, currency)}`}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="text-sm font-medium w-24 flex-shrink-0">Wrapped:</span>
-                    <span className="text-sm text-muted-foreground">
-                      {overallStats.wrappedGifts} of {overallStats.totalGifts}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-1 max-w-[200px]">
-                    <Progress value={overallStats.wrappingProgress} className="h-2 flex-1" />
+                  <div className="flex flex-col items-center gap-1">
+                    <Coins className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <div className="text-xl font-bold">{formatCurrency(overallStats.totalCost, currency)}</div>
+                    <div className="text-xs text-muted-foreground">Cost</div>
                   </div>
                 </button>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Buyer Statistics */}
-        {buyerStats.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Buyer Breakdown
-              </h2>
-              {(() => {
-                const visibleBuyers = buyerStats.filter(buyer => showAllBuyers || buyer.totalRemaining > 0 || buyer.people > 0);
-                const hiddenCount = buyerStats.length - visibleBuyers.length;
-                return hiddenCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAllBuyers(!showAllBuyers)}
-                    className="text-xs text-muted-foreground hover:text-foreground min-h-[44px]"
+          {/* Row 3: Progress Card */}
+          <Card className="mb-8">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Progress</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {overallStats.totalGifts === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Gift className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Add your first gift to start tracking progress</p>
+                </div>
+              ) : (
+                <>
+                  {/* Completed recipients */}
+                  <button
+                    onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
+                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors"
                   >
-                    {showAllBuyers ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                    {showAllBuyers ? 'Hide empty' : `Show all (${hiddenCount} hidden)`}
-                  </Button>
-                );
-              })()}
-            </div>
-            
-            <div className="space-y-2">
+                    <div className="flex-1">
+                      <Progress value={overallStats.completionProgress} className="h-2" />
+                    </div>
+                    <div className="text-sm text-muted-foreground text-right min-w-0">
+                      {Math.round(overallStats.completionProgress)}% Completed recipients
+                    </div>
+                  </button>
+
+                  {/* Purchased */}
+                  <button
+                    onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-purchase' } })}
+                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors"
+                  >
+                    <div className="flex-1">
+                      <Progress value={overallStats.purchaseProgress} className="h-2" />
+                    </div>
+                    <div className="text-sm text-muted-foreground text-right min-w-0">
+                      {Math.round(overallStats.purchaseProgress)}% Purchased
+                    </div>
+                  </button>
+
+                  {/* Wrapped */}
+                  <button
+                    onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-wrapping' } })}
+                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors"
+                  >
+                    <div className="flex-1">
+                      <Progress value={overallStats.wrappingProgress} className="h-2" />
+                    </div>
+                    <div className="text-sm text-muted-foreground text-right min-w-0">
+                      {Math.round(overallStats.wrappingProgress)}% Wrapped
+                    </div>
+                  </button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+        {/* Buyer Breakdown */}
+        {buyerStats.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Buyer Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
               {buyerStats
                 .filter(buyer => showAllBuyers || buyer.totalRemaining > 0 || buyer.people > 0)
                 .map((buyer) => (
-                  <Collapsible key={buyer.name} className="border rounded-lg">
-                    <CollapsibleTrigger className="w-full p-4 hover:bg-muted/50 transition-colors min-h-[44px]">
-                      <div className="flex items-center gap-3 text-left w-full">
-                        <Avatar className="w-8 h-8 flex-shrink-0">
-                          <AvatarFallback className="text-sm">{buyer.emoji}</AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="font-medium truncate">{buyer.name}</span>
-                          <span className="text-muted-foreground">·</span>
-                          <span className="text-sm text-muted-foreground whitespace-nowrap">
-                            {buyer.people}p · {buyer.gifts}g
-                          </span>
-                          
-                          {buyer.totalRemaining > 0 ? (
-                            <>
-                              <span className="text-muted-foreground">·</span>
-                              <span className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 px-2 py-1 rounded-full whitespace-nowrap">
-                                {buyer.remainingToShop + buyer.remainingToPurchase + buyer.remainingToWrap} left
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-muted-foreground">·</span>
-                              <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-full whitespace-nowrap">
-                                ✅ Done
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {formatCurrency(buyer.cost, currency)}
-                          </span>
-                          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
-                        </div>
+                  <button
+                    key={buyer.name}
+                    onClick={() => navigate('/gifts', { state: { assignedTo: buyer.name } })}
+                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-lg">{buyer.emoji}</span>
+                      <span className="font-medium">{buyer.name}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Users className="w-3 h-3" />
+                        <span>{buyer.people}</span>
                       </div>
-                    </CollapsibleTrigger>
-                    
-                    <CollapsibleContent className="px-4 pb-4">
-                      <div className="pt-2 border-t space-y-4">
-                        {/* Assigned People */}
-                        {buyer.assignedPeople.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-medium mb-2">Assigned People</h4>
-                            <div className="space-y-1">
-                              {buyer.assignedPeople.map((person) => (
-                                <div key={person.id} className="flex items-center justify-between text-sm">
-                                  <span className={person.completed ? 'line-through text-muted-foreground' : ''}>
-                                    {person.name}
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">
-                                      {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''}
-                                    </span>
-                                    {person.completed ? (
-                                      <CheckCircle className="w-3 h-3 text-green-500" />
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 px-2 text-xs"
-                                        onClick={() => navigate(`/gifts?person=${person.id}`)}
-                                      >
-                                        View
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Progress Summary */}
-                        {buyer.gifts > 0 && (
-                          <div>
-                            <h4 className="text-sm font-medium mb-2">Progress Summary</h4>
-                            <div className="space-y-2">
-                               <div className="flex items-center justify-between text-sm">
-                                 <span>All Done</span>
-                                 <div className="flex items-center gap-2">
-                   <span className="text-muted-foreground">
-                     {buyer.completedPeople} of {buyer.people}
-                   </span>
-                   <Progress value={buyer.completionProgress} className="h-2 w-16" />
-                 </div>
-               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span>Purchased</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">
-                    {buyer.purchased} of {buyer.gifts}
-                  </span>
-                  <Progress value={buyer.purchaseProgress} className="h-2 w-16" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span>Wrapped</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">
-                    {buyer.wrapped} of {buyer.gifts}
-                  </span>
-                  <Progress value={buyer.wrappingProgress} className="h-2 w-16" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {buyer.people === 0 && (
-                          <div className="text-center text-muted-foreground text-sm py-4">
-                            No people assigned to this buyer
-                          </div>
-                        )}
+                      <span className="text-muted-foreground">·</span>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Gift className="w-3 h-3" />
+                        <span>{buyer.gifts}</span>
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                      <span className="text-muted-foreground">·</span>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>{buyer.totalRemaining}</span>
+                      </div>
+                      <span className="text-muted-foreground">·</span>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Coins className="w-3 h-3" />
+                        <span>{formatCurrency(buyer.cost, currency)}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </button>
                 ))}
-            </div>
-          </div>
+              
+              {buyerStats.filter(buyer => showAllBuyers || buyer.totalRemaining > 0 || buyer.people > 0).length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No buyers have assigned work yet</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
-        {/* Quick Stats */}
+        {/* Next Steps */}
         {overallStats.totalGifts === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
@@ -507,7 +366,7 @@ const Summary = () => {
               </p>
               <Button
                 onClick={() => navigate('/gifts')}
-                className="bg-gradient-festive hover:opacity-90 text-white shadow-festive min-h-[44px] sm:min-h-auto"
+                className="bg-gradient-festive hover:opacity-90 text-white shadow-festive"
               >
                 Get Started
               </Button>
@@ -515,87 +374,70 @@ const Summary = () => {
           </Card>
         ) : (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                Next Steps
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Next Steps</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {overallStats.totalPeople - overallStats.completedPeople > 0 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
-                    onClick={() => {
-                      navigate('/gifts');
-                      // Filter will be applied by the gifts page based on completion status
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span>Complete shopping for {overallStats.totalPeople - overallStats.completedPeople} people</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                )}
-                {overallStats.totalGifts - overallStats.purchasedGifts > 0 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
-                    onClick={() => {
-                      navigate('/gifts');
-                      // Filter will be applied by the gifts page based on purchase status
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <ShoppingCart className="h-4 w-4 text-primary" />
-                      <span>Purchase {overallStats.totalGifts - overallStats.purchasedGifts} gifts</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                )}
-                {overallStats.totalGifts - overallStats.wrappedGifts > 0 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
-                    onClick={() => {
-                      navigate('/gifts');
-                      // Filter will be applied by the gifts page based on wrapping status
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Shirt className="h-4 w-4 text-primary" />
-                      <span>Wrap {overallStats.totalGifts - overallStats.wrappedGifts} gifts</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                )}
-                {overallStats.totalGiftsWithoutCost > 0 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between h-auto p-4 text-left hover:bg-accent/50"
-                    onClick={() => {
-                      navigate('/gifts');
-                      // Filter will be applied by the gifts page based on cost status
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      <span>Set costs for {overallStats.totalGiftsWithoutCost} gifts</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                )}
-                {overallStats.totalPeople === overallStats.completedPeople && 
-                 overallStats.totalGifts === overallStats.purchasedGifts && 
-                 overallStats.totalGifts === overallStats.wrappedGifts && (
-                   <div className="flex items-center gap-3 p-4 text-christmas-green font-medium">
-                     <CheckCircle className="h-4 w-4" />
-                     <span>🎉 All shopping complete! You're ready for Christmas!</span>
-                   </div>
-                )}
-              </div>
+            <CardContent className="space-y-2">
+              {overallStats.totalPeople - overallStats.completedPeople > 0 && (
+                <button
+                  onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Users className="h-4 w-4 text-primary" />
+                    <span>Complete shopping for {pluralize(overallStats.totalPeople - overallStats.completedPeople, 'person', 'people')}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              )}
+              
+              {overallStats.totalGifts - overallStats.purchasedGifts > 0 && (
+                <button
+                  onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-purchase' } })}
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="h-4 w-4 text-primary" />
+                    <span>Purchase {pluralize(overallStats.totalGifts - overallStats.purchasedGifts, 'gift')}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              )}
+              
+              {overallStats.totalGifts - overallStats.wrappedGifts > 0 && (
+                <button
+                  onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-wrapping' } })}
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Shirt className="h-4 w-4 text-primary" />
+                    <span>Wrap {pluralize(overallStats.totalGifts - overallStats.wrappedGifts, 'gift')}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              )}
+              
+              {overallStats.totalGiftsWithoutCost > 0 && (
+                <button
+                  onClick={() => navigate('/gifts', { state: { applyFilter: 'missing-cost' } })}
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <span>Set costs for {pluralize(overallStats.totalGiftsWithoutCost, 'gift')}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              )}
+              
+              {overallStats.totalPeople === overallStats.completedPeople && 
+               overallStats.totalGifts === overallStats.purchasedGifts && 
+               overallStats.totalGifts === overallStats.wrappedGifts && (
+                 <div className="flex items-center gap-3 p-3 text-green-600 font-medium">
+                   <CheckCircle className="h-4 w-4" />
+                   <span>🎉 All shopping complete! You're ready for Christmas!</span>
+                 </div>
+              )}
             </CardContent>
           </Card>
         )}

@@ -81,7 +81,8 @@ const GiftTracker = () => {
     completion: 'all' as 'all' | 'completed' | 'incomplete',
     wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped',
     showCompleted: false,
-    hasGifts: 'all' as 'all' | 'with-gifts' | 'no-gifts'
+    hasGifts: 'all' as 'all' | 'with-gifts' | 'no-gifts',
+    costStatus: 'all' as 'all' | 'missing-cost'
   });
 
   // Handle navigation state from Summary page
@@ -98,7 +99,13 @@ const GiftTracker = () => {
         case 'needs-wrapping':
           setFilters(prev => ({ ...prev, wrapping: 'needs-wrapping' }));
           break;
+        case 'missing-cost':
+          setFilters(prev => ({ ...prev, costStatus: 'missing-cost' }));
+          break;
       }
+    }
+    if (state?.assignedTo) {
+      setFilters(prev => ({ ...prev, assignedTo: state.assignedTo }));
     }
   }, []);
   const [sortConfig, setSortConfig] = useState<{
@@ -623,7 +630,8 @@ const GiftTracker = () => {
       completion: 'all',
       wrapping: 'all',
       showCompleted: false,
-      hasGifts: 'all'
+      hasGifts: 'all',
+      costStatus: 'all'
     });
   };
 
@@ -661,6 +669,11 @@ const GiftTracker = () => {
       
       if (filters.wrapping === 'needs-wrapping' && !needsWrapping) return false;
       if (filters.wrapping === 'all-wrapped' && !allWrapped) return false;
+    }
+
+    if (filters.costStatus !== 'all') {
+      const hasMissingCost = person.gifts.some(gift => gift.cost === null);
+      if (filters.costStatus === 'missing-cost' && !hasMissingCost) return false;
     }
 
     return true;
