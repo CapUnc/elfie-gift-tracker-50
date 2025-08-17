@@ -55,7 +55,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       assignedTo: 'all',
       completion: 'all',
       wrapping: 'all',
-      showCompleted: false,
+      showCompleted: true,
       hasGifts: 'all',
       costStatus: 'all'
     });

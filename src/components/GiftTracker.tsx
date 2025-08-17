@@ -133,6 +133,14 @@ const GiftTracker = () => {
       // Clear the navigation state
       window.history.replaceState(null, '', window.location.pathname);
     }
+    
+    // Handle assignedTo filter from Summary buyer breakdown
+    if (state?.assignedTo) {
+      setFilters(prev => ({ ...prev, assignedTo: state.assignedTo }));
+      
+      // Clear the navigation state
+      window.history.replaceState(null, '', window.location.pathname);
+    }
   }, []);
 
   // Initialize with sample data if no data exists

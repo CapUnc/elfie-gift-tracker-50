@@ -132,7 +132,7 @@ const Summary = () => {
     if (buyers.length <= 1) return [];
     
     const stats = buyers.map(buyer => {
-      const assignedPeople = people.filter(person => person.assignedTo === buyer.name);
+      const assignedPeople = people.filter(person => person.assignedTo === buyer.id);
       const completedAssignedPeople = assignedPeople.filter(person => person.completed === true).length;
       const buyerGifts = assignedPeople.flatMap(person => person.gifts);
       const buyerCost = buyerGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
@@ -146,6 +146,7 @@ const Summary = () => {
       const totalRemaining = remainingToShop + remainingToPurchase + remainingToWrap;
 
       return {
+        id: buyer.id,
         name: buyer.name,
         emoji: buyer.emoji,
         people: assignedPeople.length,
@@ -328,8 +329,8 @@ const Summary = () => {
                 .filter(buyer => showAllBuyers || buyer.totalRemaining > 0 || buyer.people > 0)
                 .map((buyer) => (
                   <button
-                    key={buyer.name}
-                    onClick={() => navigate('/gifts', { state: { assignedTo: buyer.name } })}
+                    key={buyer.id}
+                    onClick={() => navigate('/gifts', { state: { assignedTo: buyer.id } })}
                     className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group min-h-[44px] touch-target focus-ring"
                     aria-label={`View ${buyer.name}'s assignments: ${buyer.people} recipients, ${buyer.gifts} gifts, ${buyer.totalRemaining} remaining tasks`}
                   >
