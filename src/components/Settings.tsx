@@ -73,7 +73,7 @@ const Settings = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 min-h-[44px] sm:min-h-auto"
+            className="flex items-center gap-2 min-h-[44px] touch-target focus-ring"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Summary
@@ -121,7 +121,19 @@ const Settings = () => {
           </Card>
 
           {/* Recipients Section */}
-          <Card className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => navigate('/settings/recipients')}>
+          <Card 
+            className="cursor-pointer hover:bg-muted/30 transition-colors min-h-[44px] touch-target focus-ring" 
+            onClick={() => navigate('/settings/recipients')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/settings/recipients');
+              }
+            }}
+            aria-label={`Manage Recipients - ${people.length} recipient${people.length !== 1 ? 's' : ''} added`}
+          >
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -144,7 +156,19 @@ const Settings = () => {
           </Card>
 
           {/* Buyers Section */}
-          <Card className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => navigate('/settings/buyers')}>
+          <Card 
+            className="cursor-pointer hover:bg-muted/30 transition-colors min-h-[44px] touch-target focus-ring" 
+            onClick={() => navigate('/settings/buyers')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/settings/buyers');
+              }
+            }}
+            aria-label={`Manage Buyers - ${buyers.length} buyer${buyers.length !== 1 ? 's' : ''} configured`}
+          >
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

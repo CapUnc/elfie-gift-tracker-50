@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Shirt, Coins } from 'lucide-react';
+import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Coins } from 'lucide-react';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { pluralize } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
@@ -204,23 +204,23 @@ const Summary = () => {
           <Card className="mb-6">
             <CardContent className="p-0">
               <div className="grid grid-cols-3 divide-x divide-border">
-                {/* People KPI */}
+                {/* Recipients KPI */}
                 <button 
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
-                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group"
-                  aria-label={`View ${overallStats.totalPeople} people, ${overallStats.completedPeople} completed. Tap to view incomplete people.`}
+                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group min-h-[44px] touch-target focus-ring"
+                  aria-label={`View ${overallStats.totalPeople} recipients, ${overallStats.completedPeople} completed. Tap to view incomplete recipients.`}
                 >
                   <div className="flex flex-col items-center gap-1">
                     <Users className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     <div className="text-xl font-bold">{overallStats.totalPeople}</div>
-                    <div className="text-xs text-muted-foreground">People</div>
+                    <div className="text-xs text-muted-foreground">Recipients</div>
                   </div>
                 </button>
 
                 {/* Gifts KPI */}
                 <button 
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-purchase' } })}
-                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group"
+                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group min-h-[44px] touch-target focus-ring"
                   aria-label={`View ${overallStats.totalGifts} gifts, ${overallStats.purchasedGifts} purchased. Tap to view unpurchased gifts.`}
                 >
                   <div className="flex flex-col items-center gap-1">
@@ -233,7 +233,7 @@ const Summary = () => {
                 {/* Cost KPI */}
                 <button 
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'missing-cost' } })}
-                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group"
+                  className="py-3 px-2 text-center hover:bg-muted/50 active:bg-muted transition-colors group min-h-[44px] touch-target focus-ring"
                   aria-label={`View total cost ${formatCurrency(overallStats.totalCost, currency)}`}
                 >
                   <div className="flex flex-col items-center gap-1">
@@ -255,46 +255,61 @@ const Summary = () => {
               {overallStats.totalGifts === 0 ? (
                 <div className="text-center py-4 text-muted-foreground">
                   <Gift className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Add your first gift to start tracking progress</p>
+                  <p className="text-sm">No gifts yet</p>
+                  <p className="text-xs mt-1">Add your first gift to start tracking progress</p>
                 </div>
               ) : (
                 <>
                   {/* Completed recipients */}
                   <button
                     onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
-                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors"
+                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors min-h-[44px] touch-target focus-ring"
+                    aria-label={`Completed recipients progress: ${overallStats.completedPeople} of ${overallStats.totalPeople} completed`}
                   >
-                    <div className="flex-1">
-                      <Progress value={overallStats.completionProgress} className="h-2" />
-                    </div>
+                    <Progress 
+                      current={overallStats.completedPeople} 
+                      total={overallStats.totalPeople}
+                      hideOnZero={false}
+                      className="flex-1"
+                    />
                     <div className="text-sm text-muted-foreground text-right min-w-0">
-                      {Math.round(overallStats.completionProgress)}% Completed recipients
+                      Completed recipients
                     </div>
                   </button>
 
                   {/* Purchased */}
                   <button
                     onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-purchase' } })}
-                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors"
+                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors min-h-[44px] touch-target focus-ring"
+                    aria-label={`Purchase progress: ${overallStats.purchasedGifts} of ${overallStats.totalGifts} purchased`}
                   >
-                    <div className="flex-1">
-                      <Progress value={overallStats.purchaseProgress} className="h-2" />
-                    </div>
+                    <ShoppingCart className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <Progress 
+                      current={overallStats.purchasedGifts} 
+                      total={overallStats.totalGifts}
+                      hideOnZero={false}
+                      className="flex-1"
+                    />
                     <div className="text-sm text-muted-foreground text-right min-w-0">
-                      {Math.round(overallStats.purchaseProgress)}% Purchased
+                      Purchased
                     </div>
                   </button>
 
                   {/* Wrapped */}
                   <button
                     onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-wrapping' } })}
-                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors"
+                    className="w-full flex items-center gap-3 hover:bg-muted/50 active:bg-muted p-2 rounded-md transition-colors min-h-[44px] touch-target focus-ring"
+                    aria-label={`Wrapping progress: ${overallStats.wrappedGifts} of ${overallStats.totalGifts} wrapped`}
                   >
-                    <div className="flex-1">
-                      <Progress value={overallStats.wrappingProgress} className="h-2" />
-                    </div>
+                    <Gift className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <Progress 
+                      current={overallStats.wrappedGifts} 
+                      total={overallStats.totalGifts}
+                      hideOnZero={false}
+                      className="flex-1"
+                    />
                     <div className="text-sm text-muted-foreground text-right min-w-0">
-                      {Math.round(overallStats.wrappingProgress)}% Wrapped
+                      Wrapped
                     </div>
                   </button>
                 </>
@@ -315,7 +330,8 @@ const Summary = () => {
                   <button
                     key={buyer.name}
                     onClick={() => navigate('/gifts', { state: { assignedTo: buyer.name } })}
-                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group min-h-[44px] touch-target focus-ring"
+                    aria-label={`View ${buyer.name}'s assignments: ${buyer.people} recipients, ${buyer.gifts} gifts, ${buyer.totalRemaining} remaining tasks`}
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-lg">{buyer.emoji}</span>
@@ -366,9 +382,9 @@ const Summary = () => {
               </p>
               <Button
                 onClick={() => navigate('/gifts')}
-                className="bg-gradient-festive hover:opacity-90 text-white shadow-festive"
+                className="bg-gradient-festive hover:opacity-90 text-white shadow-festive min-h-[44px] touch-target focus-ring"
               >
-                Get Started
+                Add Gift
               </Button>
             </CardContent>
           </Card>
@@ -381,11 +397,12 @@ const Summary = () => {
               {overallStats.totalPeople - overallStats.completedPeople > 0 && (
                 <button
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'people-incomplete' } })}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group min-h-[44px] touch-target focus-ring"
+                  aria-label={`Complete shopping for ${pluralize(overallStats.totalPeople - overallStats.completedPeople, 'recipient', 'recipients')}`}
                 >
                   <div className="flex items-center gap-3">
                     <Users className="h-4 w-4 text-primary" />
-                    <span>Complete shopping for {pluralize(overallStats.totalPeople - overallStats.completedPeople, 'person', 'people')}</span>
+                    <span>Complete shopping for {pluralize(overallStats.totalPeople - overallStats.completedPeople, 'recipient', 'recipients')}</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </button>
@@ -394,7 +411,7 @@ const Summary = () => {
               {overallStats.totalGifts - overallStats.purchasedGifts > 0 && (
                 <button
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-purchase' } })}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group min-h-[44px] touch-target focus-ring"
                 >
                   <div className="flex items-center gap-3">
                     <ShoppingCart className="h-4 w-4 text-primary" />
@@ -407,10 +424,10 @@ const Summary = () => {
               {overallStats.totalGifts - overallStats.wrappedGifts > 0 && (
                 <button
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'needs-wrapping' } })}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group min-h-[44px] touch-target focus-ring"
                 >
                   <div className="flex items-center gap-3">
-                    <Shirt className="h-4 w-4 text-primary" />
+                    <Gift className="h-4 w-4 text-primary" />
                     <span>Wrap {pluralize(overallStats.totalGifts - overallStats.wrappedGifts, 'gift')}</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -420,7 +437,7 @@ const Summary = () => {
               {overallStats.totalGiftsWithoutCost > 0 && (
                 <button
                   onClick={() => navigate('/gifts', { state: { applyFilter: 'missing-cost' } })}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group"
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 active:bg-muted rounded-md transition-colors group min-h-[44px] touch-target focus-ring"
                 >
                   <div className="flex items-center gap-3">
                     <DollarSign className="h-4 w-4 text-primary" />

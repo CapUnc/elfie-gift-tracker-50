@@ -173,7 +173,7 @@ const BuyersManager = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/settings')}
-            className="flex items-center gap-2 min-h-[44px] sm:min-h-auto"
+            className="flex items-center gap-2 min-h-[44px] touch-target focus-ring"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Settings
@@ -195,7 +195,7 @@ const BuyersManager = () => {
                 </div>
                 <Button
                   onClick={() => setShowAddForm(true)}
-                  className="min-h-[44px] sm:min-h-auto"
+                  className="min-h-[44px] touch-target focus-ring"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Buyer
@@ -258,7 +258,7 @@ const BuyersManager = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => startEditBuyer(buyer)}
-                            className="h-auto p-1 hover:bg-transparent min-h-[44px] sm:min-h-auto"
+                            className="h-auto p-1 hover:bg-transparent min-h-[44px] touch-target focus-ring"
                             aria-label={`Edit ${buyer.name}`}
                           >
                             <Edit2 className="w-3 h-3 text-muted-foreground hover:text-primary" />
@@ -267,7 +267,7 @@ const BuyersManager = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => setBuyerToDelete(buyer)}
-                            className="h-auto p-1 hover:bg-transparent min-h-[44px] sm:min-h-auto"
+                            className="h-auto p-1 hover:bg-transparent min-h-[44px] touch-target focus-ring"
                             aria-label={`Delete ${buyer.name}`}
                           >
                             <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
@@ -325,8 +325,8 @@ const BuyersManager = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={addBuyer} className="flex-1 min-h-[44px] sm:min-h-auto">
-                    Add Buyer
+                  <Button onClick={addBuyer} className="flex-1 min-h-[44px] touch-target focus-ring">
+                    Save
                   </Button>
                   <Button 
                     variant="outline" 
@@ -335,7 +335,7 @@ const BuyersManager = () => {
                       setNewBuyer('');
                       setNewBuyerEmoji('👤');
                     }}
-                    className="min-h-[44px] sm:min-h-auto"
+                    className="min-h-[44px] touch-target focus-ring"
                   >
                     Cancel
                   </Button>
@@ -351,7 +351,7 @@ const BuyersManager = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Buyer</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{buyerToDelete?.name}"? This will clear their assignments from all recipients. This action can be undone.
+                Are you sure you want to delete "{buyerToDelete?.name}"? This will clear their assignments from all recipients. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -94,7 +94,7 @@ const RecipientsManager = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/settings')}
-            className="flex items-center gap-2 min-h-[44px] sm:min-h-auto"
+            className="flex items-center gap-2 min-h-[44px] touch-target focus-ring"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Settings
@@ -129,7 +129,7 @@ const RecipientsManager = () => {
               </div>
               <Button 
                 onClick={handleBulkAdd} 
-                className="w-full min-h-[44px] sm:min-h-auto"
+                className="w-full min-h-[44px] touch-target focus-ring"
                 disabled={!bulkNames.trim()}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -154,7 +154,7 @@ const RecipientsManager = () => {
                     variant="destructive"
                     size="sm"
                     onClick={() => setDeleteDialogOpen(true)}
-                    className="min-h-[44px] sm:min-h-auto"
+                    className="min-h-[44px] touch-target focus-ring"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
