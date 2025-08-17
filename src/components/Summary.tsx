@@ -1,24 +1,76 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { Gift, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Shirt, Coins, DollarSign } from 'lucide-react';
-import { formatCurrency } from '@/lib/currency';
+import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Shirt, Coins } from 'lucide-react';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { differenceInDays } from 'date-fns';
-import { useAppData } from '@/components/providers/DataProvider';
-import { Person, Buyer, Gift as GiftType } from '@/types';
 
-// Remove duplicate type definitions - now imported from @/types
+interface Gift {
+  id: string;
+  name: string;
+  cost: number | null;
+  purchased: boolean;
+  wrapped: boolean;
+  trackingNumber?: string;
+  carrier?: string;
+}
+
+interface Person {
+  id: string;
+  name: string;
+  gifts: Gift[];
+  notes: string;
+  assignedTo: string | null;
+  completed?: boolean;
+}
+
+interface Buyer {
+  id: string;
+  name: string;
+  emoji: string;
+}
 
 const Summary = () => {
   const navigate = useNavigate();
-  const { people, buyers, settings } = useAppData();
-  const currency = settings.currency;
+  const [people, setPeople] = useState<Person[]>([]);
+  const [buyers, setBuyers] = useState<Buyer[]>([
+    { id: '1', name: 'Matt', emoji: '👨' },
+    { id: '2', name: 'Maddie', emoji: '👩' }
+  ]);
+  const [currency, setCurrency] = useState('$');
 
-  // Data is now loaded via React Query hooks in DataProvider
+  // Load data from localStorage
+  useEffect(() => {
+    const savedPeople = localStorage.getItem('christmas-gifts-2025');
+    if (savedPeople) {
+      setPeople(JSON.parse(savedPeople));
+    }
+
+    const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
+    if (savedBuyers) {
+      const parsed = JSON.parse(savedBuyers);
+      // Handle migration from old string array format
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+        const migratedBuyers = parsed.map((name: string, index: number) => ({
+          id: (index + 1).toString(),
+          name,
+          emoji: index === 0 ? '👨' : '👩'
+        }));
+        setBuyers(migratedBuyers);
+      } else {
+        setBuyers(parsed);
+      }
+    }
+
+    const savedCurrency = localStorage.getItem('christmas-gifts-currency');
+    if (savedCurrency) {
+      setCurrency(savedCurrency);
+    }
+  }, []);
 
   // Calculate Christmas countdown
   const christmasCountdown = useMemo(() => {

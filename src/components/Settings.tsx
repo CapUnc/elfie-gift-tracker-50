@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Settings as SettingsIcon, Plus, Trash2, Users, DollarSign, Edit2, Check, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,24 +10,83 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { DeleteRecipientsDialog } from './settings/DeleteRecipientsDialog';
-import { useAppData } from '@/components/providers/DataProvider';
-import { Buyer, Person } from '@/types';
+
+interface Buyer {
+  id: string;
+  name: string;
+  emoji: string;
+}
+
+interface Person {
+  id: string;
+  name: string;
+  gifts: any[];
+  notes: string;
+  assignedTo: string | null;
+}
 
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { people, buyers, settings, updateSettings, updatePeople } = useAppData();
-  const currency = settings.currency;
-  
+  const [buyers, setBuyers] = useState<Buyer[]>([
+    { id: '1', name: 'Matt', emoji: '👨' },
+    { id: '2', name: 'Maddie', emoji: '👩' }
+  ]);
   const [newBuyer, setNewBuyer] = useState('');
   const [newBuyerEmoji, setNewBuyerEmoji] = useState('👤');
   const [bulkNames, setBulkNames] = useState('');
+  const [people, setPeople] = useState<Person[]>([]);
+  const [currency, setCurrency] = useState('$');
   const [editingBuyer, setEditingBuyer] = useState<string | null>(null);
   const [editBuyerName, setEditBuyerName] = useState('');
   const [editBuyerEmoji, setEditBuyerEmoji] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Data is now loaded via React Query hooks in DataProvider
+  // Load buyers from localStorage
+  useEffect(() => {
+    const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
+    if (savedBuyers) {
+      const parsed = JSON.parse(savedBuyers);
+      // Handle migration from old string array format
+      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+        const migratedBuyers = parsed.map((name: string, index: number) => ({
+          id: (index + 1).toString(),
+          name,
+          emoji: index === 0 ? '👨' : '👩'
+        }));
+        setBuyers(migratedBuyers);
+        localStorage.setItem('christmas-gifts-buyers', JSON.stringify(migratedBuyers));
+      } else {
+        setBuyers(parsed);
+      }
+    }
+  }, []);
+
+  // Load people from localStorage
+  useEffect(() => {
+    const savedPeople = localStorage.getItem('christmas-gifts-2025');
+    if (savedPeople) {
+      setPeople(JSON.parse(savedPeople));
+    }
+  }, []);
+
+  // Load currency from localStorage
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem('christmas-gifts-currency');
+    if (savedCurrency) {
+      setCurrency(savedCurrency);
+    }
+  }, []);
+
+  // Save buyers to localStorage
+  useEffect(() => {
+    localStorage.setItem('christmas-gifts-buyers', JSON.stringify(buyers));
+  }, [buyers]);
+
+  // Save currency to localStorage
+  useEffect(() => {
+    localStorage.setItem('christmas-gifts-currency', currency);
+  }, [currency]);
 
   const addBuyer = () => {
     if (!newBuyer.trim() || buyers.some(buyer => buyer.name === newBuyer.trim())) {
@@ -43,16 +102,12 @@ const Settings = () => {
       name: newBuyer.trim(),
       emoji: newBuyerEmoji
     };
-    const updatedBuyers = [...buyers, newBuyerObj];
-    updateSettings.mutate({ buyers: updatedBuyers }, {
-      onSuccess: () => {
-        setNewBuyer('');
-        setNewBuyerEmoji('👤');
-        toast({
-          title: "Buyer added",
-          description: `${newBuyerObj.name} has been added as a buyer.`,
-        });
-      }
+    setBuyers([...buyers, newBuyerObj]);
+    setNewBuyer('');
+    setNewBuyerEmoji('👤');
+    toast({
+      title: "Buyer added",
+      description: `${newBuyerObj.name} has been added as a buyer.`,
     });
   };
 
@@ -60,22 +115,20 @@ const Settings = () => {
     const buyerToRemove = buyers.find(buyer => buyer.id === buyerIdToRemove);
     if (!buyerToRemove) return;
     
-    const updatedBuyers = buyers.filter(buyer => buyer.id !== buyerIdToRemove);
-    updateSettings.mutate({ buyers: updatedBuyers }, {
-      onSuccess: () => {
-        // Also update people assignments
-        const updatedPeople = people.map(person => 
-          person.assignedTo === buyerToRemove.name 
-            ? { ...person, assignedTo: null }
-            : person
-        );
-        // TODO: This should also update people via mutation
-        
-        toast({
-          title: "Buyer removed",
-          description: `${buyerToRemove.name} has been removed. Their assignments have been cleared.`,
-        });
-      }
+    setBuyers(buyers.filter(buyer => buyer.id !== buyerIdToRemove));
+    
+    // Clean up assignments for people assigned to the deleted buyer
+    const updatedPeople = people.map(person => 
+      person.assignedTo === buyerToRemove.name 
+        ? { ...person, assignedTo: null }
+        : person
+    );
+    setPeople(updatedPeople);
+    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
+    
+    toast({
+      title: "Buyer removed",
+      description: `${buyerToRemove.name} has been removed. Their assignments have been cleared.`,
     });
   };
 
@@ -102,7 +155,7 @@ const Settings = () => {
       return;
     }
 
-    // Add to existing people and update via mutation
+    // Create new people objects
     const newPeople = newNames.map((name, index) => ({
       id: (Date.now() + index).toString(),
       name: name,
@@ -111,27 +164,26 @@ const Settings = () => {
       assignedTo: null
     }));
 
+    // Add to existing people and update state
     const updatedPeople = [...people, ...newPeople];
-    updatePeople.mutate(updatedPeople, {
-      onSuccess: () => {
-        setBulkNames('');
-        toast({
-          title: "Recipients added",
-          description: `Added ${newNames.length} new recipient${newNames.length !== 1 ? 's' : ''}: ${newNames.join(', ')}`,
-        });
-      }
+    setPeople(updatedPeople);
+    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
+
+    setBulkNames('');
+    toast({
+      title: "Recipients added",
+      description: `Added ${newNames.length} new recipient${newNames.length !== 1 ? 's' : ''}: ${newNames.join(', ')}`,
     });
   };
 
   const handleDeletePeople = (peopleIds: string[]) => {
     const updatedPeople = people.filter(person => !peopleIds.includes(person.id));
-    updatePeople.mutate(updatedPeople, {
-      onSuccess: () => {
-        toast({
-          title: "Recipients deleted",
-          description: `${peopleIds.length} recipient${peopleIds.length !== 1 ? 's' : ''} ${peopleIds.length !== 1 ? 'have' : 'has'} been permanently deleted.`,
-        });
-      }
+    setPeople(updatedPeople);
+    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
+    
+    toast({
+      title: "Recipients deleted",
+      description: `${peopleIds.length} recipient${peopleIds.length !== 1 ? 's' : ''} ${peopleIds.length !== 1 ? 'have' : 'has'} been permanently deleted.`,
     });
   };
 
@@ -150,21 +202,20 @@ const Settings = () => {
         ? { ...buyer, name: editBuyerName.trim(), emoji: editBuyerEmoji }
         : buyer
     );
+    setBuyers(updatedBuyers);
     
-    updateSettings.mutate({ buyers: updatedBuyers }, {
-      onSuccess: () => {
-        // Update assignments if buyer name changed
-        if (oldBuyer && oldBuyer.name !== editBuyerName.trim()) {
-          const updatedPeople = people.map(person => 
-            person.assignedTo === oldBuyer.name 
-              ? { ...person, assignedTo: editBuyerName.trim() }
-              : person
-          );
-          updatePeople.mutate(updatedPeople);
-        }
-        cancelEditBuyer();
-      }
-    });
+    // Update assignments if buyer name changed
+    if (oldBuyer && oldBuyer.name !== editBuyerName.trim()) {
+      const updatedPeople = people.map(person => 
+        person.assignedTo === oldBuyer.name 
+          ? { ...person, assignedTo: editBuyerName.trim() }
+          : person
+      );
+      setPeople(updatedPeople);
+      localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
+    }
+    
+    cancelEditBuyer();
   };
 
   const cancelEditBuyer = () => {
@@ -207,7 +258,7 @@ const Settings = () => {
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">
                   Select Currency Symbol
                 </label>
-                <Select value={currency} onValueChange={(value) => updateSettings.mutate({ currency: value })}>
+                <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger className="w-full max-w-md">
                     <SelectValue placeholder="Select currency" />
                   </SelectTrigger>

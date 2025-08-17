@@ -5,7 +5,17 @@ import { StatusToggle } from '@/components/ui/status-toggle';
 import { formatCurrency } from '@/lib/currency';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { cn } from '@/lib/utils';
-import { Gift } from '@/types';
+
+interface Gift {
+  id: string;
+  name: string;
+  cost: number | null;
+  purchased: boolean;
+  wrapped: boolean;
+  trackingNumber?: string;
+  carrier?: string;
+  assignedTo?: string | null;
+}
 
 interface SwipeableGiftItemProps {
   gift: Gift;

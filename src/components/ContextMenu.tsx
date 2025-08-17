@@ -7,7 +7,17 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Gift } from '@/types';
+
+interface Gift {
+  id: string;
+  name: string;
+  cost: number | null;
+  purchased: boolean;
+  wrapped: boolean;
+  trackingNumber?: string;
+  carrier?: string;
+  assignedTo?: string | null;
+}
 
 interface GiftContextMenuProps {
   gift: Gift;
