@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Shirt } from 'lucide-react';
+import { Gift, DollarSign, Users, Package, Settings, CheckCircle, AlertCircle, Calendar, ChevronDown, Eye, EyeOff, ChevronRight, ShoppingCart, Shirt, Coins } from 'lucide-react';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { differenceInDays } from 'date-fns';
 
@@ -253,7 +253,7 @@ const Summary = () => {
                 aria-label={`View total cost ${formatCurrency(overallStats.totalCost, currency)}`}
               >
                 <div className="flex flex-col items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <Coins className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   <div className="text-2xl font-bold">
                     {overallStats.totalGiftsWithoutCost > 0 ? 'Partial: ' : ''}{formatCurrency(overallStats.totalCost, currency)}
                   </div>
