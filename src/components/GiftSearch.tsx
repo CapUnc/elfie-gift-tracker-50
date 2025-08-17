@@ -6,19 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
-}
-
-interface SearchFilters {
-  assignedTo: string;
-  completion: 'all' | 'completed' | 'incomplete';
-  wrapping: 'all' | 'needs-wrapping' | 'all-wrapped';
-  showCompleted: boolean;
-  hasGifts: 'all' | 'with-gifts' | 'no-gifts';
-}
+import { Buyer, SearchFilters } from '@/types';
 
 interface GiftSearchProps {
   searchTerm: string;
