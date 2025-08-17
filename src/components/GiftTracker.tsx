@@ -981,29 +981,56 @@ const GiftTracker = () => {
                                </div>
                              </div>
 
-                             {/* Right-aligned micro progress bar */}
-                             {person.gifts.length > 0 ? (
-                               <div className="flex items-center gap-2 flex-shrink-0">
-                                 <div className="bg-secondary/50 rounded-full h-1 w-16 overflow-hidden">
-                                   <div 
-                                     className="h-full bg-primary rounded-full transition-all duration-300" 
-                                     style={{ width: `${progressPercent}%` }}
-                                     role="progressbar"
-                                     aria-valuenow={stats.purchased + stats.wrapped}
-                                     aria-valuemin={0}
-                                     aria-valuemax={stats.total * 2}
-                                     aria-label={`Gift progress: ${stats.purchased + stats.wrapped} out of ${stats.total * 2} tasks done`}
-                                   />
-                                 </div>
-                                 <span className="text-xs text-muted-foreground font-medium">
-                                   {stats.purchased + stats.wrapped} of {stats.total * 2}
-                                 </span>
-                               </div>
-                             ) : (
-                               <span className="text-xs text-muted-foreground italic flex-shrink-0">
-                                 0 of 0
-                               </span>
-                             )}
+                              {/* Right-aligned micro progress bar and completion button */}
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {person.gifts.length > 0 ? (
+                                  <>
+                                    <div className="bg-secondary/50 rounded-full h-1 w-16 overflow-hidden">
+                                      <div 
+                                        className="h-full bg-primary rounded-full transition-all duration-300" 
+                                        style={{ width: `${progressPercent}%` }}
+                                        role="progressbar"
+                                        aria-valuenow={stats.purchased + stats.wrapped}
+                                        aria-valuemin={0}
+                                        aria-valuemax={stats.total * 2}
+                                        aria-label={`Gift progress: ${stats.purchased + stats.wrapped} out of ${stats.total * 2} tasks done`}
+                                      />
+                                    </div>
+                                    <span className="text-xs text-muted-foreground font-medium">
+                                      {stats.purchased + stats.wrapped} of {stats.total * 2}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">
+                                    0 of 0
+                                  </span>
+                                )}
+                                
+                                {/* Completion Button */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-11 w-11 p-0 flex-shrink-0 transition-colors ${
+                                    person.completed 
+                                      ? 'text-green-600 hover:text-green-700 hover:bg-green-50' 
+                                      : !hasIncompleteGifts(person) && person.gifts.length > 0
+                                        ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    haptic.tap();
+                                    handleManualComplete(person);
+                                  }}
+                                  aria-label={`Mark ${person.name} as ${person.completed ? 'not complete' : 'complete'}`}
+                                >
+                                  {person.completed ? (
+                                    <CheckCircle className="h-5 w-5 fill-current" />
+                                  ) : (
+                                    <Circle className="h-5 w-5" />
+                                  )}
+                                </Button>
+                              </div>
                           </div>
 
                            {/* Bottom Row: Icon Stats */}
