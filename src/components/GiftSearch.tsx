@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 interface Buyer {
   id: string;
@@ -45,7 +46,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
     if (filters.wrapping !== 'all') count++;
     if (filters.hasGifts !== 'all') count++;
     if (filters.costStatus !== 'all') count++;
-    if (!filters.showCompleted) count++;
+    // Don't count showCompleted in the filter count
     return count;
   }, [filters, buyers.length]);
 
@@ -100,11 +101,11 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       });
     }
 
-    if (!filters.showCompleted) {
+    if (filters.costStatus !== 'all') {
       chips.push({
-        id: 'showCompleted',
-        label: 'Hide completed',
-        onRemove: () => onFiltersChange({ ...filters, showCompleted: true })
+        id: 'costStatus',
+        label: 'Missing cost',
+        onRemove: () => onFiltersChange({ ...filters, costStatus: 'all' })
       });
     }
     
@@ -134,55 +135,26 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
         )}
       </div>
 
-      {/* Compact Horizontal Chip Rail */}
-      <div className="flex items-center gap-1.5 flex-wrap max-w-full overflow-hidden">
+      {/* Filter Row */}
+      <div className="flex items-center justify-between gap-3">
         {/* Filter Sheet Trigger */}
         <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
           <SheetTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              className="whitespace-nowrap h-7 px-2.5 relative flex-shrink-0"
+              className="whitespace-nowrap h-8 px-3 relative flex-shrink-0"
             >
-              <Filter className="h-3 w-3 mr-1" />
-              <span className="text-xs">Filter</span>
+              <Filter className="h-4 w-4 mr-2" />
+              <span className="text-sm">Filter</span>
               {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs h-3.5 min-w-3.5 text-[10px]">
+                <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs h-4 min-w-4 text-[10px]">
                   {activeFilterCount}
                 </Badge>
               )}
             </Button>
           </SheetTrigger>
 
-        {/* Active Filter Chips - Collapsible */}
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
-          {activeFilterChips.slice(0, 2).map(chip => (
-            <Badge
-              key={chip.id}
-              variant="secondary"
-              className="h-7 px-2 pr-1 flex items-center gap-1 text-xs flex-shrink-0"
-            >
-              <span className="truncate max-w-24">{chip.label}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={chip.onRemove}
-                className="h-4 w-4 p-0 hover:bg-destructive/20 flex-shrink-0"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          ))}
-          {activeFilterChips.length > 2 && (
-            <Badge
-              variant="secondary"
-              className="h-7 px-2 text-xs cursor-pointer flex-shrink-0"
-              onClick={() => setIsFilterSheetOpen(true)}
-            >
-              +{activeFilterChips.length - 2} more
-            </Badge>
-          )}
-        </div>
           <SheetContent side="bottom" className="max-h-[80vh]">
             <SheetHeader>
               <SheetTitle>Filter Options</SheetTitle>
@@ -285,7 +257,40 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
             </div>
           </SheetContent>
         </Sheet>
+
+        {/* Hide Completed Toggle */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-sm text-muted-foreground">Hide completed</span>
+          <Switch
+            checked={!filters.showCompleted}
+            onCheckedChange={(checked) => onFiltersChange({ ...filters, showCompleted: !checked })}
+            className="h-5 w-9"
+          />
+        </div>
       </div>
+
+      {/* Active Filter Chips */}
+      {activeFilterChips.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {activeFilterChips.map(chip => (
+            <Badge
+              key={chip.id}
+              variant="secondary"
+              className="h-7 px-2 pr-1 flex items-center gap-1 text-xs flex-shrink-0"
+            >
+              <span className="truncate max-w-32">{chip.label}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={chip.onRemove}
+                className="h-4 w-4 p-0 hover:bg-destructive/20 flex-shrink-0"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {/* Clean Status Line - only show clear button */}
       {(activeFilterCount > 0 || searchTerm) && (

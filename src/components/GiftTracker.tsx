@@ -900,14 +900,14 @@ const GiftTracker = () => {
                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${person.name}'s gift details`}
                          aria-expanded={isExpanded}
                        >
-                        <div className="px-3 py-2.5 space-y-2">
-                           {/* Top Row: Caret + Avatar + Name + Done Badge */}
-                           <div className="flex items-center gap-2 min-w-0">
-                             {/* Expand/Collapse Button with accessibility */}
+                         <div className="px-3 py-3 space-y-3">
+                           {/* Top Row: Caret + Avatar + Name + Progress */}
+                           <div className="flex items-center gap-3 min-w-0">
+                             {/* Expand/Collapse Button */}
                              <Button
                                variant="ghost"
                                size="sm"
-                               className="h-6 w-6 p-0 flex-shrink-0 touch-target"
+                               className="h-5 w-5 p-0 flex-shrink-0"
                                onClick={(e) => {
                                  e.stopPropagation();
                                  haptic.tap();
@@ -917,28 +917,28 @@ const GiftTracker = () => {
                                aria-expanded={isExpanded}
                              >
                                {isExpanded ? (
-                                 <ChevronDown className="h-3 w-3" />
+                                 <ChevronDown className="h-4 w-4" />
                                ) : (
-                                 <ChevronRight className="h-3 w-3" />
+                                 <ChevronRight className="h-4 w-4" />
                                )}
                              </Button>
 
-                            {/* Avatar (24px) - Clickable Buyer Assignment */}
+                            {/* Small Assignment Avatar */}
                             <Popover 
                               open={openAssignmentPopover === person.id} 
                               onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : '')}
                             >
                               <PopoverTrigger asChild>
                                 <button 
-                                  className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent/50 transition-colors touch-manipulation"
+                                  className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent/50 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                   type="button"
                                 >
                                   {assignedBuyer?.emoji ? (
-                                    <span className="text-xl leading-none">{assignedBuyer.emoji}</span>
+                                    <span className="text-sm leading-none">{assignedBuyer.emoji}</span>
                                   ) : (
-                                    <div className="h-6 w-6 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
-                                      <Users className="h-3 w-3 text-muted-foreground" />
+                                    <div className="h-4 w-4 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center">
+                                      <Users className="h-2.5 w-2.5 text-muted-foreground" />
                                     </div>
                                   )}
                                 </button>
@@ -974,110 +974,17 @@ const GiftTracker = () => {
                               </PopoverContent>
                             </Popover>
 
-                             {/* Name (allow 2 lines) */}
+                             {/* Name (truncate) */}
                              <div className="min-w-0 flex-1">
-                               <div className="font-semibold text-sm text-foreground line-clamp-2">
+                               <div className="font-semibold text-sm text-foreground truncate">
                                  {person.name}
                                </div>
-                               {/* Call-to-action for empty state */}
-                               {person.gifts.length === 0 && (
-                                 <div className="text-xs text-muted-foreground italic">
-                                   Tap to add gifts →
-                                 </div>
-                               )}
                              </div>
 
-                              {/* Complete Button */}
-                              <div className="flex-shrink-0">
-                                {(() => {
-                                  const stats = getCompletionStats(person);
-                                  const isFullyComplete = stats.total > 0 && stats.purchased === stats.total && stats.wrapped === stats.total;
-                                  const buttonVariant = person.completed ? 'secondary' : (isFullyComplete ? 'default' : 'outline');
-                                  const buttonClass = isFullyComplete && !person.completed 
-                                    ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
-                                    : '';
-                                  
-                                  return (
-                                    <Button
-                                      variant={buttonVariant}
-                                      size="sm"
-                                      className={`text-xs px-2 py-1 h-auto min-h-[28px] touch-target ${buttonClass}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleManualComplete(person);
-                                      }}
-                                      aria-label={`${person.completed ? 'Mark as not complete' : 'Mark as complete'}: ${person.name}`}
-                                    >
-                                      {person.completed ? '✓ Complete' : 'Complete'}
-                                    </Button>
-                                  );
-                                })()}
-                              </div>
-                          </div>
-
-                           {/* Bottom Row: Stats + Progress + Add Gift */}
-                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                             {/* Condensed Stats with Tooltips */}
-                             <TooltipProvider>
-                               <div className="flex items-center gap-1 flex-wrap">
-                                 <Tooltip>
-                                   <TooltipTrigger asChild>
-                                     <span className="cursor-help" aria-label={`${person.gifts.length} gifts total`}>
-                                       🎁 {person.gifts.length}
-                                     </span>
-                                   </TooltipTrigger>
-                                   <TooltipContent>
-                                     <p>{person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''} total</p>
-                                   </TooltipContent>
-                                 </Tooltip>
-                                 {person.gifts.length > 0 && (
-                                   <>
-                                     <span>·</span>
-                                     <Tooltip>
-                                       <TooltipTrigger asChild>
-                                         <span className="cursor-help" aria-label={`${stats.purchased} purchased out of ${person.gifts.length}`}>
-                                           🛒 {stats.purchased}
-                                         </span>
-                                       </TooltipTrigger>
-                                       <TooltipContent>
-                                         <p>{stats.purchased} of {person.gifts.length} purchased</p>
-                                       </TooltipContent>
-                                     </Tooltip>
-                                     <span>·</span>
-                                     <Tooltip>
-                                       <TooltipTrigger asChild>
-                                         <span className="cursor-help" aria-label={`${stats.wrapped} wrapped out of ${person.gifts.length}`}>
-                                           🎀 {stats.wrapped}
-                                         </span>
-                                       </TooltipTrigger>
-                                       <TooltipContent>
-                                         <p>{stats.wrapped} of {person.gifts.length} wrapped</p>
-                                       </TooltipContent>
-                                     </Tooltip>
-                                      {getTotalCost(person.gifts) > 0 && (
-                                        <>
-                                          <span>·</span>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <span className="cursor-help text-xs" aria-label={`Total cost ${getCurrencySymbol()}${getTotalCost(person.gifts).toFixed(0)}`}>
-                                                {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(0)}
-                                              </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>Total cost: {getCurrencySymbol()}{getTotalCost(person.gifts).toFixed(2)}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </>
-                                      )}
-                                   </>
-                                 )}
-                               </div>
-                             </TooltipProvider>
-
-                             {/* Progress Bar with Outside Label */}
+                             {/* Right-aligned micro progress bar */}
                              {person.gifts.length > 0 ? (
-                               <div className="flex items-center gap-2">
-                                 <div className="bg-secondary/50 rounded-full h-1.5 w-24 overflow-hidden">
+                               <div className="flex items-center gap-2 flex-shrink-0">
+                                 <div className="bg-secondary/50 rounded-full h-1 w-16 overflow-hidden">
                                    <div 
                                      className="h-full bg-primary rounded-full transition-all duration-300" 
                                      style={{ width: `${progressPercent}%` }}
@@ -1088,16 +995,34 @@ const GiftTracker = () => {
                                      aria-label={`Gift progress: ${stats.purchased + stats.wrapped} out of ${stats.total * 2} tasks done`}
                                    />
                                  </div>
-                                 <span className="text-xs text-muted-foreground font-medium min-w-0 flex-shrink-0">
-                                   {stats.purchased + stats.wrapped}/{stats.total * 2}
+                                 <span className="text-xs text-muted-foreground font-medium">
+                                   {stats.purchased + stats.wrapped} of {stats.total * 2}
                                  </span>
                                </div>
                              ) : (
-                               <span className="text-xs text-muted-foreground/70 italic">
-                                 No gifts yet
+                               <span className="text-xs text-muted-foreground italic flex-shrink-0">
+                                 0 of 0
                                </span>
                              )}
+                          </div>
 
+                           {/* Bottom Row: Icon Stats */}
+                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                             <span className="flex items-center gap-1">
+                               🎁 {person.gifts.length}
+                             </span>
+                             <span>·</span>
+                             <span className="flex items-center gap-1">
+                               🛒 {stats.purchased}
+                             </span>
+                             <span>·</span>
+                             <span className="flex items-center gap-1">
+                               🎀 {stats.wrapped}
+                             </span>
+                             <span>·</span>
+                             <span className="flex items-center gap-1">
+                               $ {formatCurrency(getTotalCost(person.gifts), getCurrencySymbol()).replace(getCurrencySymbol(), '')}
+                             </span>
                           </div>
                         </div>
                       </div>
@@ -1117,17 +1042,17 @@ const GiftTracker = () => {
                             />
                           </div>
 
-                           {/* Gift List */}
+                            {/* Gift List */}
                            {person.gifts.length > 0 ? (
-                             <div className="space-y-2 max-w-full">
+                             <div className="space-y-3 max-w-full">
                                <div className="flex items-center justify-between mb-3">
-                                 <h4 className="text-sm font-medium text-muted-foreground">
+                                 <h4 className="text-sm font-medium">
                                    Gifts ({person.gifts.length})
                                  </h4>
                                  <Button
                                    variant="ghost"
                                    size="sm"
-                                   className="h-6 px-2 text-xs touch-target"
+                                   className="h-7 px-2 text-xs"
                                    onClick={() => setEditingGift({ personId: person.id })}
                                    aria-label={`Add gift for ${person.name}`}
                                  >
@@ -1136,33 +1061,57 @@ const GiftTracker = () => {
                                  </Button>
                                </div>
                               {person.gifts.map((gift) => (
-                                <GiftContextMenu
+                                <div
                                   key={gift.id}
-                                  gift={gift}
-                                  onEdit={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
-                                  onTogglePurchased={() => updateGiftStatus(person.id, gift.id, 'purchased', !gift.purchased)}
-                                  onToggleWrapped={() => updateGiftStatus(person.id, gift.id, 'wrapped', !gift.wrapped)}
-                                  onDelete={() => deleteGift(person.id, gift.id)}
-                                  onDuplicate={() => duplicateGift(person.id, gift)}
+                                  className={`bg-background rounded-lg border p-3 transition-colors duration-200 max-w-full overflow-hidden ${
+                                    highlightedItems.has(`gift-${gift.id}`) ? 'bg-primary/10 border-primary/30' : ''
+                                  }`}
                                 >
-                                  <div
-                                    className={`transition-colors duration-200 max-w-full overflow-hidden ${
-                                      highlightedItems.has(`gift-${gift.id}`) ? 'bg-primary/10 border-primary/30 rounded-lg' : ''
-                                    }`}
-                                  >
-                                     <SwipeableGiftItem
-                                       gift={gift}
-                                       currency={currency}
-                                       onUpdate={(giftId, field, value) => updateGiftStatus(person.id, giftId, field, value)}
-                                       onDelete={(giftId) => setDeletingGift({ personId: person.id, giftId, giftName: gift.name })}
-                                       onEdit={(giftId) => setEditingGift({ personId: person.id, giftId, gift })}
-                                     />
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    {/* Left: Two status toggles */}
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      <Checkbox
+                                        checked={gift.purchased}
+                                        onCheckedChange={(checked) => updateGiftStatus(person.id, gift.id, 'purchased', checked === true)}
+                                        aria-label={`Mark ${gift.name} as ${gift.purchased ? 'not purchased' : 'purchased'}`}
+                                        className="h-4 w-4"
+                                      />
+                                      <Checkbox
+                                        checked={gift.wrapped}
+                                        onCheckedChange={(checked) => updateGiftStatus(person.id, gift.id, 'wrapped', checked === true)}
+                                        aria-label={`Mark ${gift.name} as ${gift.wrapped ? 'not wrapped' : 'wrapped'}`}
+                                        className="h-4 w-4"
+                                      />
+                                    </div>
+
+                                    {/* Center: Gift name */}
+                                    <div className="min-w-0 flex-1">
+                                      <span className="text-sm font-medium text-foreground truncate block">
+                                        {gift.name}
+                                      </span>
+                                    </div>
+
+                                    {/* Right: Cost and single edit button */}
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      <span className="text-sm text-muted-foreground">
+                                        {gift.cost ? formatCurrency(gift.cost, getCurrencySymbol()) : '—'}
+                                      </span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0"
+                                        onClick={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
+                                        aria-label={`Edit ${gift.name}`}
+                                      >
+                                        <Edit2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                </GiftContextMenu>
+                                </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="text-center py-8 text-muted-foreground">
+                            <div className="text-center py-6 text-muted-foreground">
                               <Gift className="h-8 w-8 mx-auto mb-2 opacity-50" />
                               <p className="text-sm">No gifts added yet</p>
                               <Button
