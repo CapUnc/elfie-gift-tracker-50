@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import GiftTracker from "./components/GiftTracker";
 import Summary from "./components/Summary";
 import Settings from "./components/Settings";
+import RecipientsManager from "./components/settings/RecipientsManager";
+import BuyersManager from "./components/settings/BuyersManager";
 import NotFound from "./pages/NotFound";
 import TopNavigation from "./components/TopNavigation";
 
@@ -25,6 +27,8 @@ const App = () => (
               <Route path="/" element={<Summary />} />
               <Route path="/gifts" element={<GiftTracker />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/recipients" element={<RecipientsManager />} />
+              <Route path="/settings/buyers" element={<BuyersManager />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
