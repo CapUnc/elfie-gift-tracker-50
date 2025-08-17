@@ -12,13 +12,20 @@ interface Person {
   name: string;
   gifts: any[];
   notes: string;
-  assignedTo: string | null;
+  assignedTo: string | null; // Buyer ID
+}
+
+interface Buyer {
+  id: string;
+  name: string;
+  emoji: string;
 }
 
 const RecipientsManager = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [people, setPeople] = useState<Person[]>([]);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [bulkNames, setBulkNames] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -27,6 +34,25 @@ const RecipientsManager = () => {
     const savedPeople = localStorage.getItem('christmas-gifts-2025');
     if (savedPeople) {
       setPeople(JSON.parse(savedPeople));
+    }
+  }, []);
+
+  // Load buyers from localStorage
+  useEffect(() => {
+    const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
+    if (savedBuyers) {
+      const parsed = JSON.parse(savedBuyers);
+      // Handle migration from old string array format
+      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+        const migratedBuyers = parsed.map((name: string, index: number) => ({
+          id: (index + 1).toString(),
+          name,
+          emoji: index === 0 ? '👨' : '👩'
+        }));
+        setBuyers(migratedBuyers);
+      } else {
+        setBuyers(parsed);
+      }
     }
   }, []);
 
@@ -171,7 +197,7 @@ const RecipientsManager = () => {
                         <p className="font-medium">{person.name}</p>
                         <p className="text-sm text-muted-foreground">
                           {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''} • 
-                          {person.assignedTo ? ` Assigned to ${person.assignedTo}` : ' Unassigned'}
+                          {person.assignedTo ? ` Assigned to ${buyers.find(b => b.id === person.assignedTo)?.name || 'Unknown'}` : ' Unassigned'}
                         </p>
                       </div>
                     </div>

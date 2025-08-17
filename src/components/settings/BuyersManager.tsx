@@ -28,7 +28,7 @@ interface Person {
   name: string;
   gifts: any[];
   notes: string;
-  assignedTo: string | null;
+  assignedTo: string | null; // Buyer ID
 }
 
 const BuyersManager = () => {
@@ -111,7 +111,7 @@ const BuyersManager = () => {
     
     // Clean up assignments for recipients assigned to the deleted buyer
     const updatedPeople = people.map(person => 
-      person.assignedTo === buyerToDelete.name 
+      person.assignedTo === buyerToDelete.id 
         ? { ...person, assignedTo: null }
         : person
     );
@@ -143,16 +143,7 @@ const BuyersManager = () => {
     );
     setBuyers(updatedBuyers);
     
-    // Update assignments if buyer name changed
-    if (oldBuyer && oldBuyer.name !== editBuyerName.trim()) {
-      const updatedPeople = people.map(person => 
-        person.assignedTo === oldBuyer.name 
-          ? { ...person, assignedTo: editBuyerName.trim() }
-          : person
-      );
-      setPeople(updatedPeople);
-      localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
-    }
+    // No need to update assignments when buyer name changes since we use IDs now
     
     cancelEditBuyer();
   };

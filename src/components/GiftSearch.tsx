@@ -69,7 +69,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
     const chips = [];
     
     if (filters.assignedTo !== 'all') {
-      const buyer = buyers.find(b => b.name === filters.assignedTo);
+      const buyer = buyers.find(b => b.id === filters.assignedTo);
       chips.push({
         id: 'assignedTo',
         label: buyer ? `${buyer.emoji} ${buyer.name}` : filters.assignedTo === 'unassigned' ? 'Unassigned' : filters.assignedTo,
@@ -178,7 +178,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                       <SelectItem value="all">All assignments</SelectItem>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {buyers.map(buyer => (
-                        <SelectItem key={buyer.id} value={buyer.name}>
+                        <SelectItem key={buyer.id} value={buyer.id}>
                           {buyer.emoji} {buyer.name}
                         </SelectItem>
                       ))}

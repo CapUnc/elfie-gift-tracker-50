@@ -53,7 +53,7 @@ interface Person {
   name: string;
   gifts: Gift[];
   notes: string;
-  assignedTo: string | null;
+  assignedTo: string | null; // Buyer ID
   completed?: boolean;
   manualComplete?: boolean;
 }
@@ -164,13 +164,31 @@ const GiftTracker = () => {
   useEffect(() => {
     const saved = localStorage.getItem('christmas-gifts-2025');
     if (saved) {
-      setPeople(JSON.parse(saved));
+      const loadedPeople = JSON.parse(saved);
+      // Migrate assignedTo from buyer names to buyer IDs
+      const migratedPeople = loadedPeople.map((person: Person) => {
+        if (person.assignedTo && typeof person.assignedTo === 'string') {
+          // Check if assignedTo is already a buyer ID
+          const buyerById = buyers.find(b => b.id === person.assignedTo);
+          if (buyerById) {
+            return person; // Already using ID
+          }
+          // Convert from buyer name to buyer ID
+          const buyerByName = buyers.find(b => b.name === person.assignedTo);
+          return {
+            ...person,
+            assignedTo: buyerByName ? buyerByName.id : null
+          };
+        }
+        return person;
+      });
+      setPeople(migratedPeople);
     } else {
       // Initialize with the names from your spreadsheet
       setPeople(initialPeople);
     }
     setIsLoaded(true);
-  }, []);
+  }, [buyers]);
 
   // Load buyers from localStorage
   useEffect(() => {
@@ -601,13 +619,13 @@ const GiftTracker = () => {
       )
     );
     
-    const assignedBuyer = assignedTo ? buyers.find(b => b.name === assignedTo) : null;
+    const assignedBuyer = assignedTo ? buyers.find(b => b.id === assignedTo) : null;
     const person = people.find(p => p.id === personId);
     
     if (person) {
       toast({
         title: assignedTo 
-          ? `Assigned ${person.name} to ${assignedBuyer?.emoji} ${assignedTo}`
+          ? `Assigned ${person.name} to ${assignedBuyer?.emoji} ${assignedBuyer?.name}`
           : `Unassigned ${person.name}`,
       });
     }
@@ -688,8 +706,10 @@ const GiftTracker = () => {
         case 'name':
           return direction * a.name.localeCompare(b.name);
         case 'assignedTo':
-          const aAssigned = a.assignedTo || 'Unassigned';
-          const bAssigned = b.assignedTo || 'Unassigned';
+          const aBuyer = a.assignedTo ? buyers.find(b => b.id === a.assignedTo) : null;
+          const bBuyer = b.assignedTo ? buyers.find(buyer => buyer.id === b.assignedTo) : null;
+          const aAssigned = aBuyer ? aBuyer.name : 'Unassigned';
+          const bAssigned = bBuyer ? bBuyer.name : 'Unassigned';
           return direction * aAssigned.localeCompare(bAssigned);
         case 'totalCost':
           const aCost = getTotalCost(a.gifts);
@@ -748,17 +768,17 @@ const GiftTracker = () => {
                 onKeyPress={(e) => e.key === 'Enter' && addPerson()}
               />
               {buyers.length > 1 && (
-                <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value === 'unassigned' ? null : value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Assign to..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {buyers.map(buyer => (
-                      <SelectItem key={buyer.id} value={buyer.name}>{buyer.emoji} {buyer.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value === 'unassigned' ? null : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Assign to..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {buyers.map(buyer => (
+                        <SelectItem key={buyer.id} value={buyer.id}>{buyer.emoji} {buyer.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
               )}
               <div className="flex flex-col gap-3 pt-4 border-t">
                 <RippleButton onClick={addPerson} className="w-full h-11" disabled={!newPersonName.trim()}>
@@ -873,7 +893,7 @@ const GiftTracker = () => {
                 const stats = getCompletionStats(person);
                 const isExpanded = expandedRows.has(person.id);
                 const isHighlighted = highlightedItems.has(`person-${person.id}`);
-                const assignedBuyer = buyers.find(b => b.name === person.assignedTo);
+                const assignedBuyer = buyers.find(b => b.id === person.assignedTo);
                 const progressPercent = stats.total > 0 ? ((stats.purchased + stats.wrapped) / (stats.total * 2)) * 100 : 0;
 
                 return (
@@ -962,10 +982,10 @@ const GiftTracker = () => {
                                      <button
                                        key={buyer.id}
                                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-                                       onClick={() => {
-                                         updatePersonAssignment(person.id, buyer.name);
-                                         setOpenAssignmentPopover('');
-                                       }}
+                                        onClick={() => {
+                                          updatePersonAssignment(person.id, buyer.id);
+                                          setOpenAssignmentPopover('');
+                                        }}
                                      >
                                        <span className="text-lg leading-none">{buyer.emoji}</span>
                                        {buyer.name}
