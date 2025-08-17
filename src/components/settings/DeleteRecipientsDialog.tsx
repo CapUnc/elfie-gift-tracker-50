@@ -13,14 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-interface Person {
-  id: string;
-  name: string;
-  gifts: any[];
-  notes: string;
-  assignedTo: string | null;
-}
+import { Person } from '@/types';
 
 interface DeleteRecipientsDialogProps {
   open: boolean;

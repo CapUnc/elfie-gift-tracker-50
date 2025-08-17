@@ -1,14 +1,6 @@
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-
-interface Person {
-  id: string;
-  name: string;
-  gifts: any[];
-  notes: string;
-  assignedTo: string | null;
-  completed?: boolean;
-}
+import { Person } from '@/types';
 
 interface AlphabetIndexProps {
   people: Person[];

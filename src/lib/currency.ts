@@ -1,4 +1,5 @@
 import { DataService } from '@/services/dataService';
+import { DEFAULT_CURRENCY } from '@/constants';
 
 export const formatCurrency = (amount: number, currency?: string): string => {
   const currencySymbol = currency || DataService.getCurrency();
