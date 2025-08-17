@@ -90,7 +90,7 @@ const BuyersManager = () => {
       return;
     }
     const newBuyerObj: Buyer = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newBuyer.trim(),
       emoji: newBuyerEmoji
     };

@@ -54,8 +54,8 @@ const RecipientsManager = () => {
     }
 
     // Create new recipients objects
-    const newPeople = newNames.map((name, index) => ({
-      id: (Date.now() + index).toString(),
+    const newPeople = newNames.map((name) => ({
+      id: crypto.randomUUID(),
       name: name,
       gifts: [],
       notes: '',

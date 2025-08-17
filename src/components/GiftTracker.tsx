@@ -209,7 +209,7 @@ const GiftTracker = () => {
     if (!newPersonName.trim()) return;
     
     const newPerson: Person = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newPersonName.trim(),
       gifts: [],
       notes: '',
@@ -241,7 +241,7 @@ const GiftTracker = () => {
     const cost = isNaN(parsedCost as number) ? null : parsedCost;
     
     const newGift: Gift = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: giftData.name.trim(),
       cost,
       purchased: false,
