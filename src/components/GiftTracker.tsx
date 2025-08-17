@@ -76,6 +76,7 @@ const GiftTracker = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set());
+  const [showLegend, setShowLegend] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     assignedTo: 'all' as string,
@@ -742,48 +743,103 @@ const GiftTracker = () => {
             </div>
           </div>
 
-          {/* Enhanced Search and Filter System */}
-          <div className="max-w-full overflow-hidden">
-            <GiftSearch
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              filters={filters}
-              onFiltersChange={setFilters}
-              buyers={buyers}
-            />
-          </div>
+          {/* Session Legend */}
+          {showLegend && (
+            <div className="mb-4 bg-muted/50 border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-emerald-600" />
+                    <span className="text-muted-foreground">Purchased</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-blue-600" />
+                    <span className="text-muted-foreground">Wrapped</span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowLegend(false);
+                    sessionStorage.setItem('gift-tracker-legend-shown', 'true');
+                  }}
+                  className="h-7 px-2 text-xs"
+                >
+                  Got it
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Add Person Dialog */}
-        <Dialog open={isAddPersonOpen} onOpenChange={setIsAddPersonOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Person</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Person's name"
-                value={newPersonName}
-                onChange={(e) => setNewPersonName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addPerson()}
-              />
-              {buyers.length > 1 && (
-                  <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value === 'unassigned' ? null : value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Assign to..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {buyers.map(buyer => (
-                        <SelectItem key={buyer.id} value={buyer.id}>{buyer.emoji} {buyer.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-              )}
-              <div className="flex flex-col gap-3 pt-4 border-t">
-                <RippleButton onClick={addPerson} className="w-full h-11" disabled={!newPersonName.trim()}>
-                  Add Recipient
-                </RippleButton>
+        {/* Enhanced Search and Filter System */}
+        <div className="max-w-full overflow-hidden">
+          <GiftSearch
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            filters={filters}
+            onFiltersChange={setFilters}
+            buyers={buyers}
+          />
+        </div>
+      </div>
+
+      {/* Add Person Dialog */}
+      <Dialog open={isAddPersonOpen} onOpenChange={setIsAddPersonOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Person</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Person's name"
+              value={newPersonName}
+              onChange={(e) => setNewPersonName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addPerson()}
+            />
+            {buyers.length > 1 && (
+                <Select value={newPersonAssignment || ''} onValueChange={(value: string) => setNewPersonAssignment(value === 'unassigned' ? null : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Assign to..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {buyers.map(buyer => (
+                      <SelectItem key={buyer.id} value={buyer.id}>{buyer.emoji} {buyer.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+            )}
+            <div className="flex flex-col gap-3 pt-4 border-t">
+              <RippleButton onClick={addPerson} className="w-full h-11" disabled={!newPersonName.trim()}>
+                Add Recipient
+              </RippleButton>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (unsavedChanges && newPersonName.trim()) {
+                    if (window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+                      setIsAddPersonOpen(false);
+                      setNewPersonName('');
+                      setNewPersonAssignment(null);
+                      setUnsavedChanges(false);
+                    }
+                  } else {
+                    setIsAddPersonOpen(false);
+                    setNewPersonName('');
+                    setNewPersonAssignment(null);
+                    setUnsavedChanges(false);
+                  }
+                }}
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
                 <Button 
                   variant="outline" 
                   onClick={() => {

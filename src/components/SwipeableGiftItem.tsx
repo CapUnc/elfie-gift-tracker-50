@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, ShoppingCart, Package, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusToggle } from '@/components/ui/status-toggle';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/currency';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
+  const [microToast, setMicroToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const itemRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startTimeRef = useRef(0);
@@ -199,31 +201,67 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
           onClick={handleContentClick}
         >
           {/* Left Group: Status Toggles + Gift Name */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <StatusToggle
-              type="purchased"
-              checked={gift.purchased}
-              onCheckedChange={(checked) => {
-                haptic.success();
-                setIsHighlighted(true);
-                setTimeout(() => setIsHighlighted(false), 2000);
-                onUpdate(gift.id, 'purchased', checked as boolean);
-              }}
-              className="flex-shrink-0"
-              aria-label={`${gift.purchased ? 'Mark as not purchased' : 'Mark as purchased'} for ${gift.name}`}
-            />
-            <StatusToggle
-              type="wrapped"
-              checked={gift.wrapped}
-              onCheckedChange={(checked) => {
-                haptic.success();
-                setIsHighlighted(true);
-                setTimeout(() => setIsHighlighted(false), 2000);
-                onUpdate(gift.id, 'wrapped', checked as boolean);
-              }}
-              className="flex-shrink-0"
-              aria-label={`${gift.wrapped ? 'Mark as not wrapped' : 'Mark as wrapped'} for ${gift.name}`}
-            />
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <StatusToggle
+                    type="purchased"
+                    checked={gift.purchased}
+                    onCheckedChange={(checked) => {
+                      haptic.success();
+                      setIsHighlighted(true);
+                      setTimeout(() => setIsHighlighted(false), 2000);
+                      
+                      // Show micro-toast
+                      setMicroToast({ 
+                        message: checked ? 'Marked purchased' : 'Marked not purchased', 
+                        show: true 
+                      });
+                      setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
+                      
+                      onUpdate(gift.id, 'purchased', checked as boolean);
+                    }}
+                    className="flex-shrink-0"
+                    aria-label={`Purchased for ${gift.name}. ${gift.purchased ? 'Checked' : 'Unchecked'}`}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Mark as purchased</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <StatusToggle
+                    type="wrapped"
+                    checked={gift.wrapped}
+                    onCheckedChange={(checked) => {
+                      haptic.success();
+                      setIsHighlighted(true);
+                      setTimeout(() => setIsHighlighted(false), 2000);
+                      
+                      // Show micro-toast
+                      setMicroToast({ 
+                        message: checked ? 'Marked wrapped' : 'Marked not wrapped', 
+                        show: true 
+                      });
+                      setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
+                      
+                      onUpdate(gift.id, 'wrapped', checked as boolean);
+                    }}
+                    className="flex-shrink-0"
+                    aria-label={`Wrapped for ${gift.name}. ${gift.wrapped ? 'Checked' : 'Unchecked'}`}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Mark as wrapped</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <div className="min-w-0 flex-1">
               <div className={cn(
                 "font-medium text-sm truncate",
@@ -255,6 +293,15 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
             </Button>
           </div>
         </div>
+
+        {/* Micro-toast */}
+        {microToast.show && (
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+            <div className="bg-background border border-border rounded-md px-3 py-1.5 shadow-md text-xs font-medium animate-in fade-in-0 zoom-in-95 duration-200">
+              {microToast.message}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
