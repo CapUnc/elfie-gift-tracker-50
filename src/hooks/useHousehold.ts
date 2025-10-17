@@ -61,63 +61,28 @@ export const useHousehold = (userId: string | undefined) => {
       // Read localStorage data
       const localPeople = localStorage.getItem('christmas-gifts-2025');
       const localBuyers = localStorage.getItem('christmas-gifts-buyers');
-      const localCurrency = localStorage.getItem('christmas-gifts-currency') || '$';
 
-      // Check if user already has a household (safety check)
-      const { data: existingProfile } = await supabase
+      // Wait briefly for database trigger to complete household and profile creation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Fetch the automatically created household
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('household_id')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
-      let household;
-      
-      if (existingProfile?.household_id) {
-        // User already has a household, fetch it
-        const { data: existingHousehold } = await supabase
-          .from('households')
-          .select()
-          .eq('id', existingProfile.household_id)
-          .single();
-        
-        household = existingHousehold;
-      } else {
-        // Create new household
-        const { data: newHousehold, error: householdError } = await supabase
-          .from('households')
-          .insert({
-            name: 'My Household',
-            currency: localCurrency,
-          })
-          .select()
-          .single();
-
-        if (householdError) throw householdError;
-        household = newHousehold;
+      if (profileError || !profile?.household_id) {
+        throw new Error('Household not found. Please try refreshing the page.');
       }
 
-      if (!household) throw new Error('Failed to get or create household');
-
-      // Get user email
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Create/update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          household_id: household.id,
-          email: user?.email || '',
-          display_name: user?.user_metadata?.display_name || '',
-        });
-
-      if (profileError) throw profileError;
+      const householdId = profile.household_id;
 
       // Migrate buyers
       if (localBuyers) {
         const buyers = JSON.parse(localBuyers);
         const buyersToInsert = buyers.map((buyer: any) => ({
-          household_id: household.id,
+          household_id: householdId,
           name: buyer.name,
           emoji: buyer.emoji,
         }));
@@ -145,7 +110,7 @@ export const useHousehold = (userId: string | undefined) => {
             const { data: recipient, error: recipientError } = await supabase
               .from('recipients')
               .insert({
-                household_id: household.id,
+                household_id: householdId,
                 name: person.name,
                 notes: person.notes || '',
                 assigned_to: assignedBuyerId,
@@ -167,7 +132,7 @@ export const useHousehold = (userId: string | undefined) => {
                 }
 
                 return {
-                  household_id: household.id,
+                  household_id: householdId,
                   recipient_id: recipient.id,
                   name: gift.name,
                   cost: gift.cost || null,
