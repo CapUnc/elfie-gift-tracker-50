@@ -9,6 +9,12 @@ import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/currency';
 import { Save, X } from 'lucide-react';
+import { z } from 'zod';
+
+const giftSchema = z.object({
+  name: z.string().trim().min(1, 'Gift name is required').max(100, 'Gift name must be less than 100 characters'),
+  cost: z.string().regex(/^\d*\.?\d{0,2}$/, 'Invalid cost format').optional().or(z.literal('')),
+});
 
 interface Gift {
   id: string;
@@ -48,10 +54,13 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   const { toast } = useToast();
   const haptic = useHapticFeedback();
   const { execute: saveGift, getVariant, isDisabled } = useAnimatedButton(async () => {
-    if (!giftName.trim()) {
+    // Validate input with zod schema
+    const validation = giftSchema.safeParse({ name: giftName, cost: giftCost });
+    
+    if (!validation.success) {
       toast({
-        title: "Error",
-        description: "Please enter a gift name.",
+        title: "Validation Error",
+        description: validation.error.errors[0].message,
         variant: "destructive"
       });
       return;

@@ -23,7 +23,6 @@ import {
 
 interface HouseholdMember {
   id: string;
-  email: string;
   display_name: string | null;
   created_at: string;
 }
@@ -160,7 +159,7 @@ const HouseholdManager = () => {
                 {buyer && <span className="text-3xl">{buyer.emoji}</span>}
                 <div className="flex-1">
                   <div className="font-medium">{buyer?.name || member.display_name || 'Anonymous'} {member.id === user?.id && <span className="text-sm text-muted-foreground">(You)</span>}</div>
-                  <div className="text-sm text-muted-foreground">{member.email}</div>
+                  <div className="text-sm text-muted-foreground">Joined {new Date(member.created_at).toLocaleDateString()}</div>
                 </div>
               </div>
             );

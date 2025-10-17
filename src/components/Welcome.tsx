@@ -9,6 +9,9 @@ import { useHousehold } from '@/hooks/useHousehold';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, Home } from 'lucide-react';
+import { z } from 'zod';
+
+const displayNameSchema = z.string().trim().min(1, 'Display name is required').max(100, 'Display name must be less than 100 characters');
 
 const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
 
@@ -23,10 +26,13 @@ export const Welcome = () => {
   const navigate = useNavigate();
 
   const handleCreateHousehold = async () => {
-    if (!user || !displayName.trim()) {
+    // Validate display name with zod
+    const validation = displayNameSchema.safeParse(displayName);
+    
+    if (!validation.success || !user) {
       toast({
-        title: 'Missing information',
-        description: 'Please enter your display name',
+        title: 'Validation error',
+        description: validation.error?.errors[0].message || 'Please check your input',
         variant: 'destructive',
       });
       return;
@@ -45,7 +51,7 @@ export const Welcome = () => {
         .rpc('create_user_household_and_profile', {
           _user_id: user.id,
           _email: user.email || '',
-          _display_name: displayName,
+          _display_name: validation.data,
         });
 
       if (householdError) throw householdError;
@@ -56,7 +62,7 @@ export const Welcome = () => {
         .insert({
           household_id: householdId,
           user_id: user.id,
-          name: displayName,
+          name: validation.data,
           emoji: selectedEmoji,
         });
 

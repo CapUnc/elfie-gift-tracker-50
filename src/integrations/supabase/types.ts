@@ -278,7 +278,6 @@ export type Database = {
         Returns: {
           created_at: string
           display_name: string
-          email: string
           id: string
         }[]
       }

@@ -7,6 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Gift } from 'lucide-react';
+import { z } from 'zod';
+
+const authSchema = z.object({
+  email: z.string().email('Invalid email address').max(255, 'Email must be less than 255 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  displayName: z.string().trim().min(1, 'Name is required').max(100, 'Name must be less than 100 characters').optional(),
+});
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -29,6 +36,23 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Validate inputs with zod schema
+      const validation = authSchema.safeParse({
+        email,
+        password,
+        displayName: isSignUp ? displayName : undefined,
+      });
+
+      if (!validation.success) {
+        toast({
+          title: "Validation Error",
+          description: validation.error.errors[0].message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       if (isSignUp) {
         const { error } = await signUp(email, password, displayName);
         if (error) throw error;

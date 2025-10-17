@@ -11,6 +11,9 @@ import { useBuyers } from '@/hooks/useBuyers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
 import { DeleteRecipientsDialog } from './DeleteRecipientsDialog';
+import { z } from 'zod';
+
+const recipientNameSchema = z.string().trim().min(1, 'Name cannot be empty').max(100, 'Name must be less than 100 characters');
 
 const RecipientsManager = () => {
   const navigate = useNavigate();
@@ -33,9 +36,31 @@ const RecipientsManager = () => {
 
     if (names.length === 0) return;
 
+    // Validate each name
+    const validNames: string[] = [];
+    const invalidNames: string[] = [];
+    
+    names.forEach(name => {
+      const validation = recipientNameSchema.safeParse(name);
+      if (validation.success) {
+        validNames.push(validation.data);
+      } else {
+        invalidNames.push(name);
+      }
+    });
+
+    if (invalidNames.length > 0) {
+      toast({
+        title: "Invalid names detected",
+        description: `Some names are invalid: ${invalidNames.join(', ')}. Names must be 1-100 characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Filter out duplicates
     const existingNames = recipients.map(person => person.name.toLowerCase());
-    const newNames = names.filter(name => !existingNames.includes(name.toLowerCase()));
+    const newNames = validNames.filter(name => !existingNames.includes(name.toLowerCase()));
 
     if (newNames.length === 0) {
       toast({
