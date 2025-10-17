@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, DollarSign, Users, ChevronRight, Home } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, DollarSign, Users, ChevronRight, Home, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -245,6 +245,41 @@ const Settings = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Generate invite codes and see who's in your household.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Join Household Section */}
+          <Card 
+            className="cursor-pointer hover:bg-muted/30 transition-colors min-h-[44px] touch-target focus-ring border-2 border-primary/20" 
+            onClick={() => navigate('/join-household')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/join-household');
+              }
+            }}
+            aria-label="Join Another Household - Use an invite code"
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-primary" />
+                  Join Another Household
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Have an invite code from someone?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Join their household to collaborate on gift lists together.
                 </p>
               </div>
             </CardContent>

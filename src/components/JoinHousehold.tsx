@@ -13,8 +13,14 @@ interface JoinHouseholdProps {
 
 const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }) => {
   const { toast } = useToast();
+  const [step, setStep] = useState<'code' | 'emoji'>('code');
   const [inviteCode, setInviteCode] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [selectedEmoji, setSelectedEmoji] = useState('👤');
+  const [householdId, setHouseholdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const emojiOptions = ['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'];
 
   const handleJoinHousehold = async () => {
     if (!inviteCode.trim()) {
@@ -34,15 +40,17 @@ const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }) => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success!",
-        description: "You've joined the household. Redirecting...",
-      });
+      // Get the user's profile to get their display name
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user?.id)
+        .single();
 
-      // Wait a moment for the toast to show, then redirect
-      setTimeout(() => {
-        onJoined();
-      }, 1000);
+      setHouseholdId(data);
+      setDisplayName(profile?.display_name || '');
+      setStep('emoji');
     } catch (error: any) {
       console.error('Error joining household:', error);
       toast({
@@ -50,10 +58,105 @@ const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }) => {
         description: "The invite code is invalid or expired.",
         variant: "destructive",
       });
+      setLoading(false);
+    }
+  };
+
+  const handleCreateBuyer = async () => {
+    if (!householdId) return;
+
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Create buyer record linked to user
+      const { error } = await supabase
+        .from('buyers')
+        .insert({
+          household_id: householdId,
+          name: displayName || 'Me',
+          emoji: selectedEmoji,
+          user_id: user?.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Welcome!",
+        description: "You've joined the household successfully.",
+      });
+
+      // Wait a moment for the toast to show, then redirect
+      setTimeout(() => {
+        onJoined();
+      }, 1000);
+    } catch (error: any) {
+      console.error('Error creating buyer:', error);
+      toast({
+        title: "Error",
+        description: "Could not complete setup. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
+
+  if (step === 'emoji') {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <Users className="w-6 h-6 text-primary" />
+              Choose Your Emoji
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Pick an emoji to represent yourself in the household. This will help others
+                know which gifts you're buying.
+              </p>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                Your Name
+              </label>
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Enter your name"
+                className="mb-4"
+              />
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                Choose an emoji
+              </label>
+              <div className="flex flex-wrap gap-1 mb-4">
+                {emojiOptions.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    variant={selectedEmoji === emoji ? "default" : "ghost"}
+                    size="sm"
+                    className="h-10 w-10 p-0 text-lg"
+                    onClick={() => setSelectedEmoji(emoji)}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <Button
+              onClick={handleCreateBuyer}
+              disabled={loading || !displayName.trim()}
+              className="w-full min-h-[44px] touch-target focus-ring"
+            >
+              {loading ? 'Finishing...' : 'Complete Setup'}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6 flex items-center justify-center">
@@ -92,7 +195,7 @@ const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }) => {
               disabled={loading || !inviteCode.trim()}
               className="flex-1 min-h-[44px] touch-target focus-ring"
             >
-              {loading ? 'Joining...' : 'Join Household'}
+              {loading ? 'Joining...' : 'Continue'}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <Button
