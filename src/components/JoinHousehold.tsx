@@ -31,10 +31,10 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
 
     setLoading(true);
     try {
-      // Check if user already has a household
+      // Single query to get both household_id and display_name
       const { data: currentProfile } = await supabase
         .from('profiles')
-        .select('household_id')
+        .select('household_id, display_name')
         .eq('id', user.id)
         .single();
 
@@ -74,17 +74,10 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
       if (error) throw error;
 
       setHouseholdId(newHouseholdId);
-      
-      // Get user's display name from their profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', user.id)
-        .single();
 
-      // Pre-fill from profile or Google metadata
+      // Pre-fill display name from profile or Google metadata
       const googleName = user.user_metadata?.full_name || user.user_metadata?.name;
-      setDisplayName(profile?.display_name || googleName || '');
+      setDisplayName(currentProfile?.display_name || googleName || '');
 
       setStep('emoji');
     } catch (error) {

@@ -27,12 +27,45 @@ export const Welcome = () => {
 
   // Pre-fill display name from Google user metadata
   useEffect(() => {
-    if (user?.user_metadata) {
-      const googleName = user.user_metadata.full_name || user.user_metadata.name;
-      if (googleName && !displayName) {
-        setDisplayName(googleName);
+    const checkExistingSetup = async () => {
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('household_id, display_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile?.household_id) {
+        // User has household, check for buyer
+        const { data: buyer } = await supabase
+          .from('buyers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!buyer) {
+          // Has household but no buyer - show recovery flow
+          toast({
+            title: 'Setup Incomplete',
+            description: "Let's finish setting up your profile",
+          });
+          setStep('create');
+          setDisplayName(profile.display_name || '');
+          return;
+        }
       }
-    }
+
+      // Pre-fill from Google metadata if available
+      if (user.user_metadata) {
+        const googleName = user.user_metadata.full_name || user.user_metadata.name;
+        if (googleName && !displayName) {
+          setDisplayName(googleName);
+        }
+      }
+    };
+
+    checkExistingSetup();
   }, [user]);
 
   const handleCreateHousehold = async () => {
@@ -50,12 +83,6 @@ export const Welcome = () => {
 
     setLoading(true);
     try {
-      // Delete any existing buyer record for this user (from old households)
-      await supabase
-        .from('buyers')
-        .delete()
-        .eq('user_id', user.id);
-
       // Create household and profile using existing RPC function
       const { data: householdId, error: householdError } = await supabase
         .rpc('create_user_household_and_profile', {
@@ -65,6 +92,12 @@ export const Welcome = () => {
         });
 
       if (householdError) throw householdError;
+
+      // Delete old buyer record AFTER household creation succeeds
+      await supabase
+        .from('buyers')
+        .delete()
+        .eq('user_id', user.id);
 
       // Create buyer record for the user
       const { error: buyerError } = await supabase

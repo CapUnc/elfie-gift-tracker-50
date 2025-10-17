@@ -8,15 +8,8 @@ import { Gift } from 'lucide-react';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
-  const { signInWithGoogle, user } = useAuth();
-  const navigate = useNavigate();
+  const { signInWithGoogle } = useAuth();
   const { toast } = useToast();
-
-  // Redirect if already logged in
-  if (user) {
-    navigate('/');
-    return null;
-  }
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
