@@ -81,7 +81,7 @@ const GiftTracker = () => {
   const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string; gift?: Gift } | null>(null);
   
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null);
   const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set());
   const [showLegend, setShowLegend] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -438,6 +438,10 @@ const GiftTracker = () => {
       if (filters.assignedTo !== 'all') {
         if (filters.assignedTo === 'unassigned') {
           if (person.assignedTo !== null) return false;
+        } else if (filters.assignedTo === 'assigned-to-me') {
+          // Get current user's buyer ID
+          const currentUserBuyer = supabaseBuyers.find(b => b.user_id === session?.user?.id);
+          if (!currentUserBuyer || person.assignedTo !== currentUserBuyer.id) return false;
         } else {
           if (person.assignedTo !== filters.assignedTo) return false;
         }
@@ -664,8 +668,8 @@ const GiftTracker = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={addPerson} className="flex-1">
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={addPerson} className="min-h-[44px]">
                   Add Person
                 </Button>
                 <Button 
@@ -685,7 +689,7 @@ const GiftTracker = () => {
                       setUnsavedChanges(false);
                     }
                   }}
-                  className="w-full"
+                  className="min-h-[44px]"
                 >
                   Cancel
                 </Button>
@@ -727,7 +731,7 @@ const GiftTracker = () => {
             ) : (
               sortedAndFilteredPeople.map((person) => {
                 const stats = getCompletionStats(person);
-                const isExpanded = expandedRows.has(person.id);
+                const isExpanded = expandedPersonId === person.id;
                 const isHighlighted = highlightedItems.has(`person-${person.id}`);
                 const assignedBuyer = buyers.find(b => b.id === person.assignedTo);
                 const progressPercent = stats.total > 0 ? ((stats.purchased + stats.wrapped) / (stats.total * 2)) * 100 : 0;
@@ -762,13 +766,7 @@ const GiftTracker = () => {
                               size="sm"
                               className="h-8 w-8 p-0 flex-shrink-0"
                               onClick={() => {
-                                const newExpanded = new Set(expandedRows);
-                                if (isExpanded) {
-                                  newExpanded.delete(person.id);
-                                } else {
-                                  newExpanded.add(person.id);
-                                }
-                                setExpandedRows(newExpanded);
+                                setExpandedPersonId(isExpanded ? null : person.id);
                               }}
                             >
                               {isExpanded ? (

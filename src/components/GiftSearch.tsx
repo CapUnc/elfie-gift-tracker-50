@@ -70,9 +70,17 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
     
     if (filters.assignedTo !== 'all') {
       const buyer = buyers.find(b => b.id === filters.assignedTo);
+      let label = filters.assignedTo;
+      if (buyer) {
+        label = `${buyer.emoji} ${buyer.name}`;
+      } else if (filters.assignedTo === 'unassigned') {
+        label = 'Unassigned';
+      } else if (filters.assignedTo === 'assigned-to-me') {
+        label = 'Assigned to me';
+      }
       chips.push({
         id: 'assignedTo',
-        label: buyer ? `${buyer.emoji} ${buyer.name}` : filters.assignedTo === 'unassigned' ? 'Unassigned' : filters.assignedTo,
+        label,
         onRemove: () => onFiltersChange({ ...filters, assignedTo: 'all' })
       });
     }
@@ -176,6 +184,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All assignments</SelectItem>
+                      <SelectItem value="assigned-to-me">Assigned to me</SelectItem>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {buyers.map(buyer => (
                         <SelectItem key={buyer.id} value={buyer.id}>
