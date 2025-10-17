@@ -65,79 +65,29 @@ export const useHousehold = (userId: string | undefined) => {
       const localBuyers = localStorage.getItem('christmas-gifts-buyers');
       const localCurrency = localStorage.getItem('christmas-gifts-currency') || '$';
 
-      console.log('[useHousehold] Checking for existing household...');
+      // Get user info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error('User email not found');
+
+      console.log('[useHousehold] Creating household using secure function...');
       
-      // Check if user already has a household
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('household_id')
-        .eq('id', userId)
-        .maybeSingle();
+      // Use SECURITY DEFINER function to create household and profile (bypasses RLS)
+      const { data: householdId, error: createError } = await supabase
+        .rpc('create_user_household_and_profile', {
+          _user_id: userId,
+          _email: user.email,
+          _display_name: user.user_metadata?.display_name || '',
+          _currency: localCurrency,
+        });
 
-      let householdId: string;
-      
-      if (existingProfile?.household_id) {
-        console.log('[useHousehold] Found existing household:', existingProfile.household_id);
-        householdId = existingProfile.household_id;
-      } else {
-        console.log('[useHousehold] Creating new household...');
-        
-        // Create new household with retry logic
-        let household;
-        let retries = 2;
-        
-        while (retries > 0) {
-          const { data: newHousehold, error: householdError } = await supabase
-            .from('households')
-            .insert({
-              name: 'My Household',
-              currency: localCurrency,
-            })
-            .select()
-            .single();
-
-          if (householdError) {
-            console.error('[useHousehold] Household creation error:', householdError);
-            retries--;
-            if (retries > 0) {
-              console.log('[useHousehold] Retrying household creation...');
-              await new Promise(resolve => setTimeout(resolve, 500));
-              continue;
-            }
-            throw householdError;
-          }
-          
-          household = newHousehold;
-          break;
-        }
-
-        if (!household) throw new Error('Failed to create household after retries');
-        
-        console.log('[useHousehold] Household created:', household.id);
-        householdId = household.id;
-
-        // Get user email
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        console.log('[useHousehold] Creating profile...');
-        
-        // Create/update profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: userId,
-            household_id: householdId,
-            email: user?.email || '',
-            display_name: user?.user_metadata?.display_name || '',
-          });
-
-        if (profileError) {
-          console.error('[useHousehold] Profile creation error:', profileError);
-          throw profileError;
-        }
-        
-        console.log('[useHousehold] Profile created successfully');
+      if (createError) {
+        console.error('[useHousehold] Household creation error:', createError);
+        throw createError;
       }
+
+      if (!householdId) throw new Error('Failed to create household');
+      
+      console.log('[useHousehold] Household created successfully:', householdId);
 
       // Migrate buyers
       if (localBuyers) {

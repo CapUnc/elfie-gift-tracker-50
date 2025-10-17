@@ -219,6 +219,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_user_household_and_profile: {
+        Args: {
+          _currency?: string
+          _display_name: string
+          _email: string
+          _user_id: string
+        }
+        Returns: string
+      }
       get_user_household_id: {
         Args: { _user_id: string }
         Returns: string
