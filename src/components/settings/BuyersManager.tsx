@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Users, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
+import { useBuyers } from '@/hooks/useBuyers';
+import { useRecipients } from '@/hooks/useRecipients';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,70 +21,23 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
-}
-
-interface Person {
-  id: string;
-  name: string;
-  gifts: any[];
-  notes: string;
-  assignedTo: string | null; // Buyer ID
-}
-
 const BuyersManager = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [buyers, setBuyers] = useState<Buyer[]>([
-    { id: '1', name: 'Matt', emoji: '👨' },
-    { id: '2', name: 'Maddie', emoji: '👩' }
-  ]);
-  const [people, setPeople] = useState<Person[]>([]);
+  const { session } = useAuth();
+  const { householdId } = useHousehold(session?.user?.id);
+  const { buyers, loading, addBuyer, updateBuyer, deleteBuyer } = useBuyers(householdId);
+  const { recipients, updateRecipient } = useRecipients(householdId);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newBuyer, setNewBuyer] = useState('');
   const [newBuyerEmoji, setNewBuyerEmoji] = useState('👤');
   const [editingBuyer, setEditingBuyer] = useState<string | null>(null);
   const [editBuyerName, setEditBuyerName] = useState('');
   const [editBuyerEmoji, setEditBuyerEmoji] = useState('');
-  const [buyerToDelete, setBuyerToDelete] = useState<Buyer | null>(null);
+  const [buyerToDelete, setBuyerToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  // Load buyers from localStorage
-  useEffect(() => {
-    const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
-    if (savedBuyers) {
-      const parsed = JSON.parse(savedBuyers);
-      // Handle migration from old string array format
-      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
-        const migratedBuyers = parsed.map((name: string, index: number) => ({
-          id: (index + 1).toString(),
-          name,
-          emoji: index === 0 ? '👨' : '👩'
-        }));
-        setBuyers(migratedBuyers);
-        localStorage.setItem('christmas-gifts-buyers', JSON.stringify(migratedBuyers));
-      } else {
-        setBuyers(parsed);
-      }
-    }
-  }, []);
-
-  // Load recipients from localStorage
-  useEffect(() => {
-    const savedPeople = localStorage.getItem('christmas-gifts-2025');
-    if (savedPeople) {
-      setPeople(JSON.parse(savedPeople));
-    }
-  }, []);
-
-  // Save buyers to localStorage
-  useEffect(() => {
-    localStorage.setItem('christmas-gifts-buyers', JSON.stringify(buyers));
-  }, [buyers]);
-
-  const addBuyer = () => {
+  const handleAddBuyer = async () => {
     if (!newBuyer.trim() || buyers.some(buyer => buyer.name === newBuyer.trim())) {
       toast({
         title: "Cannot add buyer",
@@ -89,63 +46,60 @@ const BuyersManager = () => {
       });
       return;
     }
-    const newBuyerObj: Buyer = {
-      id: crypto.randomUUID(),
-      name: newBuyer.trim(),
-      emoji: newBuyerEmoji
-    };
-    setBuyers([...buyers, newBuyerObj]);
-    setNewBuyer('');
-    setNewBuyerEmoji('👤');
-    setShowAddForm(false);
-    toast({
-      title: "Buyer added",
-      description: `${newBuyerObj.name} has been added as a buyer.`,
-    });
+
+    try {
+      await addBuyer(newBuyer.trim(), newBuyerEmoji);
+      setNewBuyer('');
+      setNewBuyerEmoji('👤');
+      setShowAddForm(false);
+      toast({
+        title: "Buyer added",
+        description: `${newBuyer.trim()} has been added as a buyer.`,
+      });
+    } catch (error) {
+      // Error toast is shown by the hook
+    }
   };
 
-  const confirmRemoveBuyer = () => {
+  const confirmRemoveBuyer = async () => {
     if (!buyerToDelete) return;
-    
-    setBuyers(buyers.filter(buyer => buyer.id !== buyerToDelete.id));
-    
-    // Clean up assignments for recipients assigned to the deleted buyer
-    const updatedPeople = people.map(person => 
-      person.assignedTo === buyerToDelete.id 
-        ? { ...person, assignedTo: null }
-        : person
-    );
-    setPeople(updatedPeople);
-    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
-    
-    toast({
-      title: "Buyer removed",
-      description: `${buyerToDelete.name} has been removed. Their assignments have been cleared.`,
-    });
-    
-    setBuyerToDelete(null);
+
+    try {
+      // Clear assignments for recipients assigned to the deleted buyer
+      const assignedRecipients = recipients.filter(r => r.assigned_to === buyerToDelete.id);
+      await Promise.all(
+        assignedRecipients.map(r => updateRecipient(r.id, { assigned_to: null }))
+      );
+
+      // Delete the buyer
+      await deleteBuyer(buyerToDelete.id);
+
+      toast({
+        title: "Buyer removed",
+        description: `${buyerToDelete.name} has been removed. Their assignments have been cleared.`,
+      });
+    } catch (error) {
+      // Error toast is shown by the hook
+    } finally {
+      setBuyerToDelete(null);
+    }
   };
 
-  const startEditBuyer = (buyer: Buyer) => {
+  const startEditBuyer = (buyer: { id: string; name: string; emoji: string }) => {
     setEditingBuyer(buyer.id);
     setEditBuyerName(buyer.name);
     setEditBuyerEmoji(buyer.emoji);
   };
 
-  const saveEditBuyer = (buyerId: string) => {
+  const saveEditBuyer = async (buyerId: string) => {
     if (!editBuyerName.trim()) return;
-    
-    const oldBuyer = buyers.find(b => b.id === buyerId);
-    const updatedBuyers = buyers.map(buyer => 
-      buyer.id === buyerId 
-        ? { ...buyer, name: editBuyerName.trim(), emoji: editBuyerEmoji }
-        : buyer
-    );
-    setBuyers(updatedBuyers);
-    
-    // No need to update assignments when buyer name changes since we use IDs now
-    
-    cancelEditBuyer();
+
+    try {
+      await updateBuyer(buyerId, { name: editBuyerName.trim(), emoji: editBuyerEmoji });
+      cancelEditBuyer();
+    } catch (error) {
+      // Error toast is shown by the hook
+    }
   };
 
   const cancelEditBuyer = () => {
@@ -155,6 +109,14 @@ const BuyersManager = () => {
   };
 
   const emojiOptions = ['👤', '👨', '👩', '🧑', '👦', '👧', '🎅', '🤶', '👑', '⭐', '💝', '🎁'];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading buyers...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6">
@@ -257,7 +219,7 @@ const BuyersManager = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setBuyerToDelete(buyer)}
+                            onClick={() => setBuyerToDelete({ id: buyer.id, name: buyer.name })}
                             className="h-auto p-1 hover:bg-transparent min-h-[44px] touch-target focus-ring"
                             aria-label={`Delete ${buyer.name}`}
                           >
@@ -310,17 +272,17 @@ const BuyersManager = () => {
                     onChange={(e) => setNewBuyer(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        addBuyer();
+                        handleAddBuyer();
                       }
                     }}
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={addBuyer} className="flex-1 min-h-[44px] touch-target focus-ring">
+                  <Button onClick={handleAddBuyer} className="flex-1 min-h-[44px] touch-target focus-ring">
                     Save
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setShowAddForm(false);
                       setNewBuyer('');

@@ -9,8 +9,3 @@ export const formatCurrency = (amount: number, currency: string = '$'): string =
   
   return `${currency}${parts.join('.')}`;
 };
-
-export const getCurrencySymbol = (): string => {
-  const savedCurrency = localStorage.getItem('christmas-gifts-currency');
-  return savedCurrency || '$';
-};

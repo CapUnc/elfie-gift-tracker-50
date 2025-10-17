@@ -1,62 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Users, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
+import { useBuyers } from '@/hooks/useBuyers';
+import { useRecipients } from '@/hooks/useRecipients';
+import { useGifts } from '@/hooks/useGifts';
 import { DeleteRecipientsDialog } from './DeleteRecipientsDialog';
-
-interface Person {
-  id: string;
-  name: string;
-  gifts: any[];
-  notes: string;
-  assignedTo: string | null; // Buyer ID
-}
-
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
-}
 
 const RecipientsManager = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [people, setPeople] = useState<Person[]>([]);
-  const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const { session } = useAuth();
+  const { householdId } = useHousehold(session?.user?.id);
+  const { buyers } = useBuyers(householdId);
+  const { recipients, loading, bulkAddRecipients } = useRecipients(householdId);
+  const { gifts } = useGifts(householdId);
   const [bulkNames, setBulkNames] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Load recipients from localStorage
-  useEffect(() => {
-    const savedPeople = localStorage.getItem('christmas-gifts-2025');
-    if (savedPeople) {
-      setPeople(JSON.parse(savedPeople));
-    }
-  }, []);
-
-  // Load buyers from localStorage
-  useEffect(() => {
-    const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
-    if (savedBuyers) {
-      const parsed = JSON.parse(savedBuyers);
-      // Handle migration from old string array format
-      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
-        const migratedBuyers = parsed.map((name: string, index: number) => ({
-          id: (index + 1).toString(),
-          name,
-          emoji: index === 0 ? '👨' : '👩'
-        }));
-        setBuyers(migratedBuyers);
-      } else {
-        setBuyers(parsed);
-      }
-    }
-  }, []);
-
-  const handleBulkAdd = () => {
+  const handleBulkAdd = async () => {
     if (!bulkNames.trim()) return;
 
     const names = bulkNames
@@ -67,7 +34,7 @@ const RecipientsManager = () => {
     if (names.length === 0) return;
 
     // Filter out duplicates
-    const existingNames = people.map(person => person.name.toLowerCase());
+    const existingNames = recipients.map(person => person.name.toLowerCase());
     const newNames = names.filter(name => !existingNames.includes(name.toLowerCase()));
 
     if (newNames.length === 0) {
@@ -79,38 +46,34 @@ const RecipientsManager = () => {
       return;
     }
 
-    // Create new recipients objects
-    const newPeople = newNames.map((name) => ({
-      id: crypto.randomUUID(),
-      name: name,
-      gifts: [],
-      notes: '',
-      assignedTo: null
-    }));
-
-    // Add to existing recipients and update state
-    const updatedPeople = [...people, ...newPeople];
-    setPeople(updatedPeople);
-    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
-
-    setBulkNames('');
-    toast({
-      title: "Recipients added",
-      description: `Added ${newNames.length} new recipient${newNames.length !== 1 ? 's' : ''}: ${newNames.join(', ')}`,
-    });
+    try {
+      await bulkAddRecipients(newNames);
+      setBulkNames('');
+      toast({
+        title: "Recipients added",
+        description: `Added ${newNames.length} new recipient${newNames.length !== 1 ? 's' : ''}: ${newNames.join(', ')}`,
+      });
+    } catch (error) {
+      // Error toast is shown by the hook
+    }
   };
 
-  const handleDeletePeople = (peopleIds: string[]) => {
-    const deletedCount = peopleIds.length;
-    const updatedPeople = people.filter(person => !peopleIds.includes(person.id));
-    setPeople(updatedPeople);
-    localStorage.setItem('christmas-gifts-2025', JSON.stringify(updatedPeople));
-    
-    toast({
-      title: "Recipients deleted",
-      description: `${deletedCount} recipient${deletedCount !== 1 ? 's' : ''} ${deletedCount !== 1 ? 'have' : 'has'} been permanently deleted.`,
-    });
-  };
+  // Convert recipients data to match the Person interface expected by DeleteRecipientsDialog
+  const peopleData = recipients.map(recipient => ({
+    id: recipient.id,
+    name: recipient.name,
+    gifts: gifts.filter(g => g.recipient_id === recipient.id),
+    notes: recipient.notes,
+    assignedTo: recipient.assigned_to,
+  }));
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading recipients...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6">
@@ -153,8 +116,8 @@ const RecipientsManager = () => {
                   rows={4}
                 />
               </div>
-              <Button 
-                onClick={handleBulkAdd} 
+              <Button
+                onClick={handleBulkAdd}
                 className="w-full min-h-[44px] touch-target focus-ring"
                 disabled={!bulkNames.trim()}
               >
@@ -173,9 +136,9 @@ const RecipientsManager = () => {
               <CardTitle className="flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Current Recipients ({people.length})
+                  Current Recipients ({recipients.length})
                 </div>
-                {people.length > 0 && (
+                {recipients.length > 0 && (
                   <Button
                     variant="destructive"
                     size="sm"
@@ -189,14 +152,14 @@ const RecipientsManager = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {people.length > 0 ? (
+              {recipients.length > 0 ? (
                 <div className="space-y-2">
-                  {people.map((person) => (
+                  {peopleData.map((person) => (
                     <div key={person.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{person.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''} • 
+                          {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''} •
                           {person.assignedTo ? ` Assigned to ${buyers.find(b => b.id === person.assignedTo)?.name || 'Unknown'}` : ' Unassigned'}
                         </p>
                       </div>
@@ -216,8 +179,20 @@ const RecipientsManager = () => {
         <DeleteRecipientsDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
-          people={people}
-          onDeletePeople={handleDeletePeople}
+          people={peopleData}
+          onDeletePeople={async (peopleIds: string[]) => {
+            // Use the hook's bulk delete
+            const { bulkDeleteRecipients } = useRecipients(householdId);
+            try {
+              await bulkDeleteRecipients(peopleIds);
+              toast({
+                title: "Recipients deleted",
+                description: `${peopleIds.length} recipient${peopleIds.length !== 1 ? 's' : ''} ${peopleIds.length !== 1 ? 'have' : 'has'} been permanently deleted.`,
+              });
+            } catch (error) {
+              // Error toast shown by hook
+            }
+          }}
         />
       </div>
     </div>

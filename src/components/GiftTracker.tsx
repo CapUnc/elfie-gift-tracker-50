@@ -25,11 +25,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 import { GiftForm } from './GiftForm';
-
-// Force rebuild to clear cached Popover references
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
+import { useBuyers } from '@/hooks/useBuyers';
+import { useRecipients } from '@/hooks/useRecipients';
+import { useGifts } from '@/hooks/useGifts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Buyer {
   id: string;
@@ -53,7 +57,7 @@ interface Person {
   name: string;
   gifts: Gift[];
   notes: string;
-  assignedTo: string | null; // Buyer ID
+  assignedTo: string | null;
   completed?: boolean;
   manualComplete?: boolean;
 }
@@ -62,18 +66,21 @@ const GiftTracker = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const haptic = useHapticFeedback();
-  const [people, setPeople] = useState<Person[]>([]);
-  const [buyers, setBuyers] = useState<Buyer[]>([
-    { id: '1', name: 'Matt', emoji: '👨' },
-    { id: '2', name: 'Maddie', emoji: '👩' }
-  ]);
+  const { session } = useAuth();
+  const { householdId, loading: householdLoading } = useHousehold(session?.user?.id);
+  
+  // Supabase hooks
+  const { buyers: supabaseBuyers, loading: buyersLoading } = useBuyers(householdId);
+  const { recipients: supabaseRecipients, updateRecipient, addRecipient } = useRecipients(householdId);
+  const { gifts: supabaseGifts, addGift: addGiftToDb, updateGift: updateGiftInDb, updateGiftStatus: updateGiftStatusInDb, deleteGift: deleteGiftFromDb, duplicateGift: duplicateGiftInDb, batchUpdateGifts } = useGifts(householdId);
+  
+  // Local state
   const [currency, setCurrency] = useState('$');
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string; gift?: Gift } | null>(null);
   const [giftForm, setGiftForm] = useState({ name: '', cost: '' });
-  const [isLoaded, setIsLoaded] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set());
   const [showLegend, setShowLegend] = useState(false);
@@ -111,6 +118,56 @@ const GiftTracker = () => {
   const buttonsRef = useRef<Map<string, HTMLButtonElement>>(new Map());
   const animateButton = useAnimatedButton();
 
+  // Transform Supabase data into local format
+  const buyers: Buyer[] = supabaseBuyers;
+  
+  const people: Person[] = useMemo(() => {
+    return supabaseRecipients.map(recipient => ({
+      id: recipient.id,
+      name: recipient.name,
+      notes: recipient.notes,
+      assignedTo: recipient.assigned_to,
+      completed: recipient.completed,
+      manualComplete: recipient.manual_complete,
+      gifts: supabaseGifts
+        .filter(gift => gift.recipient_id === recipient.id)
+        .map(gift => ({
+          id: gift.id,
+          name: gift.name,
+          cost: gift.cost,
+          purchased: gift.purchased,
+          wrapped: gift.wrapped,
+          url: gift.url || undefined,
+          tracking: gift.tracking || undefined,
+          assignedTo: gift.assigned_to || undefined,
+        }))
+    }));
+  }, [supabaseRecipients, supabaseGifts]);
+
+  // Load currency from Supabase household
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      if (!householdId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('households')
+          .select('currency')
+          .eq('id', householdId)
+          .single();
+
+        if (error) throw error;
+        if (data?.currency) {
+          setCurrency(data.currency);
+        }
+      } catch (error) {
+        console.error('Error fetching currency:', error);
+      }
+    };
+
+    fetchCurrency();
+  }, [householdId]);
+
   // Handle navigation state from Summary page
   useEffect(() => {
     const state = window.history.state?.usr?.state;
@@ -129,318 +186,184 @@ const GiftTracker = () => {
           setFilters(prev => ({ ...prev, costStatus: 'missing-cost' }));
           break;
       }
-      
-      // Clear the navigation state
       window.history.replaceState(null, '', window.location.pathname);
     }
     
-    // Handle assignedTo filter from Summary buyer breakdown
     if (state?.assignedTo) {
       setFilters(prev => ({ ...prev, assignedTo: state.assignedTo }));
-      
-      // Clear the navigation state
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);
 
-  // Initialize with sample data if no data exists
-  const initialPeople: Person[] = [
-    {
-      id: '1',
-      name: 'Mom',
-      gifts: [
-        { id: '1-1', name: 'Jewelry box', cost: 45, purchased: true, wrapped: false },
-        { id: '1-2', name: 'Book collection', cost: 85, purchased: false, wrapped: false }
-      ],
-      notes: 'Loves vintage jewelry and classic novels',
-      assignedTo: '1'
-    },
-    {
-      id: '2', 
-      name: 'Dad',
-      gifts: [
-        { id: '2-1', name: 'Coffee grinder', cost: 120, purchased: true, wrapped: true },
-        { id: '2-2', name: 'Golf accessories', cost: null, purchased: false, wrapped: false }
-      ],
-      notes: 'Coffee enthusiast and weekend golfer',
-      assignedTo: '2'
-    },
-    {
-      id: '3',
-      name: 'Sarah',
-      gifts: [
-        { id: '3-1', name: 'Art supplies', cost: 65, purchased: true, wrapped: true },
-        { id: '3-2', name: 'Tablet for drawing', cost: 300, purchased: false, wrapped: false },
-        { id: '3-3', name: 'Online course subscription', cost: 99, purchased: true, wrapped: false }
-      ],
-      notes: 'Aspiring digital artist, loves creative projects',
-      assignedTo: '1'
-    }
-  ];
-
-  // Load data from localStorage on component mount
+  // Show legend for first-time users
   useEffect(() => {
-    try {
-      const savedData = localStorage.getItem('christmas-gifts-2025');
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        setPeople(parsedData);
-      } else {
-        setPeople(initialPeople);
-      }
-
-      const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
-      if (savedBuyers) {
-        setBuyers(JSON.parse(savedBuyers));
-      }
-
-      const savedCurrency = localStorage.getItem('christmas-gifts-currency');
-      if (savedCurrency) {
-        setCurrency(savedCurrency);
-      }
-
-      setIsLoaded(true);
-
-      // Show legend for first-time users
-      const hasSeenLegend = localStorage.getItem('christmas-gifts-legend-seen');
-      if (!hasSeenLegend) {
-        setShowLegend(true);
-        localStorage.setItem('christmas-gifts-legend-seen', 'true');
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setPeople(initialPeople);
-      setIsLoaded(true);
+    const hasSeenLegend = localStorage.getItem('christmas-gifts-legend-seen');
+    if (!hasSeenLegend) {
+      setShowLegend(true);
+      localStorage.setItem('christmas-gifts-legend-seen', 'true');
     }
   }, []);
 
-  // Save to localStorage whenever people data changes
-  useEffect(() => {
-    if (isLoaded && people.length > 0) {
+  const addPerson = async () => {
+    if (newPersonName.trim() && householdId) {
       try {
-        localStorage.setItem('christmas-gifts-2025', JSON.stringify(people));
+        await addRecipient(newPersonName.trim(), newPersonAssignment);
+        setNewPersonName('');
+        setNewPersonAssignment(null);
+        setIsAddPersonOpen(false);
+        setUnsavedChanges(false);
+        
+        haptic.impact('light');
+        toast({
+          title: "Person added",
+          description: `${newPersonName.trim()} has been added to your gift list.`,
+        });
       } catch (error) {
-        console.error('Error saving data:', error);
+        // Error toast shown by hook
       }
     }
-  }, [people, isLoaded]);
+  };
 
-  // Save buyers to localStorage whenever buyers data changes
-  useEffect(() => {
-    if (isLoaded && buyers.length > 0) {
+  const addGift = async (personId: string) => {
+    if (giftForm.name.trim() && householdId) {
       try {
-        localStorage.setItem('christmas-gifts-buyers', JSON.stringify(buyers));
+        await addGiftToDb(
+          personId,
+          giftForm.name.trim(),
+          giftForm.cost ? parseFloat(giftForm.cost) : null
+        );
+        
+        setGiftForm({ name: '', cost: '' });
+        setEditingGift(null);
+        
+        haptic.impact('light');
+        toast({
+          title: "Gift added",
+          description: `"${giftForm.name.trim()}" has been added to the list.`,
+        });
       } catch (error) {
-        console.error('Error saving buyers:', error);
+        // Error toast shown by hook
       }
     }
-  }, [buyers, isLoaded]);
+  };
 
-  // Save currency to localStorage whenever it changes
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem('christmas-gifts-currency', currency);
-      } catch (error) {
-        console.error('Error saving currency:', error);
-      }
-    }
-  }, [currency, isLoaded]);
-
-  const addPerson = () => {
-    if (newPersonName.trim()) {
-      const newPerson: Person = {
-        id: Date.now().toString(),
-        name: newPersonName.trim(),
-        gifts: [],
-        notes: '',
-        assignedTo: newPersonAssignment
-      };
-      setPeople([...people, newPerson]);
-      setNewPersonName('');
-      setNewPersonAssignment(null);
-      setIsAddPersonOpen(false);
-      setUnsavedChanges(false);
+  const updateGift = async (personId: string, giftId: string, updatedGift: Partial<Gift>) => {
+    try {
+      await updateGiftInDb(giftId, updatedGift);
       
       haptic.impact('light');
       toast({
-        title: "Person added",
-        description: `${newPerson.name} has been added to your gift list.`,
+        title: "Gift updated",
+        description: "Gift details have been saved.",
       });
+    } catch (error) {
+      // Error toast shown by hook
     }
   };
 
-  const addGift = (personId: string) => {
-    if (giftForm.name.trim()) {
-      const newGift: Gift = {
-        id: Date.now().toString(),
-        name: giftForm.name.trim(),
-        cost: giftForm.cost ? parseFloat(giftForm.cost) : null,
-        purchased: false,
-        wrapped: false
-      };
+  const updateGiftStatus = async (personId: string, giftId: string, field: 'purchased' | 'wrapped', value: boolean) => {
+    try {
+      await updateGiftStatusInDb(giftId, field, value);
+
+      const person = people.find(p => p.id === personId);
+      const gift = person?.gifts.find(g => g.id === giftId);
       
-      setPeople(people.map(person => 
-        person.id === personId 
-          ? { ...person, gifts: [...person.gifts, newGift] }
-          : person
-      ));
+      if (gift) {
+        haptic.impact('light');
+        const action = value ? (field === 'purchased' ? 'purchased' : 'wrapped') : 
+                             (field === 'purchased' ? 'unpurchased' : 'unwrapped');
+        
+        toast({
+          title: `${gift.name} ${action}`,
+          description: `Status updated for ${person?.name}`,
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      // Error toast shown by hook
+    }
+  };
+
+  const deleteGift = async (personId: string, giftId: string) => {
+    try {
+      await deleteGiftFromDb(giftId);
       
-      setGiftForm({ name: '', cost: '' });
-      setEditingGift(null);
-      
-      haptic.impact('light');
+      haptic.impact('medium');
       toast({
-        title: "Gift added",
-        description: `"${newGift.name}" has been added to the list.`,
+        title: "Gift removed",
+        description: "The gift has been deleted from the list.",
       });
+    } catch (error) {
+      // Error toast shown by hook
     }
   };
 
-  const updateGift = (personId: string, giftId: string, updatedGift: Partial<Gift>) => {
-    setPeople(people.map(person => 
-      person.id === personId 
-        ? {
-            ...person,
-            gifts: person.gifts.map(gift => 
-              gift.id === giftId ? { ...gift, ...updatedGift } : gift
-            )
-          }
-        : person
-    ));
-    
-    haptic.impact('light');
-    toast({
-      title: "Gift updated",
-      description: "Gift details have been saved.",
-    });
-  };
-
-  const updateGiftStatus = (personId: string, giftId: string, field: 'purchased' | 'wrapped', value: boolean) => {
-    setPeople(people.map(person => 
-      person.id === personId 
-        ? {
-            ...person,
-            gifts: person.gifts.map(gift => 
-              gift.id === giftId ? { ...gift, [field]: value } : gift
-            )
-          }
-        : person
-    ));
-
-    const person = people.find(p => p.id === personId);
-    const gift = person?.gifts.find(g => g.id === giftId);
-    
-    if (gift) {
-      haptic.impact('light');
-      
-      // Show micro-toast for status changes
-      const action = value ? (field === 'purchased' ? 'purchased' : 'wrapped') : 
-                           (field === 'purchased' ? 'unpurchased' : 'unwrapped');
-      
-      toast({
-        title: `${gift.name} ${action}`,
-        description: `Status updated for ${person?.name}`,
-        duration: 2000,
-      });
-    }
-  };
-
-  const deleteGift = (personId: string, giftId: string) => {
-    setPeople(people.map(person => 
-      person.id === personId 
-        ? { ...person, gifts: person.gifts.filter(gift => gift.id !== giftId) }
-        : person
-    ));
-    
-    haptic.impact('medium');
-    toast({
-      title: "Gift removed",
-      description: "The gift has been deleted from the list.",
-    });
-  };
-
-  const duplicateGift = (personId: string, giftId: string) => {
-    const person = people.find(p => p.id === personId);
-    const gift = person?.gifts.find(g => g.id === giftId);
-    
-    if (gift) {
-      const duplicatedGift: Gift = {
-        ...gift,
-        id: Date.now().toString(),
-        name: `${gift.name} (Copy)`,
-        purchased: false,
-        wrapped: false
-      };
-      
-      setPeople(people.map(p => 
-        p.id === personId 
-          ? { ...p, gifts: [...p.gifts, duplicatedGift] }
-          : p
-      ));
+  const duplicateGift = async (personId: string, giftId: string) => {
+    try {
+      await duplicateGiftInDb(giftId);
       
       haptic.impact('light');
       toast({
         title: "Gift duplicated",
-        description: `"${duplicatedGift.name}" has been added.`,
+        description: "Gift has been duplicated.",
       });
+    } catch (error) {
+      // Error toast shown by hook
     }
   };
 
-  const markAllPurchased = (personId: string) => {
-    setPeople(people.map(person => 
-      person.id === personId 
-        ? {
-            ...person,
-            gifts: person.gifts.map(gift => ({ ...gift, purchased: true }))
-          }
-        : person
-    ));
-    
-    haptic.impact('medium');
-    const person = people.find(p => p.id === personId);
-    toast({
-      title: "All gifts purchased",
-      description: `All gifts for ${person?.name} marked as purchased.`,
-    });
+  const markAllPurchased = async (personId: string) => {
+    try {
+      await batchUpdateGifts(personId, { purchased: true });
+      
+      haptic.impact('medium');
+      const person = people.find(p => p.id === personId);
+      toast({
+        title: "All gifts purchased",
+        description: `All gifts for ${person?.name} marked as purchased.`,
+      });
+    } catch (error) {
+      // Error toast shown by hook
+    }
   };
 
-  const markAllWrapped = (personId: string) => {
-    setPeople(people.map(person => 
-      person.id === personId 
-        ? {
-            ...person,
-            gifts: person.gifts.map(gift => ({ ...gift, wrapped: true }))
-          }
-        : person
-    ));
-    
-    haptic.impact('medium');
-    const person = people.find(p => p.id === personId);
-    toast({
-      title: "All gifts wrapped",
-      description: `All gifts for ${person?.name} marked as wrapped.`,
-    });
+  const markAllWrapped = async (personId: string) => {
+    try {
+      await batchUpdateGifts(personId, { wrapped: true });
+      
+      haptic.impact('medium');
+      const person = people.find(p => p.id === personId);
+      toast({
+        title: "All gifts wrapped",
+        description: `All gifts for ${person?.name} marked as wrapped.`,
+      });
+    } catch (error) {
+      // Error toast shown by hook
+    }
   };
 
-  const updatePersonNotes = (personId: string, notes: string) => {
-    setPeople(people.map(person => 
-      person.id === personId ? { ...person, notes } : person
-    ));
+  const updatePersonNotes = async (personId: string, notes: string) => {
+    try {
+      await updateRecipient(personId, { notes });
+    } catch (error) {
+      // Error toast shown by hook
+    }
   };
 
-  const updatePersonAssignment = (personId: string, buyerId: string | null) => {
-    setPeople(people.map(person => 
-      person.id === personId ? { ...person, assignedTo: buyerId } : person
-    ));
-    
-    const buyer = buyers.find(b => b.id === buyerId);
-    const person = people.find(p => p.id === personId);
-    
-    toast({
-      title: "Assignment updated",
-      description: `${person?.name} ${buyerId ? `assigned to ${buyer?.name}` : 'unassigned'}.`,
-    });
+  const updatePersonAssignment = async (personId: string, buyerId: string | null) => {
+    try {
+      await updateRecipient(personId, { assigned_to: buyerId });
+      
+      const buyer = buyers.find(b => b.id === buyerId);
+      const person = people.find(p => p.id === personId);
+      
+      toast({
+        title: "Assignment updated",
+        description: `${person?.name} ${buyerId ? `assigned to ${buyer?.name}` : 'unassigned'}.`,
+      });
+    } catch (error) {
+      // Error toast shown by hook
+    }
   };
 
   const getCompletionStats = (person: Person) => {
@@ -452,15 +375,13 @@ const GiftTracker = () => {
     return { total, purchased, wrapped, totalCost };
   };
 
-  const handleCompletionChange = (person: Person, completed: boolean) => {
+  const handleCompletionChange = async (person: Person, completed: boolean) => {
     if (completed) {
-      // Check if all gifts are purchased and wrapped
       const stats = getCompletionStats(person);
       const incompletePurchased = stats.total - stats.purchased;
       const incompleteWrapped = stats.total - stats.wrapped;
       
       if (incompletePurchased > 0 || incompleteWrapped > 0) {
-        // Show dialog asking what to do
         setCompletionDialog({
           isOpen: true,
           person,
@@ -473,31 +394,30 @@ const GiftTracker = () => {
       }
     }
     
-    // If uncompleting or all gifts are complete, just toggle
     confirmManualComplete(person, completed, false);
   };
 
-  const confirmManualComplete = (person: Person, completed: boolean, markAllComplete: boolean) => {
-    setPeople(people.map(p => 
-      p.id === person.id 
-        ? { 
-            ...p, 
-            completed,
-            manualComplete: completed,
-            gifts: markAllComplete 
-              ? p.gifts.map(g => ({ ...g, purchased: true, wrapped: true }))
-              : p.gifts
-          }
-        : p
-    ));
-    
-    haptic.impact(completed ? 'medium' : 'light');
-    toast({
-      title: completed ? "Person completed" : "Person reopened",
-      description: completed 
-        ? `${person.name} is now marked as complete.`
-        : `${person.name} has been reopened for editing.`,
-    });
+  const confirmManualComplete = async (person: Person, completed: boolean, markAllComplete: boolean) => {
+    try {
+      if (markAllComplete) {
+        await batchUpdateGifts(person.id, { purchased: true, wrapped: true });
+      }
+      
+      await updateRecipient(person.id, {
+        completed,
+        manual_complete: completed
+      });
+      
+      haptic.impact(completed ? 'medium' : 'light');
+      toast({
+        title: completed ? "Person completed" : "Person reopened",
+        description: completed 
+          ? `${person.name} is now marked as complete.`
+          : `${person.name} has been reopened for editing.`,
+      });
+    } catch (error) {
+      // Error toast shown by hook
+    }
   };
 
   const handleManualComplete = (person: Person) => {
@@ -507,7 +427,6 @@ const GiftTracker = () => {
   // Filtering logic
   const filteredPeople = useMemo(() => {
     return people.filter(person => {
-      // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         const matchesName = person.name.toLowerCase().includes(searchLower);
@@ -517,7 +436,6 @@ const GiftTracker = () => {
         if (!matchesName && !matchesGifts) return false;
       }
 
-      // Assignment filter
       if (filters.assignedTo !== 'all') {
         if (filters.assignedTo === 'unassigned') {
           if (person.assignedTo !== null) return false;
@@ -526,11 +444,9 @@ const GiftTracker = () => {
         }
       }
 
-      // Completion filter
       if (filters.completion === 'completed' && !person.completed) return false;
       if (filters.completion === 'incomplete' && person.completed) return false;
 
-      // Wrapping filter
       if (filters.wrapping === 'needs-wrapping') {
         const hasUnwrappedGifts = person.gifts.some(gift => gift.purchased && !gift.wrapped);
         if (!hasUnwrappedGifts) return false;
@@ -540,11 +456,9 @@ const GiftTracker = () => {
         if (!allWrapped) return false;
       }
 
-      // Gifts filter
       if (filters.hasGifts === 'with-gifts' && person.gifts.length === 0) return false;
       if (filters.hasGifts === 'no-gifts' && person.gifts.length > 0) return false;
 
-      // Cost status filter
       if (filters.costStatus === 'missing-cost') {
         const hasMissingCosts = person.gifts.some(gift => gift.cost === null || gift.cost === 0);
         if (!hasMissingCosts) return false;
@@ -580,7 +494,7 @@ const GiftTracker = () => {
           return 0;
       }
     });
-  }, [filteredPeople, sortConfig]);
+  }, [filteredPeople, sortConfig, buyers]);
 
   const handleSort = (key: typeof sortConfig.key) => {
     setSortConfig(prev => ({
@@ -625,13 +539,19 @@ const GiftTracker = () => {
       const element = document.getElementById(`person-${person.id}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        
-        // Highlight the person briefly
         setHighlightedItems(new Set([`person-${person.id}`]));
         setTimeout(() => setHighlightedItems(new Set()), 2000);
       }
     }
   };
+
+  if (householdLoading || buyersLoading) {
+    return (
+      <div className="p-4 sm:p-6 pb-20 max-w-full overflow-hidden flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 pb-20 max-w-full overflow-hidden">
@@ -681,7 +601,6 @@ const GiftTracker = () => {
             filters={filters}
             onFiltersChange={setFilters}
             buyers={buyers}
-            
           />
         </div>
 
@@ -839,7 +758,6 @@ const GiftTracker = () => {
                       <div className="p-4 border-b bg-muted/30">
                         <div className="flex items-center justify-between gap-3 min-w-0">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {/* Expand/Collapse Button */}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -861,7 +779,6 @@ const GiftTracker = () => {
                               )}
                             </Button>
 
-                            {/* Person Name & Status */}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 min-w-0">
                                 <h3 className={cn(
@@ -875,7 +792,6 @@ const GiftTracker = () => {
                                 )}
                               </div>
 
-                              {/* Stats Row */}
                               <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                                 <span className="flex items-center gap-1">
                                   <Gift className="h-3 w-3" />
@@ -892,13 +808,12 @@ const GiftTracker = () => {
                                 {stats.totalCost > 0 && (
                                   <span className="flex items-center gap-1">
                                     <DollarSign className="h-3 w-3" />
-                                    {formatCurrency(stats.totalCost, getCurrencySymbol())}
+                                    {formatCurrency(stats.totalCost, currency)}
                                   </span>
                                 )}
                               </div>
                             </div>
 
-                            {/* Small Assignment Avatar */}
                             <Popover 
                               open={openAssignmentPopover === person.id} 
                               onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : null)}
@@ -943,7 +858,6 @@ const GiftTracker = () => {
                               </PopoverContent>
                             </Popover>
 
-                            {/* Complete Toggle */}
                             <div className="flex-shrink-0">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -967,7 +881,6 @@ const GiftTracker = () => {
                           </div>
                         </div>
 
-                        {/* Progress Bar */}
                         {stats.total > 0 && (
                           <div className="mt-3">
                             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
@@ -988,7 +901,6 @@ const GiftTracker = () => {
                       <Collapsible open={isExpanded}>
                         <CollapsibleContent>
                           <div className="p-4 space-y-4">
-                            {/* Notes Section */}
                             <div>
                               <label className="text-sm font-medium mb-2 block">Notes</label>
                               {editingNotes === person.id ? (
@@ -1019,7 +931,6 @@ const GiftTracker = () => {
                               )}
                             </div>
 
-                            {/* Gifts Section */}
                             {person.gifts.length > 0 ? (
                               <div className="space-y-3 max-w-full">
                                 <div className="flex items-center justify-between mb-3">
@@ -1037,72 +948,38 @@ const GiftTracker = () => {
                                     Add Gift
                                   </Button>
                                 </div>
-                               {person.gifts.map((gift) => (
-                                 <div
-                                   key={gift.id}
-                                   className="flex items-center justify-between gap-3 p-3 border rounded-lg bg-background/50 max-w-full"
-                                 >
-                                   {/* Left: Gift info and status toggles */}
-                                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <SwipeableGiftItem
-                                          gift={gift}
-                                          currency={getCurrencySymbol()}
-                                          onUpdate={(giftId, field, value) => updateGiftStatus(person.id, giftId, field, value)}
-                                          onDelete={(giftId) => deleteGift(person.id, giftId)}
-                                          onEdit={(giftId) => {
-                                            setEditingGift({
-                                              personId: person.id,
-                                              giftId: giftId,
-                                              gift: gift
-                                            });
-                                          }}
-                                      />
-                                     
-                                     <div className="min-w-0 flex-1">
-                                       <div className="flex items-center gap-2 min-w-0">
-                                         <h5 className={cn(
-                                           "font-medium text-sm min-w-0 truncate",
-                                           gift.purchased && gift.wrapped && "line-through text-muted-foreground"
-                                         )}>
-                                           {gift.name}
-                                         </h5>
-                                       </div>
-                                     </div>
-                                   </div>
-
-                                   {/* Right: Cost and single edit button */}
-                                   <div className="flex items-center gap-2 flex-shrink-0">
-                                     <span className="text-sm text-muted-foreground">
-                                       {gift.cost ? formatCurrency(gift.cost, getCurrencySymbol()) : '—'}
-                                     </span>
-                                     <Button
-                                       variant="ghost"
-                                       size="sm"
-                                       className="h-6 w-6 p-0"
-                                       onClick={() => setEditingGift({ personId: person.id, giftId: gift.id, gift })}
-                                       aria-label={`Edit ${gift.name}`}
-                                     >
-                                       <Edit2 className="h-3 w-3" />
-                                     </Button>
-                                   </div>
-                                 </div>
-                               ))}
-                             </div>
-                           ) : (
-                             <div className="text-center py-6 text-muted-foreground">
-                               <Gift className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                               <p className="text-sm">No gifts added yet</p>
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 className="mt-2"
-                                 onClick={() => setEditingGift({ personId: person.id })}
-                               >
-                                 <Plus className="h-4 w-4 mr-1" />
-                                 Add Gift
-                               </Button>
-                             </div>
-                           )}
+                                {person.gifts.map((gift) => (
+                                  <SwipeableGiftItem
+                                    key={gift.id}
+                                    gift={gift}
+                                    currency={currency}
+                                    onUpdate={(giftId, field, value) => updateGiftStatus(person.id, giftId, field, value)}
+                                    onDelete={(giftId) => deleteGift(person.id, giftId)}
+                                    onEdit={(giftId) => {
+                                      setEditingGift({
+                                        personId: person.id,
+                                        giftId: giftId,
+                                        gift: gift
+                                      });
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-muted-foreground">
+                                <Gift className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No gifts added yet</p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="mt-2"
+                                  onClick={() => setEditingGift({ personId: person.id })}
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Gift
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </CollapsibleContent>
                       </Collapsible>
@@ -1114,93 +991,80 @@ const GiftTracker = () => {
           </div>
         </div>
 
+        {/* Gift Form for Add/Edit */}
+        {editingGift && (
+          <GiftForm
+            key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
+            isOpen={true}
+            onClose={() => setEditingGift(null)}
+            onSubmit={async (giftData) => {
+              if (editingGift.giftId) {
+                await updateGift(editingGift.personId, editingGift.giftId, {
+                  name: giftData.name,
+                  cost: giftData.cost ? parseFloat(giftData.cost) : null
+                });
+              } else {
+                await addGift(editingGift.personId);
+              }
+              setEditingGift(null);
+            }}
+            personName={people.find(p => p.id === editingGift.personId)?.name || ''}
+            currency={currency}
+            editingGift={editingGift.gift}
+            mode={editingGift.giftId ? 'edit' : 'add'}
+          />
+        )}
 
-         {/* Gift Form for Add/Edit */}
-         {editingGift && (
-            <GiftForm
-              key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
-              isOpen={true}
-              onClose={() => setEditingGift(null)}
-              onSubmit={(giftData) => {
-                if (editingGift.giftId) {
-                  updateGift(editingGift.personId, editingGift.giftId, {
-                    name: giftData.name,
-                    cost: giftData.cost ? parseFloat(giftData.cost) : null
-                  });
-                } else {
-                  const newGift: Gift = {
-                    id: Date.now().toString(),
-                    name: giftData.name,
-                    cost: giftData.cost ? parseFloat(giftData.cost) : null,
-                    purchased: false,
-                    wrapped: false
-                  };
-                  
-                  setPeople(people.map(person => 
-                    person.id === editingGift.personId 
-                      ? { ...person, gifts: [...person.gifts, newGift] }
-                      : person
-                  ));
+        {/* Completion Dialog */}
+        <AlertDialog open={completionDialog.isOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Complete Person</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  {completionDialog.person?.name} still has:
+                </p>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  {completionDialog.incompleteParts.purchased > 0 && (
+                    <li>{completionDialog.incompleteParts.purchased} gift{completionDialog.incompleteParts.purchased > 1 ? 's' : ''} not purchased</li>
+                  )}
+                  {completionDialog.incompleteParts.wrapped > 0 && (
+                    <li>{completionDialog.incompleteParts.wrapped} gift{completionDialog.incompleteParts.wrapped > 1 ? 's' : ''} not wrapped</li>
+                  )}
+                </ul>
+                <p className="text-sm">
+                  Would you like to mark all remaining gifts as purchased and wrapped, or just mark as complete anyway?
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+              <AlertDialogCancel onClick={() => {
+                setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (completionDialog.person) {
+                    confirmManualComplete(completionDialog.person, true, false);
+                  }
+                  setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
+                }}
+              >
+                Mark Complete Anyway
+              </Button>
+              <AlertDialogAction onClick={() => {
+                if (completionDialog.person) {
+                  confirmManualComplete(completionDialog.person, true, true);
                 }
-                setEditingGift(null);
-              }}
-              personName={people.find(p => p.id === editingGift.personId)?.name || ''}
-              currency={getCurrencySymbol()}
-              editingGift={editingGift.gift}
-              mode={editingGift.giftId ? 'edit' : 'add'}
-            />
-         )}
-
-         {/* Completion Dialog */}
-         <AlertDialog open={completionDialog.isOpen}>
-           <AlertDialogContent>
-             <AlertDialogHeader>
-               <AlertDialogTitle>Complete Person</AlertDialogTitle>
-               <AlertDialogDescription className="space-y-2">
-                 <p>
-                   {completionDialog.person?.name} still has:
-                 </p>
-                 <ul className="list-disc list-inside text-sm space-y-1">
-                   {completionDialog.incompleteParts.purchased > 0 && (
-                     <li>{completionDialog.incompleteParts.purchased} gift{completionDialog.incompleteParts.purchased > 1 ? 's' : ''} not purchased</li>
-                   )}
-                   {completionDialog.incompleteParts.wrapped > 0 && (
-                     <li>{completionDialog.incompleteParts.wrapped} gift{completionDialog.incompleteParts.wrapped > 1 ? 's' : ''} not wrapped</li>
-                   )}
-                 </ul>
-                 <p className="text-sm">
-                   Would you like to mark all remaining gifts as purchased and wrapped, or just mark as complete anyway?
-                 </p>
-               </AlertDialogDescription>
-             </AlertDialogHeader>
-             <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
-               <AlertDialogCancel onClick={() => {
-                 setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
-               }}>
-                 Cancel
-               </AlertDialogCancel>
-               <Button
-                 variant="outline"
-                 onClick={() => {
-                   if (completionDialog.person) {
-                     confirmManualComplete(completionDialog.person, true, false);
-                   }
-                   setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
-                 }}
-               >
-                 Mark Complete Anyway
-               </Button>
-               <AlertDialogAction onClick={() => {
-                 if (completionDialog.person) {
-                   confirmManualComplete(completionDialog.person, true, true);
-                 }
-                 setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
-               }}>
-                 Complete All Gifts
-               </AlertDialogAction>
-             </AlertDialogFooter>
-           </AlertDialogContent>
-         </AlertDialog>
+                setCompletionDialog({ isOpen: false, person: null, incompleteParts: { purchased: 0, wrapped: 0 } });
+              }}>
+                Complete All Gifts
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

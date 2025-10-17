@@ -4,66 +4,79 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
-
-interface Person {
-  id: string;
-  name: string;
-  gifts: any[];
-  notes: string;
-  assignedTo: string | null;
-}
-
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
-}
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
+import { useBuyers } from '@/hooks/useBuyers';
+import { useRecipients } from '@/hooks/useRecipients';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const { householdId, loading: householdLoading } = useHousehold(session?.user?.id);
+  const { buyers } = useBuyers(householdId);
+  const { recipients } = useRecipients(householdId);
+  const { toast } = useToast();
   const [currency, setCurrency] = useState('$');
-  const [people, setPeople] = useState<Person[]>([]);
-  const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [loadingCurrency, setLoadingCurrency] = useState(true);
 
-  // Load currency from localStorage
+  // Load currency from Supabase household
   useEffect(() => {
-    const savedCurrency = localStorage.getItem('christmas-gifts-currency');
-    if (savedCurrency) {
-      setCurrency(savedCurrency);
-    }
-  }, []);
-
-  // Load recipients from localStorage
-  useEffect(() => {
-    const savedPeople = localStorage.getItem('christmas-gifts-2025');
-    if (savedPeople) {
-      setPeople(JSON.parse(savedPeople));
-    }
-  }, []);
-
-  // Load buyers from localStorage
-  useEffect(() => {
-    const savedBuyers = localStorage.getItem('christmas-gifts-buyers');
-    if (savedBuyers) {
-      const parsed = JSON.parse(savedBuyers);
-      // Handle migration from old string array format
-      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
-        const migratedBuyers = parsed.map((name: string, index: number) => ({
-          id: (index + 1).toString(),
-          name,
-          emoji: index === 0 ? '👨' : '👩'
-        }));
-        setBuyers(migratedBuyers);
-      } else {
-        setBuyers(parsed);
+    const fetchCurrency = async () => {
+      if (!householdId) {
+        setLoadingCurrency(false);
+        return;
       }
-    }
-  }, []);
 
-  // Save currency to localStorage
-  useEffect(() => {
-    localStorage.setItem('christmas-gifts-currency', currency);
-  }, [currency]);
+      try {
+        const { data, error } = await supabase
+          .from('households')
+          .select('currency')
+          .eq('id', householdId)
+          .single();
+
+        if (error) throw error;
+        if (data?.currency) {
+          setCurrency(data.currency);
+        }
+      } catch (error) {
+        console.error('Error fetching currency:', error);
+      } finally {
+        setLoadingCurrency(false);
+      }
+    };
+
+    fetchCurrency();
+  }, [householdId]);
+
+  // Save currency to Supabase
+  const handleCurrencyChange = async (newCurrency: string) => {
+    setCurrency(newCurrency);
+
+    if (!householdId) return;
+
+    try {
+      const { error } = await supabase
+        .from('households')
+        .update({ currency: newCurrency })
+        .eq('id', householdId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Currency updated',
+        description: 'Your currency preference has been saved.',
+      });
+    } catch (error) {
+      console.error('Error updating currency:', error);
+      toast({
+        title: 'Error updating currency',
+        description: 'Please try again later.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6">
@@ -98,7 +111,7 @@ const Settings = () => {
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">
                   Select Currency Symbol
                 </label>
-                <Select value={currency} onValueChange={setCurrency}>
+                <Select value={currency} onValueChange={handleCurrencyChange} disabled={loadingCurrency}>
                   <SelectTrigger className="w-full max-w-md">
                     <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
@@ -132,7 +145,7 @@ const Settings = () => {
                 navigate('/settings/recipients');
               }
             }}
-            aria-label={`Manage Recipients - ${people.length} recipient${people.length !== 1 ? 's' : ''} added`}
+            aria-label={`Manage Recipients - ${recipients.length} recipient${recipients.length !== 1 ? 's' : ''} added`}
           >
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -146,7 +159,7 @@ const Settings = () => {
             <CardContent>
               <div className="space-y-2">
                 <div className="text-sm text-muted-foreground">
-                  {people.length} recipient{people.length !== 1 ? 's' : ''} added
+                  {recipients.length} recipient{recipients.length !== 1 ? 's' : ''} added
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Add multiple recipients at once or delete existing ones.

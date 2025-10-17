@@ -7,7 +7,7 @@ import { RippleButton } from './RippleButton';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { formatCurrency } from '@/lib/currency';
 import { Save, X } from 'lucide-react';
 
 interface Gift {
