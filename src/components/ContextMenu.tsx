@@ -85,12 +85,10 @@ export const GiftContextMenu: React.FC<GiftContextMenuProps> = ({
 interface PersonContextMenuProps {
   children: React.ReactNode;
   onAddGift: () => void;
-  onEditName: () => void;
   onEditNotes: () => void;
   onEditAssignment: () => void;
   onMarkAllPurchased: () => void;
   onMarkAllWrapped: () => void;
-  onDeletePerson: () => void;
   onMarkComplete: () => void;
   hasGifts: boolean;
   isComplete: boolean;
@@ -99,12 +97,10 @@ interface PersonContextMenuProps {
 export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
   children,
   onAddGift,
-  onEditName,
   onEditNotes,
   onEditAssignment,
   onMarkAllPurchased,
   onMarkAllWrapped,
-  onDeletePerson,
   onMarkComplete,
   hasGifts,
   isComplete
@@ -121,11 +117,6 @@ export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
         </ContextMenuItem>
         
         <ContextMenuSeparator />
-        
-        <ContextMenuItem onClick={onEditName}>
-          <Edit2 className="mr-2 h-4 w-4" />
-          Edit Name
-        </ContextMenuItem>
         
         <ContextMenuItem onClick={onEditNotes}>
           <Edit2 className="mr-2 h-4 w-4" />
@@ -158,13 +149,6 @@ export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
             </ContextMenuItem>
           </>
         )}
-        
-        <ContextMenuSeparator />
-        
-        <ContextMenuItem onClick={onDeletePerson} className="text-destructive focus:text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete Person
-        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   );

@@ -10,7 +10,7 @@ import { useHousehold } from '@/hooks/useHousehold';
 import { useBuyers } from '@/hooks/useBuyers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
-import { DeleteRecipientsDialog } from './DeleteRecipientsDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { z } from 'zod';
 
 const recipientNameSchema = z.string().trim().min(1, 'Name cannot be empty').max(100, 'Name must be less than 100 characters');
@@ -21,10 +21,10 @@ const RecipientsManager = () => {
   const { session } = useAuth();
   const { householdId } = useHousehold(session?.user?.id);
   const { buyers } = useBuyers(householdId);
-  const { recipients, loading, bulkAddRecipients, bulkDeleteRecipients } = useRecipients(householdId);
+  const { recipients, loading, bulkAddRecipients, deleteRecipient } = useRecipients(householdId);
   const { gifts } = useGifts(householdId);
   const [bulkNames, setBulkNames] = useState('');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingRecipient, setDeletingRecipient] = useState<{ id: string; name: string } | null>(null);
 
   const handleBulkAdd = async () => {
     if (!bulkNames.trim()) return;
@@ -82,15 +82,6 @@ const RecipientsManager = () => {
       // Error toast is shown by the hook
     }
   };
-
-  // Convert recipients data to match the Person interface expected by DeleteRecipientsDialog
-  const peopleData = recipients.map(recipient => ({
-    id: recipient.id,
-    name: recipient.name,
-    gifts: gifts.filter(g => g.recipient_id === recipient.id),
-    notes: recipient.notes,
-    assignedTo: recipient.assigned_to,
-  }));
 
   if (loading) {
     return (
@@ -158,38 +149,36 @@ const RecipientsManager = () => {
           {/* Current Recipients */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Current Recipients ({recipients.length})
-                </div>
-                {recipients.length > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setDeleteDialogOpen(true)}
-                    className="min-h-[44px] touch-target focus-ring"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                )}
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Current Recipients ({recipients.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               {recipients.length > 0 ? (
                 <div className="space-y-2">
-                  {peopleData.map((person) => (
-                    <div key={person.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{person.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {person.gifts.length} gift{person.gifts.length !== 1 ? 's' : ''} •
-                          {person.assignedTo ? ` Assigned to ${buyers.find(b => b.id === person.assignedTo)?.name || 'Unknown'}` : ' Unassigned'}
-                        </p>
+                  {recipients.map((recipient) => {
+                    const recipientGifts = gifts.filter(g => g.recipient_id === recipient.id);
+                    return (
+                      <div key={recipient.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium">{recipient.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {recipientGifts.length} gift{recipientGifts.length !== 1 ? 's' : ''} •
+                            {recipient.assigned_to ? ` Assigned to ${buyers.find(b => b.id === recipient.assigned_to)?.name || 'Unknown'}` : ' Unassigned'}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingRecipient({ id: recipient.id, name: recipient.name })}
+                          className="ml-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground italic p-6 text-center bg-muted/30 rounded-md">
@@ -200,23 +189,39 @@ const RecipientsManager = () => {
           </Card>
         </div>
 
-        {/* Delete Recipients Dialog */}
-        <DeleteRecipientsDialog
-          open={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          people={peopleData}
-          onDeletePeople={async (peopleIds: string[]) => {
-            try {
-              await bulkDeleteRecipients(peopleIds);
-              toast({
-                title: "Recipients deleted",
-                description: `${peopleIds.length} recipient${peopleIds.length !== 1 ? 's' : ''} ${peopleIds.length !== 1 ? 'have' : 'has'} been permanently deleted.`,
-              });
-            } catch (error) {
-              // Error toast shown by hook
-            }
-          }}
-        />
+        {/* Single Delete Confirmation Dialog */}
+        <AlertDialog open={!!deletingRecipient} onOpenChange={(open) => !open && setDeletingRecipient(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {deletingRecipient?.name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this recipient and all their gifts. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (deletingRecipient) {
+                    try {
+                      await deleteRecipient(deletingRecipient.id);
+                      toast({
+                        title: "Recipient deleted",
+                        description: `${deletingRecipient.name} has been permanently deleted.`,
+                      });
+                      setDeletingRecipient(null);
+                    } catch (error) {
+                      // Error toast shown by hook
+                    }
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

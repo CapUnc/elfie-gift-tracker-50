@@ -80,7 +80,6 @@ const GiftTracker = () => {
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string; gift?: Gift } | null>(null);
-  const [editingPersonName, setEditingPersonName] = useState<{ id: string; currentName: string } | null>(null);
   
   const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null);
   const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set());
@@ -420,27 +419,6 @@ const GiftTracker = () => {
     }
   };
 
-  const handleNameEdit = async (personId: string, newName: string) => {
-    if (!newName.trim()) {
-      toast({
-        title: "Name cannot be empty",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      await updateRecipient(personId, { name: newName.trim() });
-      setEditingPersonName(null);
-      haptic.success();
-      toast({
-        title: "Name updated",
-        description: `Successfully updated to "${newName.trim()}"`,
-      });
-    } catch (error) {
-      // Error toast shown by hook
-    }
-  };
 
   const handleManualComplete = (person: Person) => {
     handleCompletionChange(person, !person.completed);
@@ -486,9 +464,11 @@ const GiftTracker = () => {
       if (filters.hasGifts === 'no-gifts' && person.gifts.length > 0) return false;
 
       if (filters.costStatus === 'missing-cost') {
-        const hasMissingCosts = person.gifts.some(gift => gift.cost === null || gift.cost === 0);
+        const hasMissingCosts = person.gifts.some(gift => gift.cost === null);
         if (!hasMissingCosts) return false;
       }
+
+      if (!filters.showCompleted && person.completed) return false;
 
       return true;
     });
@@ -721,53 +701,6 @@ const GiftTracker = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Name Dialog */}
-        <Dialog open={!!editingPersonName} onOpenChange={(open) => !open && setEditingPersonName(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Name</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="edit-name" className="text-sm font-medium">Name</label>
-                <Input
-                  id="edit-name"
-                  value={editingPersonName?.currentName || ''}
-                  onChange={(e) => setEditingPersonName(prev => 
-                    prev ? { ...prev, currentName: e.target.value } : null
-                  )}
-                  placeholder="Enter name"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && editingPersonName) {
-                      handleNameEdit(editingPersonName.id, editingPersonName.currentName);
-                    }
-                  }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  onClick={() => {
-                    if (editingPersonName) {
-                      handleNameEdit(editingPersonName.id, editingPersonName.currentName);
-                    }
-                  }}
-                  className="min-h-[44px]"
-                >
-                  Save
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setEditingPersonName(null)}
-                  className="min-h-[44px]"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
         {/* Floating Action Button */}
         <FloatingActionButton 
           onClick={() => setIsAddPersonOpen(true)} 
@@ -810,12 +743,10 @@ const GiftTracker = () => {
                   <PersonContextMenu
                     key={person.id}
                     onAddGift={() => setEditingGift({ personId: person.id })}
-                    onEditName={() => setEditingPersonName({ id: person.id, currentName: person.name })}
                     onEditNotes={() => handleNotesEditStart(person.id)}
                     onEditAssignment={() => setOpenAssignmentPopover(person.id)}
                     onMarkAllPurchased={() => markAllPurchased(person.id)}
                     onMarkAllWrapped={() => markAllWrapped(person.id)}
-                    onDeletePerson={() => {/* TODO: Delete person */}}
                     onMarkComplete={() => handleCompletionChange(person, !person.completed)}
                     hasGifts={person.gifts.length > 0}
                     isComplete={person.completed || false}
@@ -851,14 +782,9 @@ const GiftTracker = () => {
                               <div className="flex items-center gap-2 min-w-0">
                                 <h3 
                                   className={cn(
-                                    "font-medium text-lg min-w-0 truncate cursor-pointer hover:text-primary transition-colors",
+                                    "font-medium text-lg min-w-0 truncate",
                                     person.completed && "line-through text-muted-foreground"
                                   )}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingPersonName({ id: person.id, currentName: person.name });
-                                  }}
-                                  title="Click to edit name"
                                 >
                                   {person.name}
                                 </h3>
