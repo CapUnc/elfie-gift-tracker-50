@@ -94,10 +94,7 @@ const App = () => (
               path="/join-household"
               element={
                 <ProtectedRoute>
-                  <JoinHousehold 
-                    onJoined={() => window.location.href = '/'} 
-                    onSkip={() => window.location.href = '/'}
-                  />
+                  <JoinHousehold />
                 </ProtectedRoute>
               }
             />

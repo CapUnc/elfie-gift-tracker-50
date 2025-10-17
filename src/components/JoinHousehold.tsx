@@ -12,12 +12,9 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 
 const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
 
-interface JoinHouseholdProps {
-  onJoined: () => void;
-  onSkip: () => void;
-}
+interface JoinHouseholdProps {}
 
-export const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }) => {
+export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
   const [step, setStep] = useState<'code' | 'emoji'>('code');
   const [inviteCode, setInviteCode] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -234,7 +231,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={onSkip} disabled={loading} className="flex-1">
+            <Button variant="outline" onClick={() => navigate('/welcome')} disabled={loading} className="flex-1">
               Skip
             </Button>
             <Button

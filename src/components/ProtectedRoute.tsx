@@ -15,17 +15,21 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // Redirect to auth if not authenticated
+    if (!user) {
       navigate('/auth');
       return;
     }
 
-    // If user is authenticated but has no household, redirect to welcome
-    // Exception: if already on welcome or join-household page, don't redirect
+    // Wait for household to finish loading before making decisions
+    if (householdLoading) return;
+
+    // Only redirect to welcome if we're CERTAIN the user has no household
+    // and they're not already on welcome or join-household pages
     if (
-      !authLoading &&
-      !householdLoading &&
-      user &&
       !householdId &&
       location.pathname !== '/welcome' &&
       location.pathname !== '/join-household'
