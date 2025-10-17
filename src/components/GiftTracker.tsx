@@ -80,7 +80,7 @@ const GiftTracker = () => {
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string; gift?: Gift } | null>(null);
-  const [giftForm, setGiftForm] = useState({ name: '', cost: '' });
+  
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set());
   const [showLegend, setShowLegend] = useState(false);
@@ -224,22 +224,21 @@ const GiftTracker = () => {
     }
   };
 
-  const addGift = async (personId: string) => {
-    if (giftForm.name.trim() && householdId) {
+  const addGift = async (personId: string, name: string, cost: number | null) => {
+    if (name.trim() && householdId) {
       try {
         await addGiftToDb(
           personId,
-          giftForm.name.trim(),
-          giftForm.cost ? parseFloat(giftForm.cost) : null
+          name.trim(),
+          cost
         );
         
-        setGiftForm({ name: '', cost: '' });
         setEditingGift(null);
         
         haptic.impact('light');
         toast({
           title: "Gift added",
-          description: `"${giftForm.name.trim()}" has been added to the list.`,
+          description: `"${name.trim()}" has been added to the list.`,
         });
       } catch (error) {
         // Error toast shown by hook
@@ -1004,7 +1003,11 @@ const GiftTracker = () => {
                   cost: giftData.cost ? parseFloat(giftData.cost) : null
                 });
               } else {
-                await addGift(editingGift.personId);
+                await addGift(
+                  editingGift.personId,
+                  giftData.name,
+                  giftData.cost ? parseFloat(giftData.cost) : null
+                );
               }
               setEditingGift(null);
             }}
