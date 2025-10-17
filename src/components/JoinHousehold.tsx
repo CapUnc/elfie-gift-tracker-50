@@ -121,7 +121,8 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }
         description: 'You can now see and manage shared gifts',
       });
 
-      onJoined();
+      // Force full page reload to refresh household state
+      window.location.href = '/';
     } catch (error) {
       console.error('Error creating buyer:', error);
       toast({
@@ -166,7 +167,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }
                   <button
                     key={emoji}
                     onClick={() => setSelectedEmoji(emoji)}
-                    className={`text-3xl p-3 rounded-lg transition-all ${
+                    className={`text-3xl p-3 rounded-lg transition-all flex items-center justify-center ${
                       selectedEmoji === emoji
                         ? 'bg-primary/20 ring-2 ring-primary scale-110'
                         : 'bg-secondary hover:bg-secondary/80'

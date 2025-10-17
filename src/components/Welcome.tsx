@@ -32,6 +32,12 @@ export const Welcome = () => {
 
     setLoading(true);
     try {
+      // Delete any existing buyer record for this user (from old households)
+      await supabase
+        .from('buyers')
+        .delete()
+        .eq('user_id', user.id);
+
       // Create household and profile using existing RPC function
       const { data: householdId, error: householdError } = await supabase
         .rpc('create_user_household_and_profile', {
@@ -59,7 +65,8 @@ export const Welcome = () => {
         description: 'You can now start tracking gifts',
       });
 
-      navigate('/');
+      // Force full page reload to refresh household state
+      window.location.href = '/';
     } catch (error) {
       console.error('Error creating household:', error);
       toast({
@@ -148,7 +155,7 @@ export const Welcome = () => {
                   <button
                     key={emoji}
                     onClick={() => setSelectedEmoji(emoji)}
-                    className={`text-3xl p-3 rounded-lg transition-all ${
+                    className={`text-3xl p-3 rounded-lg transition-all flex items-center justify-center ${
                       selectedEmoji === emoji
                         ? 'bg-primary/20 ring-2 ring-primary scale-110'
                         : 'bg-secondary hover:bg-secondary/80'

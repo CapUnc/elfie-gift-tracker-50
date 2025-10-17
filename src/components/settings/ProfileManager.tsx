@@ -116,7 +116,7 @@ const ProfileManager = () => {
                     <button
                       key={emoji}
                       onClick={() => setEditEmoji(emoji)}
-                      className={`text-3xl p-3 rounded-lg transition-all ${
+                      className={`text-3xl p-3 rounded-lg transition-all flex items-center justify-center ${
                         editEmoji === emoji
                           ? 'bg-primary/20 ring-2 ring-primary scale-110'
                           : 'bg-background hover:bg-secondary'
