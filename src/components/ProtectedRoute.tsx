@@ -26,47 +26,48 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         return;
       }
 
-      // Wait for household to finish loading before making decisions
-      if (householdLoading) return;
+    // Wait for household to finish loading before making decisions
+    if (householdLoading) return;
 
-      // Check if profile exists for authenticated user
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
+    // Allow access to setup pages without requiring profile check
+    // These pages will handle profile creation themselves
+    if (location.pathname === '/welcome' || location.pathname === '/join-household') {
+      if (householdId) {
+        const { data: buyer } = await supabase
+          .from('buyers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (profileError || !profile) {
-        // User authenticated but has no profile - send to welcome to create one
-        console.error('Profile error:', profileError);
-        navigate('/welcome');
-        return;
-      }
-
-      // If on welcome/join pages, check if setup is complete
-      if (location.pathname === '/welcome' || location.pathname === '/join-household') {
-        if (householdId) {
-          const { data: buyer } = await supabase
-            .from('buyers')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (buyer) {
-            // Setup complete, redirect to main app
-            navigate('/');
-            return;
-          }
+        if (buyer) {
+          // Setup complete, redirect to main app
+          navigate('/');
+          return;
         }
-        // Let them stay on welcome/join to complete setup
-        return;
       }
+      // Let them stay on welcome/join to complete setup (even without profile)
+      return;
+    }
 
-      // For ALL other routes, ensure both household and buyer exist
-      if (!householdId) {
-        navigate('/welcome');
-        return;
-      }
+    // For all other routes, check if profile exists
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      // User authenticated but has no profile - send to welcome to create one
+      console.error('Profile error:', profileError);
+      navigate('/welcome');
+      return;
+    }
+
+    // Ensure both household and buyer exist
+    if (!householdId) {
+      navigate('/welcome');
+      return;
+    }
 
       // User has household, now check for buyer
       const { data: buyer } = await supabase
