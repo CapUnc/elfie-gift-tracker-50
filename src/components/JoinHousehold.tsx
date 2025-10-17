@@ -114,7 +114,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
           name: displayName.trim(),
           emoji: selectedEmoji,
         }, {
-          onConflict: 'user_id'
+          onConflict: 'user_id,household_id'
         });
 
       if (buyerError) {
