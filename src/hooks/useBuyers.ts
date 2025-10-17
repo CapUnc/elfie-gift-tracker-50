@@ -7,6 +7,7 @@ export interface Buyer {
   name: string;
   emoji: string;
   household_id?: string;
+  user_id?: string;
 }
 
 export const useBuyers = (householdId: string | null) => {
@@ -73,13 +74,14 @@ export const useBuyers = (householdId: string | null) => {
     }
   }, [householdId]);
 
-  const addBuyer = async (name: string, emoji: string) => {
+  // Internal use only - for onboarding/joining flows
+  const addBuyer = async (name: string, emoji: string, userId: string) => {
     if (!householdId) return;
 
     try {
       const { data, error } = await supabase
         .from('buyers')
-        .insert([{ household_id: householdId, name, emoji }])
+        .insert([{ household_id: householdId, name, emoji, user_id: userId }])
         .select()
         .single();
 
@@ -96,6 +98,34 @@ export const useBuyers = (householdId: string | null) => {
       });
       throw err;
     }
+  };
+
+  const updateOwnBuyer = async (updates: { name?: string; emoji?: string }) => {
+    const ownBuyer = buyers.find(b => b.user_id === householdId);
+    if (!ownBuyer) return;
+
+    try {
+      const { error } = await supabase
+        .from('buyers')
+        .update(updates)
+        .eq('id', ownBuyer.id);
+
+      if (error) throw error;
+
+      setBuyers(buyers.map(b => (b.id === ownBuyer.id ? { ...b, ...updates } : b)));
+    } catch (err) {
+      console.error('Error updating own buyer:', err);
+      toast({
+        title: 'Error updating profile',
+        description: err instanceof Error ? err.message : 'Failed to update profile',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  };
+
+  const getOwnBuyer = () => {
+    return buyers.find(b => b.user_id === householdId);
   };
 
   const updateBuyer = async (id: string, updates: { name?: string; emoji?: string }) => {
@@ -143,6 +173,8 @@ export const useBuyers = (householdId: string | null) => {
     error,
     addBuyer,
     updateBuyer,
+    updateOwnBuyer,
+    getOwnBuyer,
     deleteBuyer,
     refetch: fetchBuyers,
   };

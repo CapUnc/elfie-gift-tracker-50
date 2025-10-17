@@ -1,11 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Users, Copy, Check, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
+import { useBuyers } from '@/hooks/useBuyers';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, Copy, RefreshCw, Check, Loader2, LogOut } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface HouseholdMember {
   id: string;
@@ -16,41 +30,45 @@ interface HouseholdMember {
 
 const HouseholdManager = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { householdId } = useHousehold(user?.id);
+  const { buyers } = useBuyers(householdId);
   const { toast } = useToast();
-  const [inviteCode, setInviteCode] = useState<string>('');
+
+  const [inviteCode, setInviteCode] = useState('');
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    fetchMembers();
-    fetchOrGenerateInviteCode();
-  }, []);
+    const loadData = async () => {
+      await Promise.all([fetchMembers(), fetchOrGenerateInviteCode()]);
+      setLoading(false);
+    };
+
+    if (householdId) {
+      loadData();
+    }
+  }, [householdId]);
 
   const fetchMembers = async () => {
+    if (!householdId) return;
+
     try {
       const { data, error } = await supabase.rpc('get_household_members');
-      
       if (error) throw error;
-      
       setMembers(data || []);
-    } catch (error: any) {
-      console.error('Error fetching household members:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load household members.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingMembers(false);
+    } catch (error) {
+      console.error('Error fetching members:', error);
     }
   };
 
   const fetchOrGenerateInviteCode = async () => {
     try {
-      // Check for existing active invite code
-      const { data: existingCodes, error: fetchError } = await supabase
+      const { data: existingCodes } = await supabase
         .from('invite_codes')
         .select('code')
         .eq('used', false)
@@ -58,168 +76,110 @@ const HouseholdManager = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (fetchError) throw fetchError;
-
       if (existingCodes && existingCodes.length > 0) {
         setInviteCode(existingCodes[0].code);
       } else {
-        // Generate new code if none exists
         await generateNewInviteCode();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching invite code:', error);
     }
   };
 
   const generateNewInviteCode = async () => {
-    setLoading(true);
+    setGenerating(true);
     try {
       const { data, error } = await supabase.rpc('generate_invite_code');
-      
       if (error) throw error;
-      
       setInviteCode(data);
-      toast({
-        title: "New invite code generated",
-        description: "Share this code with others to join your household.",
-      });
-    } catch (error: any) {
-      console.error('Error generating invite code:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate invite code.",
-        variant: "destructive",
-      });
+      toast({ title: 'New invite code generated' });
+    } catch (error) {
+      toast({ title: 'Error generating code', variant: 'destructive' });
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
   };
 
   const copyInviteCode = async () => {
+    await navigator.clipboard.writeText(inviteCode);
+    setCopied(true);
+    toast({ title: 'Copied to clipboard' });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLeaveHousehold = async () => {
+    if (!user || !householdId) return;
+
+    setLeaving(true);
     try {
-      await navigator.clipboard.writeText(inviteCode);
-      setCopied(true);
-      toast({
-        title: "Copied!",
-        description: "Invite code copied to clipboard.",
-      });
-      setTimeout(() => setCopied(false), 2000);
+      await supabase.from('recipients').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', user.id);
+      await supabase.from('gifts').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', user.id);
+      await supabase.from('buyers').delete().eq('user_id', user.id);
+      await supabase.from('profiles').update({ household_id: null }).eq('id', user.id);
+
+      toast({ title: 'Left household' });
+      navigate('/welcome');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy to clipboard.",
-        variant: "destructive",
-      });
+      toast({ title: 'Error leaving household', variant: 'destructive' });
+    } finally {
+      setLeaving(false);
+      setShowLeaveDialog(false);
     }
   };
 
+  if (loading) {
+    return <div className="container mx-auto p-4 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4 sm:p-6">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/settings')}
-            className="flex items-center gap-2 min-h-[44px] touch-target focus-ring"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Settings
-          </Button>
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold text-primary">Household</h1>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          {/* Invite Code Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Invite Others
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                  Share this code with others to join your household
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={inviteCode}
-                    readOnly
-                    className="font-mono text-lg tracking-wider"
-                  />
-                  <Button
-                    onClick={copyInviteCode}
-                    variant="outline"
-                    className="min-h-[44px] touch-target focus-ring"
-                  >
-                    {copied ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button
-                    onClick={generateNewInviteCode}
-                    variant="outline"
-                    disabled={loading}
-                    className="min-h-[44px] touch-target focus-ring"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Invite codes expire after 7 days. Generate a new one if needed.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Household Members */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Household Members ({members.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingMembers ? (
-                <p className="text-sm text-muted-foreground italic">Loading members...</p>
-              ) : members.length > 0 ? (
-                <div className="space-y-2">
-                  {members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {member.display_name || member.email}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.email}
-                        </p>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Joined {new Date(member.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground italic p-6 text-center bg-muted/30 rounded-md">
-                  No other members yet. Share your invite code to add members!
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+    <div className="container mx-auto p-4 max-w-2xl space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}><ArrowLeft className="h-5 w-5" /></Button>
+        <h1 className="text-3xl font-bold">Household</h1>
       </div>
+
+      <Card className="p-6 space-y-4">
+        <h2 className="text-xl font-semibold">Invite Code</h2>
+        <div className="flex gap-2">
+          <Input value={inviteCode} readOnly className="font-mono" />
+          <Button onClick={copyInviteCode} variant="outline">{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}</Button>
+          <Button onClick={generateNewInviteCode} variant="outline" disabled={generating}><RefreshCw className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} /></Button>
+        </div>
+      </Card>
+
+      <Card className="p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Members ({members.length})</h2>
+          {members.length > 1 && <Button variant="outline" size="sm" onClick={() => setShowLeaveDialog(true)} className="text-destructive"><LogOut className="h-4 w-4 mr-2" />Leave</Button>}
+        </div>
+        <div className="space-y-3">
+          {members.map((member) => {
+            const buyer = buyers.find(b => b.user_id === member.id);
+            return (
+              <div key={member.id} className="p-4 bg-secondary/50 rounded-lg flex items-center gap-3">
+                {buyer && <span className="text-3xl">{buyer.emoji}</span>}
+                <div className="flex-1">
+                  <div className="font-medium">{buyer?.name || member.display_name || 'Anonymous'} {member.id === user?.id && <span className="text-sm text-muted-foreground">(You)</span>}</div>
+                  <div className="text-sm text-muted-foreground">{member.email}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave Household?</AlertDialogTitle>
+            <AlertDialogDescription>{members.length === 1 ? 'You are the last member. This will delete all household data.' : 'You will be removed from the household.'}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveHousehold} disabled={leaving} className="bg-destructive">{leaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Leave</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

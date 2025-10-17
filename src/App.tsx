@@ -8,8 +8,9 @@ import GiftTracker from "./components/GiftTracker";
 import Summary from "./components/Summary";
 import Settings from "./components/Settings";
 import RecipientsManager from "./components/settings/RecipientsManager";
-import BuyersManager from "./components/settings/BuyersManager";
+import ProfileManager from "./components/settings/ProfileManager";
 import HouseholdManager from "./components/settings/HouseholdManager";
+import Welcome from "./components/Welcome";
 import NotFound from "./pages/NotFound";
 import TopNavigation from "./components/TopNavigation";
 import Auth from "./pages/Auth";
@@ -68,7 +69,15 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TopNavigation />
-                  <BuyersManager />
+                  <ProfileManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/welcome"
+              element={
+                <ProtectedRoute>
+                  <Welcome />
                 </ProtectedRoute>
               }
             />

@@ -1,0 +1,191 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Users, Home } from 'lucide-react';
+
+const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
+
+export const Welcome = () => {
+  const [step, setStep] = useState<'choice' | 'create' | 'join'>('choice');
+  const [displayName, setDisplayName] = useState('');
+  const [selectedEmoji, setSelectedEmoji] = useState('🎅');
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleCreateHousehold = async () => {
+    if (!user || !displayName.trim()) {
+      toast({
+        title: 'Missing information',
+        description: 'Please enter your display name',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create household and profile using existing RPC function
+      const { data: householdId, error: householdError } = await supabase
+        .rpc('create_user_household_and_profile', {
+          _user_id: user.id,
+          _email: user.email || '',
+          _display_name: displayName,
+        });
+
+      if (householdError) throw householdError;
+
+      // Create buyer record for the user
+      const { error: buyerError } = await supabase
+        .from('buyers')
+        .insert({
+          household_id: householdId,
+          user_id: user.id,
+          name: displayName,
+          emoji: selectedEmoji,
+        });
+
+      if (buyerError) throw buyerError;
+
+      toast({
+        title: 'Household created!',
+        description: 'You can now start tracking gifts',
+      });
+
+      navigate('/');
+    } catch (error) {
+      console.error('Error creating household:', error);
+      toast({
+        title: 'Error creating household',
+        description: error instanceof Error ? error.message : 'Please try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (step === 'choice') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-subtle">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Welcome! 🎄
+            </h1>
+            <p className="text-muted-foreground">
+              Let's get you started with gift tracking
+            </p>
+          </div>
+
+          <Card className="p-6 space-y-4">
+            <Button
+              onClick={() => setStep('create')}
+              className="w-full h-auto py-6 flex flex-col gap-2"
+              size="lg"
+            >
+              <Home className="w-8 h-8" />
+              <div>
+                <div className="font-semibold text-lg">Create My Household</div>
+                <div className="text-sm opacity-90 font-normal">Start fresh with your own gift list</div>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => navigate('/join-household')}
+              variant="outline"
+              className="w-full h-auto py-6 flex flex-col gap-2"
+              size="lg"
+            >
+              <Users className="w-8 h-8" />
+              <div>
+                <div className="font-semibold text-lg">Join Existing Household</div>
+                <div className="text-sm opacity-90 font-normal">Enter an invite code to join others</div>
+              </div>
+            </Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'create') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-subtle">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Create Your Profile
+            </h1>
+            <p className="text-muted-foreground">
+              Choose how you'll appear to others in your household
+            </p>
+          </div>
+
+          <Card className="p-6 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input
+                id="displayName"
+                placeholder="Enter your name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Choose Your Emoji</Label>
+              <div className="grid grid-cols-6 gap-2">
+                {emojiOptions.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => setSelectedEmoji(emoji)}
+                    className={`text-3xl p-3 rounded-lg transition-all ${
+                      selectedEmoji === emoji
+                        ? 'bg-primary/20 ring-2 ring-primary scale-110'
+                        : 'bg-secondary hover:bg-secondary/80'
+                    }`}
+                    type="button"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setStep('choice')}
+                disabled={loading}
+                className="flex-1"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleCreateHousehold}
+                disabled={loading || !displayName.trim()}
+                className="flex-1"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Household
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+export default Welcome;
