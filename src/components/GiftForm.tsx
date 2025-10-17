@@ -54,8 +54,11 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   const { toast } = useToast();
   const haptic = useHapticFeedback();
   const { execute: saveGift, getVariant, isDisabled } = useAnimatedButton(async () => {
-    // Validate input with zod schema
-    const validation = giftSchema.safeParse({ name: giftName, cost: giftCost });
+    // Validate input with zod schema (trim inputs first)
+    const trimmedName = giftName.trim();
+    const trimmedCost = giftCost.trim();
+    
+    const validation = giftSchema.safeParse({ name: trimmedName, cost: trimmedCost });
     
     if (!validation.success) {
       toast({
@@ -67,7 +70,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     }
     
     haptic.success();
-    onSubmit({ name: giftName, cost: giftCost });
+    onSubmit({ name: trimmedName, cost: trimmedCost });
     resetForm();
   });
 
