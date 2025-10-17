@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -24,6 +25,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { refetch } = useHousehold(user?.id);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -121,8 +123,9 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = ({ onJoined, onSkip }
         description: 'You can now see and manage shared gifts',
       });
 
-      // Force full page reload to refresh household state
-      window.location.href = '/';
+      // Refetch household data and navigate
+      await refetch();
+      navigate('/');
     } catch (error) {
       console.error('Error creating buyer:', error);
       toast({
