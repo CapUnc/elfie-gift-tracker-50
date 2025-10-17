@@ -111,45 +111,22 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
 
     setLoading(true);
     try {
-      // Verify profile was updated with new household
-      const { data: verifyProfile, error: verifyError } = await supabase
-        .from('profiles')
-        .select('household_id')
-        .eq('id', user.id)
-        .single();
-
-      if (verifyError) {
-        console.error('Profile verification error:', verifyError);
-        throw new Error('Could not verify household membership');
-      }
-
-      if (verifyProfile.household_id !== householdId) {
-        console.error('Household mismatch:', { 
-          expected: householdId, 
-          actual: verifyProfile.household_id 
-        });
-        throw new Error('Household membership not synchronized');
-      }
-
-      // Delete any existing buyer record first (in case of re-join)
-      await supabase
-        .from('buyers')
-        .delete()
-        .eq('user_id', user.id);
-
-      // Now create the buyer record
+      // Use upsert to handle both new and existing buyer records
+      // This prevents issues if buyer was partially created before
       const { error: buyerError } = await supabase
         .from('buyers')
-        .insert({
+        .upsert({
           household_id: householdId,
           user_id: user.id,
           name: displayName.trim(),
           emoji: selectedEmoji,
+        }, {
+          onConflict: 'user_id'
         });
 
       if (buyerError) {
-        console.error('Buyer insert error:', buyerError);
-        throw buyerError;
+        console.error('Buyer upsert error:', buyerError);
+        throw new Error('Could not create profile. Please try again.');
       }
 
       toast({
@@ -163,7 +140,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
     } catch (error: any) {
       console.error('Error creating buyer:', error);
       toast({
-        title: 'Error',
+        title: 'Setup Error',
         description: error.message || 'Could not complete setup. Please try again.',
         variant: 'destructive',
       });
