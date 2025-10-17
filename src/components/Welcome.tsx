@@ -18,6 +18,7 @@ const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄
 export const Welcome = () => {
   const [step, setStep] = useState<'choice' | 'create' | 'join'>('choice');
   const [displayName, setDisplayName] = useState('');
+  const [householdName, setHouseholdName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🎅');
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -69,13 +70,14 @@ export const Welcome = () => {
   }, [user]);
 
   const handleCreateHousehold = async () => {
-    // Validate display name with zod
+    // Validate inputs with zod
     const validation = displayNameSchema.safeParse(displayName);
+    const householdValidation = z.string().trim().min(1, 'Household name is required').max(100).safeParse(householdName);
     
-    if (!validation.success || !user) {
+    if (!validation.success || !householdValidation.success || !user) {
       toast({
         title: 'Validation error',
-        description: validation.error?.errors[0].message || 'Please check your input',
+        description: validation.error?.errors[0].message || householdValidation.error?.errors[0].message || 'Please check your input',
         variant: 'destructive',
       });
       return;
@@ -92,6 +94,12 @@ export const Welcome = () => {
         });
 
       if (householdError) throw householdError;
+
+      // Update household name
+      await supabase
+        .from('households')
+        .update({ name: householdValidation.data })
+        .eq('id', householdId);
 
       // Delete old buyer record AFTER household creation succeeds
       await supabase
@@ -190,7 +198,18 @@ export const Welcome = () => {
 
           <Card className="p-6 space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="displayName">Display Name</Label>
+              <Label htmlFor="householdName">Household Name</Label>
+              <Input
+                id="householdName"
+                placeholder="e.g., The Smith Family, Holiday 2024"
+                value={householdName}
+                onChange={(e) => setHouseholdName(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Your Display Name</Label>
               <Input
                 id="displayName"
                 placeholder="Enter your name"
@@ -231,7 +250,7 @@ export const Welcome = () => {
               </Button>
               <Button
                 onClick={handleCreateHousehold}
-                disabled={loading || !displayName.trim()}
+                disabled={loading || !displayName.trim() || !householdName.trim()}
                 className="flex-1"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

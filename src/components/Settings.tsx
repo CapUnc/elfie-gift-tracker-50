@@ -3,8 +3,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Pencil, Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useHousehold } from '@/hooks/useHousehold';
@@ -21,10 +22,13 @@ const Settings = () => {
   const { toast } = useToast();
 
   const [currency, setCurrency] = useState('$');
+  const [householdName, setHouseholdName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCurrency = async () => {
+    const fetchHouseholdData = async () => {
       if (!householdId) {
         setLoading(false);
         return;
@@ -33,23 +37,24 @@ const Settings = () => {
       try {
         const { data, error } = await supabase
           .from('households')
-          .select('currency')
+          .select('currency, name')
           .eq('id', householdId)
           .maybeSingle();
 
         if (error) throw error;
 
-        if (data?.currency) {
-          setCurrency(data.currency);
+        if (data) {
+          setCurrency(data.currency || '$');
+          setHouseholdName(data.name || 'My Household');
         }
       } catch (error) {
-        console.error('Error fetching currency:', error);
+        console.error('Error fetching household data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCurrency();
+    fetchHouseholdData();
   }, [householdId]);
 
   const handleCurrencyChange = async (newCurrency: string) => {
@@ -79,6 +84,50 @@ const Settings = () => {
     }
   };
 
+  const handleStartEditingName = () => {
+    setTempName(householdName);
+    setIsEditingName(true);
+  };
+
+  const handleCancelEditingName = () => {
+    setTempName('');
+    setIsEditingName(false);
+  };
+
+  const handleSaveHouseholdName = async () => {
+    if (!householdId || !tempName.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Household name cannot be empty',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('households')
+        .update({ name: tempName.trim() })
+        .eq('id', householdId);
+
+      if (error) throw error;
+
+      setHouseholdName(tempName.trim());
+      setIsEditingName(false);
+      toast({
+        title: 'Household name updated',
+        description: 'Your household name has been changed',
+      });
+    } catch (error) {
+      console.error('Error updating household name:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not update household name',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const ownBuyer = buyers.find(b => b.user_id === user?.id);
 
   return (
@@ -91,6 +140,35 @@ const Settings = () => {
       </div>
 
       <div className="space-y-4">
+        <Card className="p-6 space-y-4">
+          <h3 className="text-xl font-semibold">Household Name</h3>
+          {isEditingName ? (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  placeholder="Enter household name"
+                  autoFocus
+                />
+                <Button size="icon" variant="default" onClick={handleSaveHouseholdName}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="outline" onClick={handleCancelEditingName}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-medium">{householdName}</p>
+              <Button size="icon" variant="ghost" onClick={handleStartEditingName}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </Card>
+
         <Card className="p-6 space-y-4">
           <h3 className="text-xl font-semibold">Currency</h3>
           <div className="space-y-2">
