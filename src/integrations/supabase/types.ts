@@ -14,13 +14,215 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      buyers: {
+        Row: {
+          created_at: string
+          emoji: string
+          household_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          household_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          household_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyers_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gifts: {
+        Row: {
+          assigned_to: string | null
+          cost: number | null
+          created_at: string
+          household_id: string
+          id: string
+          name: string
+          purchased: boolean | null
+          recipient_id: string
+          tracking: string | null
+          updated_at: string
+          url: string | null
+          wrapped: boolean | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          cost?: number | null
+          created_at?: string
+          household_id: string
+          id?: string
+          name: string
+          purchased?: boolean | null
+          recipient_id: string
+          tracking?: string | null
+          updated_at?: string
+          url?: string | null
+          wrapped?: boolean | null
+        }
+        Update: {
+          assigned_to?: string | null
+          cost?: number | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          name?: string
+          purchased?: boolean | null
+          recipient_id?: string
+          tracking?: string | null
+          updated_at?: string
+          url?: string | null
+          wrapped?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gifts_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "buyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gifts_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gifts_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string
+          currency: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string
+          household_id: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email: string
+          household_id?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          household_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipients: {
+        Row: {
+          assigned_to: string | null
+          completed: boolean | null
+          created_at: string
+          household_id: string
+          id: string
+          manual_complete: boolean | null
+          name: string
+          notes: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed?: boolean | null
+          created_at?: string
+          household_id: string
+          id?: string
+          manual_complete?: boolean | null
+          name: string
+          notes?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed?: boolean | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          manual_complete?: boolean | null
+          name?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipients_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "buyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipients_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_household_id: {
+        Args: { _user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
