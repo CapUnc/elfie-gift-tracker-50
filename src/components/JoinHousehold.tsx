@@ -100,20 +100,57 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
   };
 
   const handleCreateBuyer = async () => {
-    if (!householdId || !user) return;
+    if (!householdId || !user || !displayName.trim()) {
+      toast({
+        title: 'Missing information',
+        description: 'Please enter your display name',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      // Verify profile was updated with new household
+      const { data: verifyProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('household_id')
+        .eq('id', user.id)
+        .single();
+
+      if (verifyError) {
+        console.error('Profile verification error:', verifyError);
+        throw new Error('Could not verify household membership');
+      }
+
+      if (verifyProfile.household_id !== householdId) {
+        console.error('Household mismatch:', { 
+          expected: householdId, 
+          actual: verifyProfile.household_id 
+        });
+        throw new Error('Household membership not synchronized');
+      }
+
+      // Delete any existing buyer record first (in case of re-join)
+      await supabase
+        .from('buyers')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Now create the buyer record
+      const { error: buyerError } = await supabase
         .from('buyers')
         .insert({
           household_id: householdId,
           user_id: user.id,
-          name: displayName,
+          name: displayName.trim(),
           emoji: selectedEmoji,
         });
 
-      if (error) throw error;
+      if (buyerError) {
+        console.error('Buyer insert error:', buyerError);
+        throw buyerError;
+      }
 
       toast({
         title: 'Joined household!',
@@ -123,11 +160,11 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
       // Refetch household data and navigate
       await refetch();
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating buyer:', error);
       toast({
         title: 'Error',
-        description: 'Could not complete setup',
+        description: error.message || 'Could not complete setup. Please try again.',
         variant: 'destructive',
       });
     } finally {
