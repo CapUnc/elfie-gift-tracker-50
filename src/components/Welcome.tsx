@@ -124,8 +124,12 @@ export const Welcome = () => {
         description: 'You can now start tracking gifts',
       });
 
-      // Refetch household data and navigate
+      // Refetch household data and give time for state to propagate
       await refetch();
+      
+      // Small delay to ensure ProtectedRoute picks up the new state
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       navigate('/');
     } catch (error) {
       console.error('Error creating household:', error);
