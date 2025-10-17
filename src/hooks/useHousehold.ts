@@ -63,17 +63,40 @@ export const useHousehold = (userId: string | undefined) => {
       const localBuyers = localStorage.getItem('christmas-gifts-buyers');
       const localCurrency = localStorage.getItem('christmas-gifts-currency') || '$';
 
-      // Create household
-      const { data: household, error: householdError } = await supabase
-        .from('households')
-        .insert({
-          name: 'My Household',
-          currency: localCurrency,
-        })
-        .select()
-        .single();
+      // Check if user already has a household (safety check)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('household_id')
+        .eq('id', userId)
+        .maybeSingle();
 
-      if (householdError) throw householdError;
+      let household;
+      
+      if (existingProfile?.household_id) {
+        // User already has a household, fetch it
+        const { data: existingHousehold } = await supabase
+          .from('households')
+          .select()
+          .eq('id', existingProfile.household_id)
+          .single();
+        
+        household = existingHousehold;
+      } else {
+        // Create new household
+        const { data: newHousehold, error: householdError } = await supabase
+          .from('households')
+          .insert({
+            name: 'My Household',
+            currency: localCurrency,
+          })
+          .select()
+          .single();
+
+        if (householdError) throw householdError;
+        household = newHousehold;
+      }
+
+      if (!household) throw new Error('Failed to get or create household');
 
       // Get user email
       const { data: { user } } = await supabase.auth.getUser();
