@@ -27,8 +27,16 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     // Wait for household to finish loading before making decisions
     if (householdLoading) return;
 
-    // Only redirect to welcome if we're CERTAIN the user has no household
-    // and they're not already on welcome or join-household pages
+    // If user has a household but is on welcome/join pages, redirect to home
+    if (
+      householdId &&
+      (location.pathname === '/welcome' || location.pathname === '/join-household')
+    ) {
+      navigate('/');
+      return;
+    }
+
+    // If user has no household and is not on welcome/join pages, redirect to welcome
     if (
       !householdId &&
       location.pathname !== '/welcome' &&
