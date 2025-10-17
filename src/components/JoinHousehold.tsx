@@ -82,9 +82,9 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
         .eq('id', user.id)
         .single();
 
-      if (profile?.display_name) {
-        setDisplayName(profile.display_name);
-      }
+      // Pre-fill from profile or Google metadata
+      const googleName = user.user_metadata?.full_name || user.user_metadata?.name;
+      setDisplayName(profile?.display_name || googleName || '');
 
       setStep('emoji');
     } catch (error) {

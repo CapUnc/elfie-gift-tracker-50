@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,16 @@ export const Welcome = () => {
   const { refetch } = useHousehold(user?.id);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Pre-fill display name from Google user metadata
+  useEffect(() => {
+    if (user?.user_metadata) {
+      const googleName = user.user_metadata.full_name || user.user_metadata.name;
+      if (googleName && !displayName) {
+        setDisplayName(googleName);
+      }
+    }
+  }, [user]);
 
   const handleCreateHousehold = async () => {
     // Validate display name with zod
