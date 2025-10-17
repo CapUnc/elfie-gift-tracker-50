@@ -1,11 +1,28 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Package, BarChart3, Settings } from 'lucide-react';
+import { Package, BarChart3, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 const TopNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      navigate('/auth');
+    }
+  };
   const navItems = [{
     path: '/',
     icon: BarChart3,
@@ -41,6 +58,12 @@ const TopNavigation = () => {
               </Button>;
         })}
         </nav>
+
+        {/* Sign Out Button */}
+        <Button variant="ghost" size="sm" onClick={handleSignOut} className="ml-2">
+          <LogOut className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">Sign Out</span>
+        </Button>
       </div>
     </header>;
 };
