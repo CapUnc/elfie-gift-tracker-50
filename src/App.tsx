@@ -9,10 +9,12 @@ import Summary from "./components/Summary";
 import Settings from "./components/Settings";
 import RecipientsManager from "./components/settings/RecipientsManager";
 import BuyersManager from "./components/settings/BuyersManager";
+import HouseholdManager from "./components/settings/HouseholdManager";
 import NotFound from "./pages/NotFound";
 import TopNavigation from "./components/TopNavigation";
 import Auth from "./pages/Auth";
 import ProtectedRoute from "./components/ProtectedRoute";
+import JoinHousehold from "./components/JoinHousehold";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +69,26 @@ const App = () => (
                 <ProtectedRoute>
                   <TopNavigation />
                   <BuyersManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/household"
+              element={
+                <ProtectedRoute>
+                  <TopNavigation />
+                  <HouseholdManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/join-household"
+              element={
+                <ProtectedRoute>
+                  <JoinHousehold 
+                    onJoined={() => window.location.href = '/'} 
+                    onSkip={() => window.location.href = '/'}
+                  />
                 </ProtectedRoute>
               }
             />

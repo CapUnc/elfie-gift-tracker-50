@@ -134,6 +134,44 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          household_id: string
+          id: string
+          used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          household_id: string
+          id?: string
+          used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          household_id?: string
+          id?: string
+          used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -228,8 +266,25 @@ export type Database = {
         }
         Returns: string
       }
+      generate_invite_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_household_members: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+        }[]
+      }
       get_user_household_id: {
         Args: { _user_id: string }
+        Returns: string
+      }
+      join_household_by_code: {
+        Args: { _code: string }
         Returns: string
       }
     }

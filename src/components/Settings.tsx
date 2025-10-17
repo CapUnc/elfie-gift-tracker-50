@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, DollarSign, Users, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, DollarSign, Users, ChevronRight, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -197,6 +197,41 @@ const Settings = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Add or edit the people who will be buying gifts.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Household Section */}
+          <Card 
+            className="cursor-pointer hover:bg-muted/30 transition-colors min-h-[44px] touch-target focus-ring" 
+            onClick={() => navigate('/settings/household')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/settings/household');
+              }
+            }}
+            aria-label="Manage Household - Share your list with others"
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Home className="w-5 h-5" />
+                  Household Sharing
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Share your gift list with family members
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Generate invite codes and see who's in your household.
                 </p>
               </div>
             </CardContent>
