@@ -58,25 +58,86 @@ export const useHousehold = (userId: string | undefined) => {
 
   const migrateLocalDataToCloud = async (userId: string) => {
     try {
+      console.log('[useHousehold] Starting migration for user:', userId);
+      
       // Read localStorage data
       const localPeople = localStorage.getItem('christmas-gifts-2025');
       const localBuyers = localStorage.getItem('christmas-gifts-buyers');
+      const localCurrency = localStorage.getItem('christmas-gifts-currency') || '$';
 
-      // Wait briefly for database trigger to complete household and profile creation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Fetch the automatically created household
-      const { data: profile, error: profileError } = await supabase
+      console.log('[useHousehold] Checking for existing household...');
+      
+      // Check if user already has a household
+      const { data: existingProfile } = await supabase
         .from('profiles')
         .select('household_id')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (profileError || !profile?.household_id) {
-        throw new Error('Household not found. Please try refreshing the page.');
+      let householdId: string;
+      
+      if (existingProfile?.household_id) {
+        console.log('[useHousehold] Found existing household:', existingProfile.household_id);
+        householdId = existingProfile.household_id;
+      } else {
+        console.log('[useHousehold] Creating new household...');
+        
+        // Create new household with retry logic
+        let household;
+        let retries = 2;
+        
+        while (retries > 0) {
+          const { data: newHousehold, error: householdError } = await supabase
+            .from('households')
+            .insert({
+              name: 'My Household',
+              currency: localCurrency,
+            })
+            .select()
+            .single();
+
+          if (householdError) {
+            console.error('[useHousehold] Household creation error:', householdError);
+            retries--;
+            if (retries > 0) {
+              console.log('[useHousehold] Retrying household creation...');
+              await new Promise(resolve => setTimeout(resolve, 500));
+              continue;
+            }
+            throw householdError;
+          }
+          
+          household = newHousehold;
+          break;
+        }
+
+        if (!household) throw new Error('Failed to create household after retries');
+        
+        console.log('[useHousehold] Household created:', household.id);
+        householdId = household.id;
+
+        // Get user email
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        console.log('[useHousehold] Creating profile...');
+        
+        // Create/update profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            household_id: householdId,
+            email: user?.email || '',
+            display_name: user?.user_metadata?.display_name || '',
+          });
+
+        if (profileError) {
+          console.error('[useHousehold] Profile creation error:', profileError);
+          throw profileError;
+        }
+        
+        console.log('[useHousehold] Profile created successfully');
       }
-
-      const householdId = profile.household_id;
 
       // Migrate buyers
       if (localBuyers) {
