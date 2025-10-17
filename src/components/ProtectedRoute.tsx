@@ -37,9 +37,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         .maybeSingle();
 
       if (profileError || !profile) {
-        // User authenticated but has no profile - error state
+        // User authenticated but has no profile - send to welcome to create one
         console.error('Profile error:', profileError);
-        navigate('/auth');
+        navigate('/welcome');
         return;
       }
 
