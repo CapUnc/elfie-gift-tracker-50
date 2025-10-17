@@ -18,7 +18,7 @@ const RecipientsManager = () => {
   const { session } = useAuth();
   const { householdId } = useHousehold(session?.user?.id);
   const { buyers } = useBuyers(householdId);
-  const { recipients, loading, bulkAddRecipients } = useRecipients(householdId);
+  const { recipients, loading, bulkAddRecipients, bulkDeleteRecipients } = useRecipients(householdId);
   const { gifts } = useGifts(householdId);
   const [bulkNames, setBulkNames] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -181,8 +181,6 @@ const RecipientsManager = () => {
           onOpenChange={setDeleteDialogOpen}
           people={peopleData}
           onDeletePeople={async (peopleIds: string[]) => {
-            // Use the hook's bulk delete
-            const { bulkDeleteRecipients } = useRecipients(householdId);
             try {
               await bulkDeleteRecipients(peopleIds);
               toast({
