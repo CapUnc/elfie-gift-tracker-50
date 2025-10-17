@@ -85,6 +85,7 @@ export const GiftContextMenu: React.FC<GiftContextMenuProps> = ({
 interface PersonContextMenuProps {
   children: React.ReactNode;
   onAddGift: () => void;
+  onEditName: () => void;
   onEditNotes: () => void;
   onEditAssignment: () => void;
   onMarkAllPurchased: () => void;
@@ -98,6 +99,7 @@ interface PersonContextMenuProps {
 export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
   children,
   onAddGift,
+  onEditName,
   onEditNotes,
   onEditAssignment,
   onMarkAllPurchased,
@@ -119,6 +121,11 @@ export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
         </ContextMenuItem>
         
         <ContextMenuSeparator />
+        
+        <ContextMenuItem onClick={onEditName}>
+          <Edit2 className="mr-2 h-4 w-4" />
+          Edit Name
+        </ContextMenuItem>
         
         <ContextMenuItem onClick={onEditNotes}>
           <Edit2 className="mr-2 h-4 w-4" />
