@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check, StickyNote } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
@@ -812,6 +812,20 @@ const GiftTracker = () => {
                                     {formatCurrency(stats.totalCost, currency)}
                                   </span>
                                 )}
+                                {person.notes && person.notes.trim().length > 0 && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="flex items-center gap-1">
+                                          <StickyNote className="h-3.5 w-3.5 text-amber-600/70" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom" className="max-w-xs">
+                                        <p className="text-xs">{person.notes.slice(0, 100)}{person.notes.length > 100 ? '...' : ''}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                               </div>
                             </div>
 
@@ -903,7 +917,28 @@ const GiftTracker = () => {
                         <CollapsibleContent>
                           <div className="p-4 space-y-4">
                             <div>
-                              <label className="text-sm font-medium mb-2 block">Notes</label>
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="text-sm font-medium">Notes</label>
+                                {person.notes && person.notes.trim().length > 0 && editingNotes !== person.id && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (window.confirm('Are you sure you want to delete these notes?')) {
+                                        updatePersonNotes(person.id, '');
+                                        toast({
+                                          title: "Notes deleted",
+                                          description: "Notes have been removed.",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                               {editingNotes === person.id ? (
                                 <div className="space-y-2">
                                   <Textarea
