@@ -29,7 +29,10 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
   const [noteToDelete, setNoteToDelete] = useState<string>('');
 
   const handleAddNote = () => {
-    if (!noteContent.trim()) return;
+    const hasContent = noteContent.trim().length > 0;
+    const hasLink = linkUrl.trim().length > 0;
+    
+    if (!hasContent && !hasLink) return;
 
     addNote({
       content: noteContent.trim(),
@@ -53,9 +56,16 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
     setIsAdding(false);
   };
 
-  const handleDeleteClick = (noteId: string, content: string) => {
+  const handleDeleteClick = (noteId: string, content: string, linkUrl?: string | null, linkLabel?: string | null) => {
     setDeleteNoteId(noteId);
-    setNoteToDelete(content);
+    
+    if (content && content.trim().length > 0) {
+      setNoteToDelete(content);
+    } else if (linkUrl) {
+      setNoteToDelete(`Link: ${linkLabel || linkUrl}`);
+    } else {
+      setNoteToDelete('this note');
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -101,7 +111,7 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => handleDeleteClick(note.id, note.content)}
+                  onClick={() => handleDeleteClick(note.id, note.content, note.link_url, note.link_label)}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -179,7 +189,7 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
             <Button
               size="sm"
               onClick={handleAddNote}
-              disabled={!noteContent.trim() || isAddingNote}
+              disabled={(!noteContent.trim() && !linkUrl.trim()) || isAddingNote}
               className="h-7 px-3 text-xs"
             >
               Save
