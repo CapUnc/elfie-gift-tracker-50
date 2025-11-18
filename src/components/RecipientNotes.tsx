@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Link as LinkIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, ChevronDown, ChevronRight, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useRecipientNotes } from '@/hooks/useRecipientNotes';
 import { renderNoteContent } from '@/lib/noteUtils';
+import { getUrlValidationError } from '@/lib/urlValidation';
+import { cn } from '@/lib/utils';
 
 interface RecipientNotesProps {
   recipientId: string;
@@ -18,13 +20,25 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
   recipientName,
   householdId,
 }) => {
-  const { notes, addNote, deleteNote, hasNotes, isAddingNote } = useRecipientNotes(recipientId);
+  const { notes, addNote, updateNote, deleteNote, hasNotes, isAddingNote, isUpdatingNote } = useRecipientNotes(recipientId);
   
+  // Add note state
   const [isAdding, setIsAdding] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
   const [showLinkFields, setShowLinkFields] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  
+  // Edit note state
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [editLinkUrl, setEditLinkUrl] = useState('');
+  const [editLinkLabel, setEditLinkLabel] = useState('');
+  const [editShowLinkFields, setEditShowLinkFields] = useState(false);
+  const [editUrlError, setEditUrlError] = useState<string | null>(null);
+  
+  // Delete confirmation state
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [noteToDelete, setNoteToDelete] = useState<string>('');
 
@@ -33,6 +47,15 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
     const hasLink = linkUrl.trim().length > 0;
     
     if (!hasContent && !hasLink) return;
+
+    // Validate URL if provided
+    if (hasLink) {
+      const error = getUrlValidationError(linkUrl);
+      if (error) {
+        setUrlError(error);
+        return;
+      }
+    }
 
     addNote({
       content: noteContent.trim(),
@@ -45,6 +68,7 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
     setLinkUrl('');
     setLinkLabel('');
     setShowLinkFields(false);
+    setUrlError(null);
     setIsAdding(false);
   };
 
@@ -53,7 +77,56 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
     setLinkUrl('');
     setLinkLabel('');
     setShowLinkFields(false);
+    setUrlError(null);
     setIsAdding(false);
+  };
+
+  const handleEditClick = (note: typeof notes[0]) => {
+    setEditingNoteId(note.id);
+    setEditContent(note.content);
+    setEditLinkUrl(note.link_url || '');
+    setEditLinkLabel(note.link_label || '');
+    setEditShowLinkFields(!!note.link_url);
+    setEditUrlError(null);
+  };
+
+  const handleEditSave = (noteId: string) => {
+    const hasContent = editContent.trim().length > 0;
+    const hasLink = editLinkUrl.trim().length > 0;
+    
+    if (!hasContent && !hasLink) return;
+
+    // Validate URL if provided
+    if (hasLink) {
+      const error = getUrlValidationError(editLinkUrl);
+      if (error) {
+        setEditUrlError(error);
+        return;
+      }
+    }
+
+    updateNote({
+      id: noteId,
+      content: editContent.trim(),
+      link_url: editLinkUrl.trim() || null,
+      link_label: editLinkLabel.trim() || null,
+    });
+
+    setEditingNoteId(null);
+    setEditContent('');
+    setEditLinkUrl('');
+    setEditLinkLabel('');
+    setEditShowLinkFields(false);
+    setEditUrlError(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingNoteId(null);
+    setEditContent('');
+    setEditLinkUrl('');
+    setEditLinkLabel('');
+    setEditShowLinkFields(false);
+    setEditUrlError(null);
   };
 
   const handleDeleteClick = (noteId: string, content: string, linkUrl?: string | null, linkLabel?: string | null) => {
@@ -98,26 +171,131 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
       {/* Notes List */}
       {hasNotes && (
         <div className="space-y-2">
-          {notes.map((note) => (
-            <div
-              key={note.id}
-              className="group relative border border-border rounded-lg p-3 bg-card hover:border-muted-foreground/20 transition-colors"
-            >
-              <div className="flex gap-2">
-                <div className="flex-1 text-sm text-foreground">
-                  {renderNoteContent(note.content, note.link_url, note.link_label)}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => handleDeleteClick(note.id, note.content, note.link_url, note.link_label)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+          {notes.map((note) => {
+            const isEditing = editingNoteId === note.id;
+            
+            return (
+              <div
+                key={note.id}
+                className="group relative border border-border rounded-lg p-3 bg-card hover:border-muted-foreground/20 transition-colors"
+              >
+                {isEditing ? (
+                  // Edit Mode
+                  <div className="space-y-3">
+                    <div>
+                      <Textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        placeholder={`Edit note for ${recipientName}...`}
+                        className="min-h-16 text-sm resize-none"
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* Link Section */}
+                    <div className="space-y-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs w-full justify-start"
+                        onClick={() => setEditShowLinkFields(!editShowLinkFields)}
+                      >
+                        {editShowLinkFields ? (
+                          <ChevronDown className="h-3 w-3 mr-1" />
+                        ) : (
+                          <ChevronRight className="h-3 w-3 mr-1" />
+                        )}
+                        <LinkIcon className="h-3 w-3 mr-1" />
+                        Edit Link (optional)
+                      </Button>
+
+                      {editShowLinkFields && (
+                        <div className="space-y-2 pl-6">
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">URL</label>
+                            <Input
+                              type="url"
+                              value={editLinkUrl}
+                              onChange={(e) => {
+                                setEditLinkUrl(e.target.value);
+                                setEditUrlError(null);
+                              }}
+                              placeholder="https://example.com"
+                              className={cn(
+                                "text-sm h-8",
+                                editUrlError && "border-destructive focus-visible:ring-destructive"
+                              )}
+                            />
+                            {editUrlError && (
+                              <p className="text-xs text-destructive mt-1">{editUrlError}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">Label (optional)</label>
+                            <Input
+                              type="text"
+                              value={editLinkLabel}
+                              onChange={(e) => setEditLinkLabel(e.target.value)}
+                              placeholder="Click here"
+                              className="text-sm h-8"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleEditSave(note.id)}
+                        disabled={(!editContent.trim() && !editLinkUrl.trim()) || !!editUrlError || isUpdatingNote}
+                        className="h-7 px-3 text-xs"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleEditCancel}
+                        disabled={isUpdatingNote}
+                        className="h-7 px-3 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // View Mode
+                  <div className="flex gap-2">
+                    <div className="flex-1 text-sm text-foreground">
+                      {renderNoteContent(note.content, note.link_url, note.link_label)}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-muted hover:text-foreground"
+                        onClick={() => handleEditClick(note)}
+                        title="Edit note"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleDeleteClick(note.id, note.content, note.link_url, note.link_label)}
+                        title="Delete note"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -160,16 +338,25 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
 
             {showLinkFields && (
               <div className="space-y-2 pl-6">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">URL</label>
-                  <Input
-                    type="url"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="https://example.com"
-                    className="text-sm h-8"
-                  />
-                </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">URL</label>
+                <Input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => {
+                    setLinkUrl(e.target.value);
+                    setUrlError(null);
+                  }}
+                  placeholder="https://example.com"
+                  className={cn(
+                    "text-sm h-8",
+                    urlError && "border-destructive focus-visible:ring-destructive"
+                  )}
+                />
+                {urlError && (
+                  <p className="text-xs text-destructive mt-1">{urlError}</p>
+                )}
+              </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Label (optional)</label>
                   <Input
@@ -189,7 +376,7 @@ export const RecipientNotes: React.FC<RecipientNotesProps> = ({
             <Button
               size="sm"
               onClick={handleAddNote}
-              disabled={(!noteContent.trim() && !linkUrl.trim()) || isAddingNote}
+              disabled={(!noteContent.trim() && !linkUrl.trim()) || !!urlError || isAddingNote}
               className="h-7 px-3 text-xs"
             >
               Save

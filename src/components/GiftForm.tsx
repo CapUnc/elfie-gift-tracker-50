@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { RippleButton } from './RippleButton';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/currency';
-import { Save, X } from 'lucide-react';
+import { Save, X, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 
 const giftSchema = z.object({
@@ -31,6 +32,7 @@ interface GiftFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (giftData: { name: string; cost: string }) => void;
+  onDelete?: (giftId: string) => void;
   personName: string;
   currency: string;
   editingGift?: Gift | null;
@@ -41,6 +43,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  onDelete,
   personName,
   currency,
   editingGift,
@@ -50,6 +53,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   const [giftCost, setGiftCost] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [initialValues, setInitialValues] = useState({ name: '', cost: '' });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const { toast } = useToast();
   const haptic = useHapticFeedback();
@@ -134,6 +138,14 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     onClose();
   };
 
+  const handleDelete = () => {
+    if (editingGift && onDelete) {
+      onDelete(editingGift.id);
+      setShowDeleteDialog(false);
+      onClose();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveGift();
@@ -208,26 +220,43 @@ export const GiftForm: React.FC<GiftFormProps> = ({
             )}
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1 touch-target"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
+          <div className="space-y-3 pt-4">
+            {mode === 'edit' && onDelete && editingGift && (
+              <>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="w-full touch-target"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Gift
+                </Button>
+                <div className="h-px bg-border my-2" />
+              </>
+            )}
             
-            <RippleButton
-              type="submit"
-              variant={getVariant()}
-              disabled={isDisabled || !isFormValid}
-              className="flex-1 touch-target"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {submitLabel}
-            </RippleButton>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                className="flex-1 touch-target"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+              
+              <RippleButton
+                type="submit"
+                variant={getVariant()}
+                disabled={isDisabled || !isFormValid}
+                className="flex-1 touch-target"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {submitLabel}
+              </RippleButton>
+            </div>
           </div>
         </form>
 
@@ -236,6 +265,24 @@ export const GiftForm: React.FC<GiftFormProps> = ({
           <div className="absolute top-2 right-2 w-2 h-2 bg-warning rounded-full animate-pulse" />
         )}
       </SheetContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Gift</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{editingGift?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 };

@@ -993,6 +993,10 @@ const GiftTracker = () => {
               }
               setEditingGift(null);
             }}
+            onDelete={editingGift.giftId ? (giftId) => {
+              deleteGift(editingGift.personId, giftId);
+              setEditingGift(null);
+            } : undefined}
             personName={people.find(p => p.id === editingGift.personId)?.name || ''}
             currency={currency}
             editingGift={editingGift.gift}
