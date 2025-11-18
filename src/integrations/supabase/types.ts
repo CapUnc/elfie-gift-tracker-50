@@ -207,6 +207,57 @@ export type Database = {
           },
         ]
       }
+      recipient_notes: {
+        Row: {
+          content: string
+          created_at: string
+          display_order: number
+          household_id: string
+          id: string
+          link_label: string | null
+          link_url: string | null
+          recipient_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          display_order?: number
+          household_id: string
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          recipient_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          display_order?: number
+          household_id?: string
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          recipient_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipient_notes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipient_notes_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipients: {
         Row: {
           assigned_to: string | null
@@ -269,26 +320,17 @@ export type Database = {
         }
         Returns: string
       }
-      generate_invite_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_invite_code: { Args: never; Returns: string }
       get_household_members: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           display_name: string
           id: string
         }[]
       }
-      get_user_household_id: {
-        Args: { _user_id: string }
-        Returns: string
-      }
-      join_household_by_code: {
-        Args: { _code: string }
-        Returns: string
-      }
+      get_user_household_id: { Args: { _user_id: string }; Returns: string }
+      join_household_by_code: { Args: { _code: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

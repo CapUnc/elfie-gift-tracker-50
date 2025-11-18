@@ -10,7 +10,9 @@ import { GiftSearch } from './GiftSearch';
 import { AlphabetIndex } from './AlphabetIndex';
 import { GiftContextMenu, PersonContextMenu } from './ContextMenu';
 import { GiftNotes } from './GiftNotes';
+import { RecipientNotes } from './RecipientNotes';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -74,6 +76,20 @@ const GiftTracker = () => {
   const { recipients: supabaseRecipients, updateRecipient, addRecipient } = useRecipients(householdId);
   const { gifts: supabaseGifts, addGift: addGiftToDb, updateGift: updateGiftInDb, updateGiftStatus: updateGiftStatusInDb, deleteGift: deleteGiftFromDb, duplicateGift: duplicateGiftInDb, batchUpdateGifts } = useGifts(householdId);
   
+  // Fetch all household notes for indicator
+  const { data: allNotes = [] } = useQuery({
+    queryKey: ['all-recipient-notes', householdId],
+    queryFn: async () => {
+      if (!householdId) return [];
+      const { data } = await supabase
+        .from('recipient_notes')
+        .select('*')
+        .eq('household_id', householdId);
+      return data || [];
+    },
+    enabled: !!householdId,
+  });
+  
   // Local state
   const [currency, setCurrency] = useState('$');
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
@@ -101,9 +117,6 @@ const GiftTracker = () => {
   const [openAssignmentPopover, setOpenAssignmentPopover] = useState<string | null>(null);
   const [openPeoplePopover, setOpenPeoplePopover] = useState(false);
   const [highlightedItems, setHighlightedItems] = useState<Set<string>>(new Set());
-  const [editingNotes, setEditingNotes] = useState<string | null>(null);
-  const [tempNotes, setTempNotes] = useState('');
-  const [editingNotesText, setEditingNotesText] = useState('');
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [completionDialog, setCompletionDialog] = useState<{
     isOpen: boolean;
@@ -341,14 +354,6 @@ const GiftTracker = () => {
     }
   };
 
-  const updatePersonNotes = async (personId: string, notes: string) => {
-    try {
-      await updateRecipient(personId, { notes });
-    } catch (error) {
-      // Error toast shown by hook
-    }
-  };
-
   const updatePersonAssignment = async (personId: string, buyerId: string | null) => {
     try {
       await updateRecipient(personId, { assigned_to: buyerId });
@@ -514,27 +519,6 @@ const GiftTracker = () => {
     return sortConfig.direction === 'asc' 
       ? <ArrowUp className="h-4 w-4" /> 
       : <ArrowDown className="h-4 w-4" />;
-  };
-
-  const handleNotesEditStart = (personId: string) => {
-    const person = people.find(p => p.id === personId);
-    if (person) {
-      setEditingNotes(personId);
-      setEditingNotesText(person.notes);
-    }
-  };
-
-  const handleNotesEditSave = () => {
-    if (editingNotes) {
-      updatePersonNotes(editingNotes, editingNotesText);
-      setEditingNotes(null);
-      setEditingNotesText('');
-    }
-  };
-
-  const handleNotesEditCancel = () => {
-    setEditingNotes(null);
-    setEditingNotesText('');
   };
 
   const scrollToLetter = (letter: string) => {
@@ -743,7 +727,6 @@ const GiftTracker = () => {
                   <PersonContextMenu
                     key={person.id}
                     onAddGift={() => setEditingGift({ personId: person.id })}
-                    onEditNotes={() => handleNotesEditStart(person.id)}
                     onEditAssignment={() => setOpenAssignmentPopover(person.id)}
                     onMarkAllPurchased={() => markAllPurchased(person.id)}
                     onMarkAllWrapped={() => markAllWrapped(person.id)}
@@ -812,20 +795,25 @@ const GiftTracker = () => {
                                     {formatCurrency(stats.totalCost, currency)}
                                   </span>
                                 )}
-                                {person.notes && person.notes.trim().length > 0 && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="flex items-center gap-1">
-                                          <StickyNote className="h-3.5 w-3.5 text-amber-600/70" />
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="bottom" className="max-w-xs">
-                                        <p className="text-xs">{person.notes.slice(0, 100)}{person.notes.length > 100 ? '...' : ''}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
+                                {(() => {
+                                  const personNotes = allNotes.filter(n => n.recipient_id === person.id);
+                                  const notesCount = personNotes.length;
+                                  return notesCount > 0 && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="flex items-center gap-1">
+                                            <StickyNote className="h-3.5 w-3.5 text-amber-600/70" />
+                                            <span className="text-xs">{notesCount}</span>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                          <p className="text-xs">{notesCount} note{notesCount !== 1 ? 's' : ''}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
+                                })()}
                               </div>
                             </div>
 
@@ -917,54 +905,11 @@ const GiftTracker = () => {
                         <CollapsibleContent>
                           <div className="p-4 space-y-4">
                             <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm font-medium">Notes</label>
-                                {person.notes && person.notes.trim().length > 0 && editingNotes !== person.id && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (window.confirm('Are you sure you want to delete these notes?')) {
-                                        updatePersonNotes(person.id, '');
-                                        toast({
-                                          title: "Notes deleted",
-                                          description: "Notes have been removed.",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                )}
-                              </div>
-                              {editingNotes === person.id ? (
-                                <div className="space-y-2">
-                                  <Textarea
-                                    value={editingNotesText}
-                                    onChange={(e) => setEditingNotesText(e.target.value)}
-                                    placeholder="Add notes about gift preferences..."
-                                    className="min-h-[60px]"
-                                  />
-                                  <div className="flex gap-2">
-                                    <Button size="sm" onClick={handleNotesEditSave}>
-                                      <Save className="h-3 w-3 mr-1" />
-                                      Save
-                                    </Button>
-                                    <Button size="sm" variant="outline" onClick={handleNotesEditCancel}>
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div 
-                                  className="min-h-[40px] p-2 border rounded bg-muted/50 text-sm cursor-pointer hover:bg-muted transition-colors"
-                                  onClick={() => handleNotesEditStart(person.id)}
-                                >
-                                  {person.notes || "Click to add notes about gift preferences..."}
-                                </div>
-                              )}
+                              <RecipientNotes 
+                                recipientId={person.id}
+                                recipientName={person.name}
+                                householdId={householdId || ''}
+                              />
                             </div>
 
                             {person.gifts.length > 0 ? (
