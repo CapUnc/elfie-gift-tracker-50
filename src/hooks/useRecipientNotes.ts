@@ -152,6 +152,7 @@ export const useRecipientNotes = (recipientId: string) => {
     updateNote: updateNote.mutate,
     deleteNote: deleteNote.mutate,
     isAddingNote: addNote.isPending,
+    isUpdatingNote: updateNote.isPending,
     isDeletingNote: deleteNote.isPending,
     hasNotes: notes.length > 0,
   };
