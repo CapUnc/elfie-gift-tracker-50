@@ -84,6 +84,14 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   const { toast } = useToast();
   const haptic = useHapticFeedback();
   const { execute: saveGift, getVariant, isDisabled } = useAnimatedButton(async () => {
+    console.log('🔵 [GiftForm] saveGift called with state:', {
+      giftName,
+      giftCost,
+      isPlaceholder,
+      selectedGiverIds,
+      mode
+    });
+    
     // For placeholder gifts, name is optional
     const trimmedName = giftName.trim();
     const trimmedCost = giftCost.trim();
@@ -108,14 +116,18 @@ export const GiftForm: React.FC<GiftFormProps> = ({
       return;
     }
     
-    haptic.success();
-    onSubmit({ 
+    const submitData = { 
       name: isPlaceholder && !trimmedName ? 'TBD Gift' : trimmedName, 
       cost: trimmedCost,
       isPlaceholder,
       templateId: selectedTemplateId !== 'none' ? selectedTemplateId : undefined,
       giverIds: selectedGiverIds
-    });
+    };
+    
+    console.log('🟢 [GiftForm] Submitting gift with data:', submitData);
+    
+    haptic.success();
+    onSubmit(submitData);
     resetForm();
   });
 
@@ -222,11 +234,17 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   };
 
   const toggleGiver = (giverId: string) => {
-    setSelectedGiverIds(prev => 
-      prev.includes(giverId) 
+    console.log('🟡 [GiftForm] toggleGiver called with:', giverId);
+    console.log('🟡 [GiftForm] Current selectedGiverIds:', selectedGiverIds);
+    
+    setSelectedGiverIds(prev => {
+      const newIds = prev.includes(giverId) 
         ? prev.filter(id => id !== giverId)
-        : [...prev, giverId]
-    );
+        : [...prev, giverId];
+      
+      console.log('🟡 [GiftForm] New selectedGiverIds:', newIds);
+      return newIds;
+    });
   };
 
   const isFormValid = isPlaceholder || giftName.trim().length > 0;
@@ -364,11 +382,15 @@ export const GiftForm: React.FC<GiftFormProps> = ({
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
-                    onClick={() => toggleGiver(giver.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleGiver(giver.id);
+                    }}
                   >
                     <Checkbox
                       id={`giver-${giver.id}`}
                       checked={selectedGiverIds.includes(giver.id)}
+                      onClick={(e) => e.stopPropagation()}
                     />
                     <span className="text-lg">{giver.icon}</span>
                     <span className="text-sm font-medium flex-1">{giver.name}</span>
