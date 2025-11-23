@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check, StickyNote } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check, StickyNote, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -981,20 +982,59 @@ const GiftTracker = () => {
 
                             {person.gifts.length > 0 ? (
                               <div className="space-y-3 max-w-full">
-                                <div className="flex items-center justify-between mb-3">
+                                 <div className="flex items-center justify-between mb-3">
                                   <h4 className="text-sm font-medium">
                                     Gifts ({person.gifts.length})
                                   </h4>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-xs"
-                                    onClick={() => setEditingGift({ personId: person.id })}
-                                    aria-label={`Add gift for ${person.name}`}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" />
-                                    Add Gift
-                                  </Button>
+                                  <div className="flex items-center gap-2">
+                                    {templates.length > 0 && (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 px-2 text-xs"
+                                          >
+                                            <Zap className="h-3 w-3 mr-1" />
+                                            Quick Add
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-56">
+                                          <DropdownMenuLabel>Add from Template</DropdownMenuLabel>
+                                          <DropdownMenuSeparator />
+                                          {templates.map(template => (
+                                            <DropdownMenuItem
+                                              key={template.id}
+                                              onClick={() => {
+                                                addGift(
+                                                  person.id,
+                                                  template.name,
+                                                  template.default_cost,
+                                                  {
+                                                    templateId: template.id,
+                                                    giverIds: template.default_giver_ids || []
+                                                  }
+                                                );
+                                              }}
+                                            >
+                                              <span className="mr-2">{template.tag_icon}</span>
+                                              {template.name}
+                                            </DropdownMenuItem>
+                                          ))}
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => setEditingGift({ personId: person.id })}
+                                      aria-label={`Add gift for ${person.name}`}
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Gift
+                                    </Button>
+                                  </div>
                                 </div>
                                 {person.gifts.map((gift) => (
                                   <SwipeableGiftItem
@@ -1067,6 +1107,7 @@ const GiftTracker = () => {
               }
               setEditingGift(null);
             }}
+            updateGift={updateGift}
             onDelete={editingGift.giftId ? (giftId) => {
               deleteGift(editingGift.personId, giftId);
               setEditingGift(null);
