@@ -204,6 +204,30 @@ const Settings = () => {
 
         <Card
           className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => navigate('/settings/givers')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/givers')}
+          tabIndex={0}
+        >
+          <h3 className="text-xl font-semibold mb-2">Manage Givers</h3>
+          <p className="text-muted-foreground mb-4">
+            Add people who can give gifts (Mom, Dad, Santa, etc.)
+          </p>
+        </Card>
+
+        <Card
+          className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => navigate('/settings/templates')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/templates')}
+          tabIndex={0}
+        >
+          <h3 className="text-xl font-semibold mb-2">Gift Templates</h3>
+          <p className="text-muted-foreground mb-4">
+            Create templates for common gifts like stocking stuffers
+          </p>
+        </Card>
+
+        <Card
+          className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() => navigate('/settings/buyers')}
           onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/buyers')}
           tabIndex={0}
