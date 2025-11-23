@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useGivers } from '@/hooks/useGivers';
+
 import { ArrowLeft, Edit, Info, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -17,20 +18,21 @@ const ProfileManager = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { householdId } = useHousehold(user?.id);
-  const { buyers, loading, updateBuyer } = useBuyers(householdId);
+  const { profileLinkedGivers, loading, updateGiver } = useGivers(householdId);
+  const buyers = profileLinkedGivers; // For compatibility
   const { toast } = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
 
-  const ownBuyer = buyers.find(b => b.user_id === user?.id);
-  const otherBuyers = buyers.filter(b => b.user_id !== user?.id);
+  const ownBuyer = buyers.find(b => b.profile_id === user?.id);
+  const otherBuyers = buyers.filter(b => b.profile_id !== user?.id);
 
   const handleEdit = () => {
     if (ownBuyer) {
       setEditName(ownBuyer.name);
-      setEditEmoji(ownBuyer.emoji);
+      setEditEmoji(ownBuyer.icon || '🎁');
       setIsEditing(true);
     }
   };
@@ -39,9 +41,9 @@ const ProfileManager = () => {
     if (!ownBuyer) return;
 
     try {
-      await updateBuyer(ownBuyer.id, {
+      await updateGiver(ownBuyer.id, {
         name: editName,
-        emoji: editEmoji,
+        icon: editEmoji,
       });
 
       toast({
@@ -85,7 +87,7 @@ const ProfileManager = () => {
           {!isEditing && ownBuyer && (
             <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
               <div className="flex items-center gap-3">
-                <span className="text-4xl">{ownBuyer.emoji}</span>
+                <span className="text-4xl">{ownBuyer.icon || '🎁'}</span>
                 <div>
                   <p className="font-semibold">{ownBuyer.name}</p>
                   <div className="flex items-center gap-2 mt-1">
@@ -164,7 +166,7 @@ const ProfileManager = () => {
                   className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">{buyer.emoji}</span>
+                    <span className="text-3xl">{buyer.icon || '🎁'}</span>
                     <p className="font-medium">{buyer.name}</p>
                   </div>
                   <Badge variant="secondary" className="gap-1">

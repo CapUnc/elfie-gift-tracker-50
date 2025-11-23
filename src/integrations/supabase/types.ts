@@ -14,41 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      buyers: {
-        Row: {
-          created_at: string
-          emoji: string
-          household_id: string
-          id: string
-          name: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          emoji: string
-          household_id: string
-          id?: string
-          name: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          emoji?: string
-          household_id?: string
-          id?: string
-          name?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "buyers_household_id_fkey"
-            columns: ["household_id"]
-            isOneToOne: false
-            referencedRelation: "households"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       gift_givers: {
         Row: {
           created_at: string
@@ -179,13 +144,6 @@ export type Database = {
           wrapped?: boolean | null
         }
         Relationships: [
-          {
-            foreignKeyName: "gifts_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "buyers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "gifts_household_id_fkey"
             columns: ["household_id"]
@@ -431,13 +389,6 @@ export type Database = {
           notes?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "recipients_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "buyers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "recipients_household_id_fkey"
             columns: ["household_id"]
