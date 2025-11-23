@@ -37,6 +37,14 @@ export const isVirtualGiver = (giver: Giver): boolean => {
   return giver.is_virtual;
 };
 
+// Legacy Buyer type for backward compatibility with existing components
+// Maps givers to the old "buyer" interface structure
+export interface Buyer {
+  id: string;
+  name: string;
+  icon: string;
+}
+
 // Result type for delete operation
 export interface DeleteGiverResult {
   canDelete: boolean;

@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useHousehold } from "@/hooks/useHousehold";
+import { Buyer } from '@/types/givers';
 
 interface Gift {
   id: string;
@@ -33,12 +34,6 @@ interface Recipient {
   assigned_to: string | null;
   completed: boolean;
   manual_complete: boolean;
-}
-
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
 }
 
 interface Giver {
@@ -86,7 +81,7 @@ const Summary = () => {
       return (data || []).map(g => ({
         id: g.id,
         name: g.name,
-        emoji: g.icon || '🎁'
+        icon: g.icon || '🎁'
       })) as Buyer[];
     },
     enabled: !!householdId,
@@ -590,7 +585,7 @@ const Summary = () => {
                   <div key={buyer.id} className="p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">{buyer.emoji}</span>
+                        <span className="text-2xl">{buyer.icon}</span>
                         <div>
                           <h4 className="font-semibold">{buyer.name}</h4>
                           <p className="text-sm text-muted-foreground">
