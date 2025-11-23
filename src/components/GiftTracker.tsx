@@ -1119,7 +1119,7 @@ const GiftTracker = () => {
               } : undefined}
               personName={people.find(p => p.id === editingGift.personId)?.name || ''}
               currency={currency}
-              editingGift={editingGift.gift}
+              editingGift={editingGift.gift || null}
               mode={editingGift.giftId ? 'edit' : 'add'}
               givers={givers}
               templates={templates}
