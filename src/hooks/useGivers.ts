@@ -141,33 +141,49 @@ export const useGivers = (householdId: string | null) => {
           description: 'Household members are managed through profiles',
           variant: 'destructive',
         });
-        return false;
+        return { canDelete: false, giftCount: 0 };
       }
 
-      // Check if giver is used in any gifts
+      // Count gifts assigned to this giver
       const { data: giftGivers, error: checkError } = await supabase
         .from('gift_givers')
         .select('id')
-        .eq('giver_id', id)
-        .limit(1);
+        .eq('giver_id', id);
 
       if (checkError) throw checkError;
 
-      if (giftGivers && giftGivers.length > 0) {
-        toast({
-          title: 'Cannot delete giver',
-          description: 'This giver is assigned to one or more gifts',
-          variant: 'destructive',
-        });
-        return false;
-      }
+      const giftCount = giftGivers?.length || 0;
 
+      // Return the gift count so UI can show warning
+      return { canDelete: true, giftCount };
+    } catch (err: any) {
+      console.error('Error checking giver:', err);
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to check giver status',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  };
+
+  const confirmDeleteGiver = async (id: string) => {
+    try {
+      // Delete all gift_giver relationships first (unassign)
+      const { error: deleteRelationsError } = await supabase
+        .from('gift_givers')
+        .delete()
+        .eq('giver_id', id);
+
+      if (deleteRelationsError) throw deleteRelationsError;
+
+      // Now delete the giver
       const { error } = await supabase.from('givers').delete().eq('id', id);
       if (error) throw error;
       
       toast({
         title: 'Giver deleted',
-        description: 'Giver removed successfully',
+        description: 'Giver removed and unassigned from all gifts',
       });
       return true;
     } catch (err: any) {
@@ -220,6 +236,7 @@ export const useGivers = (householdId: string | null) => {
     addGiver,
     updateGiver,
     deleteGiver,
+    confirmDeleteGiver,
     reorderGivers,
     refetch: fetchGivers,
   };
