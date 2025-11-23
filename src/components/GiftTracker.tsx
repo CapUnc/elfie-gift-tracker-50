@@ -118,7 +118,9 @@ const GiftTracker = () => {
     wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped',
     showCompleted: false,
     hasGifts: 'all' as 'all' | 'with-gifts' | 'no-gifts',
-    costStatus: 'all' as 'all' | 'missing-cost'
+    costStatus: 'all' as 'all' | 'missing-cost',
+    fromGiver: 'all' as string,
+    hasPlaceholders: false
   });
 
   const [sortConfig, setSortConfig] = useState<{
@@ -397,17 +399,32 @@ const GiftTracker = () => {
   };
 
   const getCompletionStats = (person: Person) => {
-    const total = person.gifts.length;
-    const purchased = person.gifts.filter(g => g.purchased).length;
-    const wrapped = person.gifts.filter(g => g.wrapped).length;
-    const totalCost = person.gifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
+    const realGifts = person.gifts.filter(g => !g.is_placeholder);
+    const placeholders = person.gifts.filter(g => g.is_placeholder);
     
-    return { total, purchased, wrapped, totalCost };
+    const total = realGifts.length;
+    const purchased = realGifts.filter(g => g.purchased).length;
+    const wrapped = realGifts.filter(g => g.wrapped).length;
+    const totalCost = realGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
+    const canBeComplete = placeholders.length === 0;
+    
+    return { total, purchased, wrapped, totalCost, placeholderCount: placeholders.length, canBeComplete };
   };
 
   const handleCompletionChange = async (person: Person, completed: boolean) => {
     if (completed) {
       const stats = getCompletionStats(person);
+      
+      // Check for placeholders first
+      if (!stats.canBeComplete) {
+        toast({
+          title: "Cannot complete",
+          description: `${person.name} has ${stats.placeholderCount} placeholder gift${stats.placeholderCount !== 1 ? 's' : ''} that need to be decided.`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const incompletePurchased = stats.total - stats.purchased;
       const incompleteWrapped = stats.total - stats.wrapped;
       
@@ -499,11 +516,23 @@ const GiftTracker = () => {
         if (!hasMissingCosts) return false;
       }
 
+      if (filters.fromGiver !== 'all') {
+        const hasGiftFromGiver = person.gifts.some(gift => 
+          gift.givers?.some(giver => giver.id === filters.fromGiver)
+        );
+        if (!hasGiftFromGiver) return false;
+      }
+
+      if (filters.hasPlaceholders) {
+        const hasPlaceholders = person.gifts.some(gift => gift.is_placeholder);
+        if (!hasPlaceholders) return false;
+      }
+
       if (!filters.showCompleted && person.completed) return false;
 
       return true;
     });
-  }, [people, searchTerm, filters]);
+  }, [people, searchTerm, filters, session?.user?.id, supabaseBuyers]);
 
   // Sorting logic
   const sortedAndFilteredPeople = useMemo(() => {
@@ -617,6 +646,7 @@ const GiftTracker = () => {
             filters={filters}
             onFiltersChange={setFilters}
             buyers={buyers}
+            givers={givers}
           />
         </div>
 
@@ -806,6 +836,9 @@ const GiftTracker = () => {
                                 <span className="flex items-center gap-1">
                                   <Gift className="h-3 w-3" />
                                   {stats.total}
+                                  {stats.placeholderCount > 0 && (
+                                    <span className="text-amber-600 ml-0.5">({stats.placeholderCount} TBD)</span>
+                                  )}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <ShoppingCart className="h-3 w-3" />
@@ -913,7 +946,15 @@ const GiftTracker = () => {
                         {stats.total > 0 && (
                           <div className="mt-3">
                             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                              <span>Progress</span>
+                              <div className="flex items-center gap-2">
+                                <span>Progress</span>
+                                {stats.placeholderCount > 0 && (
+                                  <span className="flex items-center gap-1 text-amber-600">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {stats.placeholderCount} TBD
+                                  </span>
+                                )}
+                              </div>
                               <span>{Math.round(progressPercent)}%</span>
                             </div>
                             <div className="w-full bg-muted rounded-full h-2">

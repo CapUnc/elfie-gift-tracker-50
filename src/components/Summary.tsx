@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Gift, Users, DollarSign, ChevronDown, ChevronUp, ShoppingBag, Package } from "lucide-react";
+import { Gift, Users, DollarSign, ChevronDown, ChevronUp, ShoppingBag, Package, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,8 @@ interface Gift {
   url: string | null;
   tracking: string | null;
   assigned_to: string | null;
+  is_placeholder?: boolean;
+  template_id?: string | null;
 }
 
 interface Recipient {
@@ -37,6 +39,12 @@ interface Buyer {
   id: string;
   name: string;
   emoji: string;
+}
+
+interface Giver {
+  id: string;
+  name: string;
+  icon: string;
 }
 
 const Summary = () => {
@@ -78,21 +86,59 @@ const Summary = () => {
     enabled: !!householdId,
   });
 
-  // Fetch recipients with gifts
+  // Fetch givers
+  const { data: givers = [] } = useQuery({
+    queryKey: ['givers', householdId],
+    queryFn: async () => {
+      if (!householdId) return [];
+      const { data, error } = await supabase
+        .from('givers')
+        .select('*')
+        .eq('household_id', householdId)
+        .order('display_order');
+      if (error) throw error;
+      return data as Giver[];
+    },
+    enabled: !!householdId,
+  });
+
+  // Fetch recipients with gifts and givers
   const { data: recipients = [] } = useQuery({
     queryKey: ['recipients', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      const { data, error } = await supabase
+      
+      // Fetch recipients
+      const { data: recipientsData, error: recipientsError } = await supabase
         .from('recipients')
-        .select(`
-          *,
-          gifts (*)
-        `)
+        .select('*')
         .eq('household_id', householdId)
         .order('name');
-      if (error) throw error;
-      return data as Recipient[];
+      if (recipientsError) throw recipientsError;
+
+      // Fetch gifts with givers
+      const { data: giftsData, error: giftsError } = await supabase
+        .from('gifts')
+        .select(`
+          *,
+          gift_givers (
+            giver_id,
+            givers (id, name, icon)
+          )
+        `)
+        .eq('household_id', householdId);
+      if (giftsError) throw giftsError;
+
+      // Transform and combine
+      const giftsWithGivers = giftsData.map((gift: any) => ({
+        ...gift,
+        givers: gift.gift_givers?.map((gg: any) => gg.givers).filter(Boolean) || []
+      }));
+
+      return (recipientsData || []).map((recipient: any) => ({
+        ...recipient,
+        gifts: giftsWithGivers.filter((g: any) => g.recipient_id === recipient.id)
+      })) as Recipient[];
     },
     enabled: !!householdId,
   });
@@ -139,6 +185,30 @@ const Summary = () => {
           queryClient.invalidateQueries({ queryKey: ['buyers', householdId] });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'givers',
+          filter: `household_id=eq.${householdId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['givers', householdId] });
+          queryClient.invalidateQueries({ queryKey: ['recipients', householdId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gift_givers',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['recipients', householdId] });
+        }
+      )
       .subscribe();
 
     return () => {
@@ -157,35 +227,60 @@ const Summary = () => {
 
   const overallStats = useMemo(() => {
     const totalPeople = recipients.length;
-    const totalGifts = recipients.reduce((sum, person) => sum + person.gifts.length, 0);
-    const totalCost = recipients.reduce(
-      (sum, person) =>
-        sum + person.gifts.reduce((giftSum, gift) => giftSum + (gift.cost || 0), 0),
-      0
-    );
-    const purchasedGifts = recipients.reduce(
-      (sum, person) => sum + person.gifts.filter((g) => g.purchased).length,
-      0
-    );
-    const wrappedGifts = recipients.reduce(
-      (sum, person) => sum + person.gifts.filter((g) => g.wrapped).length,
-      0
-    );
+    
+    // Separate real gifts from placeholders
+    const allGifts = recipients.flatMap(person => person.gifts);
+    const realGifts = allGifts.filter(g => !g.is_placeholder);
+    const placeholderGifts = allGifts.filter(g => g.is_placeholder);
+    
+    const totalGifts = allGifts.length;
+    const realGiftsCount = realGifts.length;
+    const placeholderCount = placeholderGifts.length;
+    
+    const totalCost = realGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
+    const purchasedGifts = realGifts.filter(g => g.purchased).length;
+    const wrappedGifts = realGifts.filter(g => g.wrapped).length;
     const completedPeople = recipients.filter((p) => p.completed || p.manual_complete).length;
 
     return {
       totalPeople,
       totalGifts,
+      realGiftsCount,
+      placeholderCount,
       totalCost,
       purchasedGifts,
       wrappedGifts,
       completedPeople,
-      purchasedPercentage: totalGifts > 0 ? Math.round((purchasedGifts / totalGifts) * 100) : 0,
-      wrappedPercentage: totalGifts > 0 ? Math.round((wrappedGifts / totalGifts) * 100) : 0,
+      purchasedPercentage: realGiftsCount > 0 ? Math.round((purchasedGifts / realGiftsCount) * 100) : 0,
+      wrappedPercentage: realGiftsCount > 0 ? Math.round((wrappedGifts / realGiftsCount) * 100) : 0,
       completedPercentage:
         totalPeople > 0 ? Math.round((completedPeople / totalPeople) * 100) : 0,
     };
   }, [recipients]);
+
+  const giverSpending = useMemo(() => {
+    if (givers.length === 0) return [];
+    
+    const spending = givers.map(giver => {
+      const giftsFromGiver = recipients.flatMap(person => 
+        person.gifts.filter(gift => 
+          !gift.is_placeholder && 
+          (gift as any).givers?.some((g: any) => g.id === giver.id)
+        )
+      );
+      
+      const totalSpent = giftsFromGiver.reduce((sum, gift) => sum + (gift.cost || 0), 0);
+      const giftCount = giftsFromGiver.length;
+      
+      return {
+        ...giver,
+        totalSpent,
+        giftCount
+      };
+    });
+    
+    return spending.filter(s => s.giftCount > 0).sort((a, b) => b.totalSpent - a.totalSpent);
+  }, [givers, recipients]);
 
   const buyerStats = useMemo(() => {
     return buyers.map((buyer) => {
@@ -288,6 +383,25 @@ const Summary = () => {
           </CardContent>
         </Card>
 
+        {/* Placeholder Warning */}
+        {overallStats.placeholderCount > 0 && (
+          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                    {overallStats.placeholderCount} gift{overallStats.placeholderCount !== 1 ? 's' : ''} still need to be decided
+                  </h3>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    You have placeholder gifts that need specific items assigned before they can be purchased.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* KPI Strip */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button
@@ -311,7 +425,14 @@ const Summary = () => {
               <Gift className="h-5 w-5 text-primary" />
               <span className="text-sm text-muted-foreground">Gifts</span>
             </div>
-            <p className="text-3xl font-bold">{overallStats.totalGifts}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold">{overallStats.realGiftsCount}</p>
+              {overallStats.placeholderCount > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  ({overallStats.placeholderCount} TBD)
+                </p>
+              )}
+            </div>
           </Button>
 
           <Button
@@ -443,6 +564,33 @@ const Summary = () => {
                         className="h-1"
                       />
                     </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Spending by Giver */}
+        {giverSpending.length > 0 && (
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-xl font-semibold mb-4">Spending by Giver</h3>
+              <div className="space-y-3">
+                {giverSpending.map((giver) => (
+                  <div key={giver.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{giver.icon}</span>
+                      <div>
+                        <h4 className="font-medium">{giver.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {giver.giftCount} gift{giver.giftCount !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="font-semibold text-lg">
+                      {formatCurrency(giver.totalSpent, currency)}
+                    </p>
                   </div>
                 ))}
               </div>
