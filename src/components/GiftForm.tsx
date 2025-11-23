@@ -369,7 +369,6 @@ export const GiftForm: React.FC<GiftFormProps> = ({
                     <Checkbox
                       id={`giver-${giver.id}`}
                       checked={selectedGiverIds.includes(giver.id)}
-                      onCheckedChange={() => toggleGiver(giver.id)}
                     />
                     <span className="text-lg">{giver.icon}</span>
                     <span className="text-sm font-medium flex-1">{giver.name}</span>

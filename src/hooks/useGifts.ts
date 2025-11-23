@@ -191,6 +191,8 @@ export const useGifts = (householdId: string | null) => {
     giverIds?: string[]
   ) => {
     try {
+      console.log('Updating gift:', id, 'with updates:', updates, 'and giverIds:', giverIds);
+      
       const { error } = await supabase
         .from('gifts')
         .update(updates)
@@ -200,14 +202,20 @@ export const useGifts = (householdId: string | null) => {
 
       // Update givers if provided
       if (giverIds !== undefined) {
-        // Delete existing givers
-        await supabase
+        console.log('Deleting existing givers for gift:', id);
+        const { error: deleteError } = await supabase
           .from('gift_givers')
           .delete()
           .eq('gift_id', id);
+        
+        if (deleteError) {
+          console.error('Error deleting gift givers:', deleteError);
+          throw deleteError;
+        }
 
         // Add new givers
         if (giverIds.length > 0) {
+          console.log('Inserting new givers:', giverIds);
           const giftGiverInserts = giverIds.map(giverId => ({
             gift_id: id,
             giver_id: giverId,
@@ -219,10 +227,12 @@ export const useGifts = (householdId: string | null) => {
 
           if (giversError) {
             console.error('Error updating gift givers:', giversError);
+            throw giversError;
           }
         }
       }
 
+      console.log('Gift update successful, refetching data');
       // Refetch to get updated data with givers
       await fetchGifts();
     } catch (err) {
