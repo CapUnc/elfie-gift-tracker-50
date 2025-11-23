@@ -5,7 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { RippleButton } from './RippleButton';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
@@ -42,6 +44,7 @@ interface GiftFormProps {
     giverIds: string[];
   }) => void;
   onDelete?: (giftId: string) => void;
+  updateGift?: (personId: string, giftId: string, updatedGift: Partial<Gift>) => void;
   personName: string;
   currency: string;
   editingGift?: Gift | null;
@@ -55,6 +58,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   onClose,
   onSubmit,
   onDelete,
+  updateGift,
   personName,
   currency,
   editingGift,
@@ -261,6 +265,27 @@ export const GiftForm: React.FC<GiftFormProps> = ({
             </div>
           )}
 
+          {mode === 'edit' && editingGift?.template_id && (
+            <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <Badge variant="secondary">Template</Badge>
+              <span className="text-sm flex-1">
+                {templates.find(t => t.id === editingGift.template_id)?.name || 'Unknown Template'}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedTemplateId('none');
+                  updateGift?.(editingGift.id, editingGift.id, { template_id: null });
+                }}
+                className="h-8 px-2"
+              >
+                Remove
+              </Button>
+            </div>
+          )}
+
           <div className="flex items-center space-x-2">
             <Checkbox
               id="is-placeholder"
@@ -329,21 +354,25 @@ export const GiftForm: React.FC<GiftFormProps> = ({
           {givers.length > 0 && (
             <div className="space-y-3">
               <Label className="text-sm font-medium">From</Label>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 {givers.map(giver => (
-                  <div key={giver.id} className="flex items-center space-x-2">
+                  <div
+                    key={giver.id}
+                    className={cn(
+                      "flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all",
+                      selectedGiverIds.includes(giver.id)
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => toggleGiver(giver.id)}
+                  >
                     <Checkbox
                       id={`giver-${giver.id}`}
                       checked={selectedGiverIds.includes(giver.id)}
                       onCheckedChange={() => toggleGiver(giver.id)}
                     />
-                    <label 
-                      htmlFor={`giver-${giver.id}`} 
-                      className="text-sm cursor-pointer flex items-center gap-2"
-                    >
-                      <span className="text-lg">{giver.icon}</span>
-                      <span>{giver.name}</span>
-                    </label>
+                    <span className="text-lg">{giver.icon}</span>
+                    <span className="text-sm font-medium flex-1">{giver.name}</span>
                   </div>
                 ))}
               </div>

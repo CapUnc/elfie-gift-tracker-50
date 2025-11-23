@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useGiftTemplates } from '@/hooks/useGiftTemplates';
 import { useGivers } from '@/hooks/useGivers';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -253,6 +255,39 @@ const TemplatesManager = ({ householdId }: TemplatesManagerProps) => {
                   {template.default_cost && (
                     <span className="text-sm text-muted-foreground">${template.default_cost.toFixed(2)}</span>
                   )}
+                  <span className="text-xs text-muted-foreground">
+                    Used {(() => {
+                      const { data: gifts = [] } = useQuery({
+                        queryKey: ['gifts-for-template', template.id, householdId],
+                        queryFn: async () => {
+                          if (!householdId) return [];
+                          const { data } = await supabase
+                            .from('gifts')
+                            .select('id')
+                            .eq('household_id', householdId)
+                            .eq('template_id', template.id);
+                          return data || [];
+                        },
+                        enabled: !!householdId,
+                      });
+                      return gifts.length;
+                    })()} {(() => {
+                      const { data: gifts = [] } = useQuery({
+                        queryKey: ['gifts-for-template', template.id, householdId],
+                        queryFn: async () => {
+                          if (!householdId) return [];
+                          const { data } = await supabase
+                            .from('gifts')
+                            .select('id')
+                            .eq('household_id', householdId)
+                            .eq('template_id', template.id);
+                          return data || [];
+                        },
+                        enabled: !!householdId,
+                      });
+                      return gifts.length === 1 ? 'time' : 'times';
+                    })()}
+                  </span>
                   <div className="flex-1" />
                   <div className="flex gap-2">
                     <Button

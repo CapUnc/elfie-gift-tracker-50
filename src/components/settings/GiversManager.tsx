@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useGivers } from '@/hooks/useGivers';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -176,6 +178,37 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
                   <span className="text-2xl">{giver.icon}</span>
                   <span className="flex-1 font-medium">{giver.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {(() => {
+                      const { data: giftGivers = [] } = useQuery({
+                        queryKey: ['gift-givers-for-giver', giver.id, householdId],
+                        queryFn: async () => {
+                          if (!householdId) return [];
+                          const { data } = await supabase
+                            .from('gift_givers')
+                            .select('id, gift_id')
+                            .eq('giver_id', giver.id);
+                          return data || [];
+                        },
+                        enabled: !!householdId,
+                      });
+                      return giftGivers.length;
+                    })()} {(() => {
+                      const { data: giftGivers = [] } = useQuery({
+                        queryKey: ['gift-givers-for-giver', giver.id, householdId],
+                        queryFn: async () => {
+                          if (!householdId) return [];
+                          const { data } = await supabase
+                            .from('gift_givers')
+                            .select('id')
+                            .eq('giver_id', giver.id);
+                          return data || [];
+                        },
+                        enabled: !!householdId,
+                      });
+                      return giftGivers.length === 1 ? 'gift' : 'gifts';
+                    })()}
+                  </span>
                   <div className="flex gap-2">
                     <Button
                       variant="ghost"
