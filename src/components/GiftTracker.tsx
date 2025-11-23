@@ -168,6 +168,9 @@ const GiftTracker = () => {
           url: gift.url || undefined,
           tracking: gift.tracking || undefined,
           assignedTo: gift.assigned_to || undefined,
+          is_placeholder: gift.is_placeholder,
+          template_id: gift.template_id,
+          givers: gift.givers || []
         }))
     }));
   }, [supabaseRecipients, supabaseGifts]);
