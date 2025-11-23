@@ -163,14 +163,14 @@ const GiftTracker = () => {
           id: gift.id,
           name: gift.name,
           cost: gift.cost,
-          purchased: gift.purchased,
-          wrapped: gift.wrapped,
+          purchased: gift.purchased ?? false,
+          wrapped: gift.wrapped ?? false,
           url: gift.url || undefined,
           tracking: gift.tracking || undefined,
           assignedTo: gift.assigned_to || undefined,
-          is_placeholder: gift.is_placeholder,
-          template_id: gift.template_id,
-          givers: gift.givers || []
+          is_placeholder: gift.is_placeholder ?? false,
+          template_id: gift.template_id || null,
+          givers: Array.isArray(gift.givers) ? gift.givers : []
         }))
     }));
   }, [supabaseRecipients, supabaseGifts]);
