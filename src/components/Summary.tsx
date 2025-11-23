@@ -285,24 +285,17 @@ const Summary = () => {
   const buyerStats = useMemo(() => {
     return buyers.map((buyer) => {
       const assignedRecipients = recipients.filter((p) => p.assigned_to === buyer.id);
-      const totalAssignedGifts = assignedRecipients.reduce(
-        (sum, person) => sum + person.gifts.length,
-        0
+      
+      // Only count non-placeholder gifts for buyer stats
+      const realGifts = assignedRecipients.flatMap(person => 
+        person.gifts.filter(g => !g.is_placeholder)
       );
-      const purchasedGifts = assignedRecipients.reduce(
-        (sum, person) => sum + person.gifts.filter((g) => g.purchased).length,
-        0
-      );
-      const wrappedGifts = assignedRecipients.reduce(
-        (sum, person) => sum + person.gifts.filter((g) => g.wrapped).length,
-        0
-      );
-      const totalCost = assignedRecipients.reduce(
-        (sum, person) =>
-          sum + person.gifts.reduce((giftSum, gift) => giftSum + (gift.cost || 0), 0),
-        0
-      );
-
+      
+      const totalAssignedGifts = realGifts.length;
+      const purchasedGifts = realGifts.filter(g => g.purchased).length;
+      const wrappedGifts = realGifts.filter(g => g.wrapped).length;
+      const totalCost = realGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
+      
       const remainingTasks = totalAssignedGifts - wrappedGifts;
 
       return {
@@ -330,6 +323,35 @@ const Summary = () => {
   }, [buyerStats]);
 
   const displayedBuyers = showAllBuyers ? sortedBuyerStats : sortedBuyerStats.slice(0, 3);
+
+  const avgCostPerRecipient = useMemo(() => {
+    if (recipients.length === 0) return 0;
+    return overallStats.totalCost / recipients.length;
+  }, [overallStats.totalCost, recipients.length]);
+
+  const nearlyCompleteRecipients = useMemo(() => {
+    return recipients
+      .map(person => {
+        const realGifts = person.gifts.filter(g => !g.is_placeholder);
+        const purchased = realGifts.filter(g => g.purchased).length;
+        const wrapped = realGifts.filter(g => g.wrapped).length;
+        const completion = realGifts.length > 0 ? (wrapped / realGifts.length) * 100 : 0;
+        
+        return {
+          ...person,
+          completion,
+          realGiftCount: realGifts.length,
+          purchased,
+          wrapped
+        };
+      })
+      .filter(p => p.completion >= 75 && p.completion < 100 && p.realGiftCount > 0)
+      .sort((a, b) => b.completion - a.completion);
+  }, [recipients]);
+
+  const unassignedRecipients = useMemo(() => {
+    return recipients.filter(r => !r.assigned_to);
+  }, [recipients]);
 
   const nextSteps = useMemo(() => {
     const steps = [];
@@ -402,8 +424,34 @@ const Summary = () => {
           </Card>
         )}
 
+        {/* Unassigned Recipients Warning */}
+        {unassignedRecipients.length > 0 && (
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Users className="h-5 w-5 text-blue-600 dark:text-blue-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                    {unassignedRecipients.length} recipient{unassignedRecipients.length !== 1 ? 's' : ''} not assigned to a buyer
+                  </h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                    Assign these recipients to buyers so everyone knows who they're shopping for.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {unassignedRecipients.map(r => (
+                      <Badge key={r.id} variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100">
+                        {r.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* KPI Strip */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Button
             variant="outline"
             className="h-auto p-4 flex-col items-start hover:bg-accent"
@@ -446,6 +494,20 @@ const Summary = () => {
             </div>
             <p className="text-3xl font-bold">
               {formatCurrency(overallStats.totalCost, currency)}
+            </p>
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-auto p-4 flex-col items-start hover:bg-accent"
+            onClick={() => navigate('/gifts')}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <span className="text-sm text-muted-foreground">Avg/Recipient</span>
+            </div>
+            <p className="text-3xl font-bold">
+              {formatCurrency(avgCostPerRecipient, currency)}
             </p>
           </Button>
         </div>
@@ -563,6 +625,39 @@ const Summary = () => {
                         value={buyer.totalGifts > 0 ? (buyer.wrapped / buyer.totalGifts) * 100 : 0}
                         className="h-1"
                       />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Nearly Complete Recipients */}
+        {nearlyCompleteRecipients.length > 0 && (
+          <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+            <CardContent className="pt-6">
+              <h3 className="text-xl font-semibold mb-4 text-green-900 dark:text-green-100">
+                🎯 Nearly Complete ({nearlyCompleteRecipients.length})
+              </h3>
+              <div className="space-y-3">
+                {nearlyCompleteRecipients.map((person) => (
+                  <div key={person.id} className="p-3 bg-white dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-green-900 dark:text-green-100">{person.name}</h4>
+                      <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100">
+                        {Math.round(person.completion)}% done
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-green-800 dark:text-green-200">
+                      <span className="flex items-center gap-1">
+                        <ShoppingBag className="h-3 w-3" />
+                        {person.purchased}/{person.realGiftCount} purchased
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Package className="h-3 w-3" />
+                        {person.wrapped}/{person.realGiftCount} wrapped
+                      </span>
                     </div>
                   </div>
                 ))}
