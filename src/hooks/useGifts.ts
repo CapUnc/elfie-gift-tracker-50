@@ -200,9 +200,12 @@ export const useGifts = (householdId: string | null) => {
 
       if (error) throw error;
 
-      // Update givers if provided
-      if (giverIds !== undefined) {
-        console.log('Deleting existing givers for gift:', id);
+      // Update givers if provided AND we have valid data
+      // SAFETY: Only update givers if explicitly provided with data OR if other fields are being updated
+      if (giverIds !== undefined && (giverIds.length > 0 || Object.keys(updates).length > 0)) {
+        console.log('🔴 [useGifts] Deleting existing givers for gift:', id);
+        console.log('🔴 [useGifts] New giverIds to set:', giverIds);
+        
         const { error: deleteError } = await supabase
           .from('gift_givers')
           .delete()
