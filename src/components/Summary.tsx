@@ -44,9 +44,23 @@ interface Giver {
 
 const Summary = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { householdId, loading: householdLoading } = useHousehold(user?.id);
+  
+  // Early return BEFORE any other hooks to prevent hooks violation
+  if (householdLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="h-32 bg-muted rounded"></div>
+          <div className="h-64 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const queryClient = useQueryClient();
   const [showAllBuyers, setShowAllBuyers] = useState(false);
 
   // Fetch household data
@@ -381,18 +395,6 @@ const Summary = () => {
 
     return steps;
   }, [overallStats, navigate]);
-
-  if (householdLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-32 bg-muted rounded"></div>
-          <div className="h-64 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24 max-w-7xl">
