@@ -70,18 +70,24 @@ const Summary = () => {
     enabled: !!householdId,
   });
 
-  // Fetch buyers
+  // Fetch profile-linked givers (acting as buyers)
   const { data: buyers = [] } = useQuery({
-    queryKey: ['buyers', householdId],
+    queryKey: ['profile-givers', householdId],
     queryFn: async () => {
       if (!householdId) return [];
       const { data, error } = await supabase
-        .from('buyers')
+        .from('givers')
         .select('*')
         .eq('household_id', householdId)
+        .eq('is_virtual', false)
         .order('name');
       if (error) throw error;
-      return data as Buyer[];
+      // Map to Buyer interface for compatibility
+      return (data || []).map(g => ({
+        id: g.id,
+        name: g.name,
+        emoji: g.icon || '🎁'
+      })) as Buyer[];
     },
     enabled: !!householdId,
   });
@@ -178,11 +184,13 @@ const Summary = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'buyers',
+          table: 'givers',
           filter: `household_id=eq.${householdId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['buyers', householdId] });
+          queryClient.invalidateQueries({ queryKey: ['profile-givers', householdId] });
+          queryClient.invalidateQueries({ queryKey: ['givers', householdId] });
+          queryClient.invalidateQueries({ queryKey: ['recipients', householdId] });
         }
       )
       .on(

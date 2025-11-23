@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { GiftForm } from './GiftForm';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-import { useBuyers } from '@/hooks/useBuyers';
+
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
 import { useGivers } from '@/hooks/useGivers';
@@ -83,7 +83,8 @@ const GiftTracker = () => {
   const { householdId, loading: householdLoading } = useHousehold(session?.user?.id);
   
   // Supabase hooks
-  const { buyers: supabaseBuyers, loading: buyersLoading } = useBuyers(householdId);
+  const { profileLinkedGivers, loading: buyersLoading } = useGivers(householdId);
+  const supabaseBuyers = profileLinkedGivers; // For compatibility with existing code
   const { recipients: supabaseRecipients, updateRecipient, addRecipient } = useRecipients(householdId);
   const { gifts: supabaseGifts, addGift: addGiftToDb, updateGift: updateGiftInDb, updateGiftStatus: updateGiftStatusInDb, deleteGift: deleteGiftFromDb, duplicateGift: duplicateGiftInDb, batchUpdateGifts } = useGifts(householdId);
   const { givers } = useGivers(householdId);
@@ -147,7 +148,11 @@ const GiftTracker = () => {
   const animateButton = useAnimatedButton();
 
   // Transform Supabase data into local format
-  const buyers: Buyer[] = supabaseBuyers;
+  const buyers: Buyer[] = supabaseBuyers.map(g => ({
+    id: g.id,
+    name: g.name,
+    emoji: g.icon || '🎁'
+  }));
   
   const people: Person[] = useMemo(() => {
     return supabaseRecipients.map(recipient => ({
@@ -490,9 +495,9 @@ const GiftTracker = () => {
         if (filters.assignedTo === 'unassigned') {
           if (person.assignedTo !== null) return false;
         } else if (filters.assignedTo === 'assigned-to-me') {
-          // Get current user's buyer ID
-          const currentUserBuyer = supabaseBuyers.find(b => b.user_id === session?.user?.id);
-          if (!currentUserBuyer || person.assignedTo !== currentUserBuyer.id) return false;
+          // Get current user's giver ID (profile-linked)
+          const currentUserGiver = supabaseBuyers.find(g => g.profile_id === session?.user?.id);
+          if (!currentUserGiver || person.assignedTo !== currentUserGiver.id) return false;
         } else {
           if (person.assignedTo !== filters.assignedTo) return false;
         }

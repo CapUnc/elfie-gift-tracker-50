@@ -13,14 +13,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useHousehold } from '@/hooks/useHousehold';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecipients } from '@/hooks/useRecipients';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useGivers } from '@/hooks/useGivers';
+
 
 const Settings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { householdId } = useHousehold(user?.id);
   const { recipients } = useRecipients(householdId);
-  const { buyers } = useBuyers(householdId);
+  const { profileLinkedGivers: buyers } = useGivers(householdId);
   const { toast } = useToast();
 
   const [currency, setCurrency] = useState('$');
@@ -130,7 +131,7 @@ const Settings = () => {
     }
   };
 
-  const ownBuyer = buyers.find(b => b.user_id === user?.id);
+  const ownBuyer = buyers.find(b => b.profile_id === user?.id);
 
   return (
     <div className="container mx-auto p-4 max-w-2xl space-y-6">
@@ -278,7 +279,7 @@ const Settings = () => {
               <div className="flex items-center gap-2 text-sm">
                 {ownBuyer ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{ownBuyer.emoji}</span>
+                    <span className="text-2xl">{ownBuyer.icon || '🎁'}</span>
                     <span className="font-medium">{ownBuyer.name}</span>
                   </div>
                 ) : (

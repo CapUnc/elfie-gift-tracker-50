@@ -48,23 +48,34 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
           return;
         }
 
-        // Clear assignments and delete old buyer record
-        await supabase
-          .from('recipients')
-          .update({ assigned_to: null })
+        // Find the user's giver record in the old household
+        const { data: oldGiver } = await supabase
+          .from('givers')
+          .select('id')
           .eq('household_id', currentProfile.household_id)
-          .eq('assigned_to', user.id);
+          .eq('profile_id', user.id)
+          .maybeSingle();
 
-        await supabase
-          .from('gifts')
-          .update({ assigned_to: null })
-          .eq('household_id', currentProfile.household_id)
-          .eq('assigned_to', user.id);
+        if (oldGiver) {
+          // Clear assignments
+          await supabase
+            .from('recipients')
+            .update({ assigned_to: null })
+            .eq('household_id', currentProfile.household_id)
+            .eq('assigned_to', oldGiver.id);
 
-        await supabase
-          .from('buyers')
-          .delete()
-          .eq('user_id', user.id);
+          await supabase
+            .from('gifts')
+            .update({ assigned_to: null })
+            .eq('household_id', currentProfile.household_id)
+            .eq('assigned_to', oldGiver.id);
+
+          // Delete old giver record
+          await supabase
+            .from('givers')
+            .delete()
+            .eq('id', oldGiver.id);
+        }
       }
 
       const { data: newHouseholdId, error } = await supabase.rpc('join_household_by_code', {
@@ -104,21 +115,19 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
 
     setLoading(true);
     try {
-      // Use upsert to handle both new and existing buyer records
-      // This prevents issues if buyer was partially created before
-      const { error: buyerError } = await supabase
-        .from('buyers')
-        .upsert({
+      // Create giver record for the user (profile-linked)
+      const { error: giverError } = await supabase
+        .from('givers')
+        .insert({
           household_id: householdId,
-          user_id: user.id,
+          profile_id: user.id,
           name: displayName.trim(),
-          emoji: selectedEmoji,
-        }, {
-          onConflict: 'user_id,household_id'
+          icon: selectedEmoji,
+          is_virtual: false,
         });
 
-      if (buyerError) {
-        console.error('Buyer upsert error:', buyerError);
+      if (giverError) {
+        console.error('Giver insert error:', giverError);
         throw new Error('Could not create profile. Please try again.');
       }
 

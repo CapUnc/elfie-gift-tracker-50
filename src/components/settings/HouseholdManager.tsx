@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useGivers } from '@/hooks/useGivers';
+
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Copy, RefreshCw, Check, Loader2, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +32,8 @@ const HouseholdManager = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { householdId } = useHousehold(user?.id);
-  const { buyers } = useBuyers(householdId);
+  const { givers: allGivers } = useGivers(householdId);
+  const buyers = allGivers.filter(g => !g.is_virtual); // Profile-linked givers only
   const { toast } = useToast();
 
   const [inviteCode, setInviteCode] = useState('');
@@ -111,9 +113,24 @@ const HouseholdManager = () => {
 
     setLeaving(true);
     try {
-      await supabase.from('recipients').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', user.id);
-      await supabase.from('gifts').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', user.id);
-      await supabase.from('buyers').delete().eq('user_id', user.id);
+      // Find the user's giver record
+      const { data: userGiver } = await supabase
+        .from('givers')
+        .select('id')
+        .eq('profile_id', user.id)
+        .eq('household_id', householdId)
+        .maybeSingle();
+
+      if (userGiver) {
+        // Unassign recipients and gifts
+        await supabase.from('recipients').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', userGiver.id);
+        await supabase.from('gifts').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', userGiver.id);
+        
+        // Delete the giver record
+        await supabase.from('givers').delete().eq('id', userGiver.id);
+      }
+      
+      // Update profile to remove household
       await supabase.from('profiles').update({ household_id: null }).eq('id', user.id);
 
       toast({ title: 'Left household' });
@@ -153,10 +170,10 @@ const HouseholdManager = () => {
         </div>
         <div className="space-y-3">
           {members.map((member) => {
-            const buyer = buyers.find(b => b.user_id === member.id);
+            const buyer = buyers.find(b => b.profile_id === member.id);
             return (
               <div key={member.id} className="p-4 bg-secondary/50 rounded-lg flex items-center gap-3">
-                {buyer && <span className="text-3xl">{buyer.emoji}</span>}
+                {buyer && <span className="text-3xl">{buyer.icon || '🎁'}</span>}
                 <div className="flex-1">
                   <div className="font-medium">{buyer?.name || member.display_name || 'Anonymous'} {member.id === user?.id && <span className="text-sm text-muted-foreground">(You)</span>}</div>
                   <div className="text-sm text-muted-foreground">Joined {new Date(member.created_at).toLocaleDateString()}</div>
