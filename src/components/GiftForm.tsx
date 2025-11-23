@@ -66,6 +66,10 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   givers,
   templates
 }) => {
+  // Ensure givers and templates are always arrays
+  const safeGivers = Array.isArray(givers) ? givers : [];
+  const safeTemplates = Array.isArray(templates) ? templates : [];
+  
   const [giftName, setGiftName] = useState('');
   const [giftCost, setGiftCost] = useState('');
   const [isPlaceholder, setIsPlaceholder] = useState(false);
@@ -135,11 +139,13 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' && editingGift) {
-        const name = editingGift.name;
+        const name = editingGift.name || '';
         const cost = editingGift.cost?.toString() || '';
-        const placeholder = editingGift.is_placeholder || false;
+        const placeholder = editingGift.is_placeholder ?? false;
         const templateId = editingGift.template_id || 'none';
-        const giverIds = editingGift.givers?.map(g => g.id) || [];
+        const giverIds = Array.isArray(editingGift.givers) 
+          ? editingGift.givers.map(g => g.id) 
+          : [];
         
         setGiftName(name);
         setGiftCost(cost);
@@ -174,7 +180,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     setSelectedTemplateId(templateId);
     
     if (templateId !== 'none') {
-      const template = templates.find(t => t.id === templateId);
+      const template = safeTemplates.find(t => t.id === templateId);
       if (template) {
         setGiftName(template.name);
         setGiftCost(template.default_cost?.toString() || '');
@@ -262,7 +268,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
         </SheetHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 pb-6">
-          {mode === 'add' && templates.length > 0 && (
+          {mode === 'add' && safeTemplates.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="template-select" className="text-sm font-medium">
                 Use Template (optional)
@@ -273,7 +279,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No template</SelectItem>
-                  {templates.map(template => (
+                  {safeTemplates.map(template => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.tag_icon} {template.name}
                     </SelectItem>
@@ -287,7 +293,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
             <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
               <Badge variant="secondary">Template</Badge>
               <span className="text-sm flex-1">
-                {templates.find(t => t.id === editingGift.template_id)?.name || 'Unknown Template'}
+                {safeTemplates.find(t => t.id === editingGift.template_id)?.name || 'Unknown Template'}
               </span>
               <Button
                 type="button"
@@ -369,11 +375,11 @@ export const GiftForm: React.FC<GiftFormProps> = ({
             </div>
           </div>
 
-          {givers.length > 0 && (
+          {safeGivers.length > 0 && (
             <div className="space-y-3">
               <Label className="text-sm font-medium">From</Label>
               <div className="grid grid-cols-2 gap-2">
-                {givers.map(giver => (
+                {safeGivers.map(giver => (
                   <div
                     key={giver.id}
                     className={cn(
