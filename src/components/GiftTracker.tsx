@@ -35,6 +35,8 @@ import { useHousehold } from '@/hooks/useHousehold';
 import { useBuyers } from '@/hooks/useBuyers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
+import { useGivers } from '@/hooks/useGivers';
+import { useGiftTemplates } from '@/hooks/useGiftTemplates';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Buyer {
@@ -75,6 +77,8 @@ const GiftTracker = () => {
   const { buyers: supabaseBuyers, loading: buyersLoading } = useBuyers(householdId);
   const { recipients: supabaseRecipients, updateRecipient, addRecipient } = useRecipients(householdId);
   const { gifts: supabaseGifts, addGift: addGiftToDb, updateGift: updateGiftInDb, updateGiftStatus: updateGiftStatusInDb, deleteGift: deleteGiftFromDb, duplicateGift: duplicateGiftInDb, batchUpdateGifts } = useGifts(householdId);
+  const { givers } = useGivers(householdId);
+  const { templates } = useGiftTemplates(householdId);
   
   // Fetch all household notes for indicator
   const { data: allNotes = [] } = useQuery({

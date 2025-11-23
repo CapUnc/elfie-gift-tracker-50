@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { RippleButton } from './RippleButton';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/currency';
 import { Save, X, Trash2 } from 'lucide-react';
 import { z } from 'zod';
+import type { Giver } from '@/hooks/useGivers';
+import type { GiftTemplate } from '@/hooks/useGiftTemplates';
 
 const giftSchema = z.object({
   name: z.string().trim().min(1, 'Gift name is required').max(100, 'Gift name must be less than 100 characters'),
@@ -23,20 +26,28 @@ interface Gift {
   cost: number | null;
   purchased: boolean;
   wrapped: boolean;
-  trackingNumber?: string;
-  carrier?: string;
-  assignedTo?: string | null;
+  is_placeholder?: boolean;
+  template_id?: string | null;
+  givers?: Array<{ id: string; name: string; icon: string }>;
 }
 
 interface GiftFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (giftData: { name: string; cost: string }) => void;
+  onSubmit: (giftData: { 
+    name: string; 
+    cost: string; 
+    isPlaceholder: boolean;
+    templateId?: string;
+    giverIds: string[];
+  }) => void;
   onDelete?: (giftId: string) => void;
   personName: string;
   currency: string;
   editingGift?: Gift | null;
   mode?: 'add' | 'edit';
+  givers: Giver[];
+  templates: GiftTemplate[];
 }
 
 export const GiftForm: React.FC<GiftFormProps> = ({
@@ -47,34 +58,60 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   personName,
   currency,
   editingGift,
-  mode = 'add'
+  mode = 'add',
+  givers,
+  templates
 }) => {
   const [giftName, setGiftName] = useState('');
   const [giftCost, setGiftCost] = useState('');
+  const [isPlaceholder, setIsPlaceholder] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('none');
+  const [selectedGiverIds, setSelectedGiverIds] = useState<string[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [initialValues, setInitialValues] = useState({ name: '', cost: '' });
+  const [initialValues, setInitialValues] = useState({ 
+    name: '', 
+    cost: '', 
+    isPlaceholder: false,
+    templateId: 'none',
+    giverIds: [] as string[]
+  });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const { toast } = useToast();
   const haptic = useHapticFeedback();
   const { execute: saveGift, getVariant, isDisabled } = useAnimatedButton(async () => {
-    // Validate input with zod schema (trim inputs first)
+    // For placeholder gifts, name is optional
     const trimmedName = giftName.trim();
     const trimmedCost = giftCost.trim();
     
-    const validation = giftSchema.safeParse({ name: trimmedName, cost: trimmedCost });
-    
-    if (!validation.success) {
+    if (!isPlaceholder) {
+      const validation = giftSchema.safeParse({ name: trimmedName, cost: trimmedCost });
+      
+      if (!validation.success) {
+        toast({
+          title: "Validation Error",
+          description: validation.error.errors[0].message,
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (trimmedCost && !/^\d*\.?\d{0,2}$/.test(trimmedCost)) {
       toast({
         title: "Validation Error",
-        description: validation.error.errors[0].message,
+        description: "Invalid cost format",
         variant: "destructive"
       });
       return;
     }
     
     haptic.success();
-    onSubmit({ name: trimmedName, cost: trimmedCost });
+    onSubmit({ 
+      name: isPlaceholder && !trimmedName ? 'TBD Gift' : trimmedName, 
+      cost: trimmedCost,
+      isPlaceholder,
+      templateId: selectedTemplateId !== 'none' ? selectedTemplateId : undefined,
+      giverIds: selectedGiverIds
+    });
     resetForm();
   });
 
@@ -84,13 +121,23 @@ export const GiftForm: React.FC<GiftFormProps> = ({
       if (mode === 'edit' && editingGift) {
         const name = editingGift.name;
         const cost = editingGift.cost?.toString() || '';
+        const placeholder = editingGift.is_placeholder || false;
+        const templateId = editingGift.template_id || 'none';
+        const giverIds = editingGift.givers?.map(g => g.id) || [];
+        
         setGiftName(name);
         setGiftCost(cost);
-        setInitialValues({ name, cost });
+        setIsPlaceholder(placeholder);
+        setSelectedTemplateId(templateId);
+        setSelectedGiverIds(giverIds);
+        setInitialValues({ name, cost, isPlaceholder: placeholder, templateId, giverIds });
       } else {
         setGiftName('');
         setGiftCost('');
-        setInitialValues({ name: '', cost: '' });
+        setIsPlaceholder(false);
+        setSelectedTemplateId('none');
+        setSelectedGiverIds([]);
+        setInitialValues({ name: '', cost: '', isPlaceholder: false, templateId: 'none', giverIds: [] });
       }
       setHasUnsavedChanges(false);
     }
@@ -100,19 +147,38 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   useEffect(() => {
     const nameChanged = giftName !== initialValues.name;
     const costChanged = giftCost !== initialValues.cost;
-    setHasUnsavedChanges(nameChanged || costChanged);
-  }, [giftName, giftCost, initialValues]);
+    const placeholderChanged = isPlaceholder !== initialValues.isPlaceholder;
+    const templateChanged = selectedTemplateId !== initialValues.templateId;
+    const giversChanged = JSON.stringify(selectedGiverIds) !== JSON.stringify(initialValues.giverIds);
+    setHasUnsavedChanges(nameChanged || costChanged || placeholderChanged || templateChanged || giversChanged);
+  }, [giftName, giftCost, isPlaceholder, selectedTemplateId, selectedGiverIds, initialValues]);
+
+  // Handle template selection
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    
+    if (templateId !== 'none') {
+      const template = templates.find(t => t.id === templateId);
+      if (template) {
+        setGiftName(template.name);
+        setGiftCost(template.default_cost?.toString() || '');
+        setSelectedGiverIds(template.default_giver_ids || []);
+      }
+    }
+  };
 
   const resetForm = () => {
     setGiftName('');
     setGiftCost('');
+    setIsPlaceholder(false);
+    setSelectedTemplateId('none');
+    setSelectedGiverIds([]);
     setHasUnsavedChanges(false);
-    setInitialValues({ name: '', cost: '' });
+    setInitialValues({ name: '', cost: '', isPlaceholder: false, templateId: 'none', giverIds: [] });
   };
 
   const handleClose = () => {
     if (hasUnsavedChanges) {
-      // Simple confirmation via toast
       toast({
         title: "Unsaved changes",
         description: "Your changes will be lost. Close anyway?",
@@ -151,7 +217,15 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     saveGift();
   };
 
-  const isFormValid = giftName.trim().length > 0;
+  const toggleGiver = (giverId: string) => {
+    setSelectedGiverIds(prev => 
+      prev.includes(giverId) 
+        ? prev.filter(id => id !== giverId)
+        : [...prev, giverId]
+    );
+  };
+
+  const isFormValid = isPlaceholder || giftName.trim().length > 0;
   const title = mode === 'edit' ? 'Edit Gift' : `Add Gift for ${personName}`;
   const submitLabel = mode === 'edit' ? 'Update Gift' : 'Save Gift';
 
@@ -159,25 +233,63 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <SheetContent 
         side="bottom" 
-        className="max-h-[calc(100vh-env(keyboard-inset-height,0px))] h-auto min-h-[60vh] sm:h-auto sm:max-w-md sm:rounded-t-lg flex flex-col"
+        className="max-h-[90vh] h-auto overflow-y-auto sm:max-w-md sm:rounded-t-lg flex flex-col"
       >
         <SheetHeader className="pb-4">
           <SheetTitle className="text-left">{title}</SheetTitle>
         </SheetHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 pb-6">
+          {mode === 'add' && templates.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="template-select" className="text-sm font-medium">
+                Use Template (optional)
+              </Label>
+              <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
+                <SelectTrigger id="template-select">
+                  <SelectValue placeholder="No template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No template</SelectItem>
+                  {templates.map(template => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.tag_icon} {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is-placeholder"
+              checked={isPlaceholder}
+              onCheckedChange={(checked) => setIsPlaceholder(!!checked)}
+            />
+            <label htmlFor="is-placeholder" className="text-sm cursor-pointer">
+              This is a placeholder (gift not decided yet)
+            </label>
+          </div>
+
+          {isPlaceholder && (
+            <p className="text-xs text-muted-foreground">
+              Placeholder gifts can be converted to real gifts later. They won't count towards completion.
+            </p>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="gift-name" className="text-sm font-medium">
-              Gift Name
+              Gift Name {isPlaceholder && <span className="text-muted-foreground">(optional)</span>}
             </Label>
             <Input
               id="gift-name"
               type="text"
-              placeholder="Enter gift name..."
+              placeholder={isPlaceholder ? "TBD Gift" : "Enter gift name..."}
               value={giftName}
               onChange={(e) => setGiftName(e.target.value)}
               className="touch-target"
-              autoFocus
+              autoFocus={!isPlaceholder}
               autoComplete="off"
             />
           </div>
@@ -198,13 +310,11 @@ export const GiftForm: React.FC<GiftFormProps> = ({
                 value={giftCost}
                 onChange={(e) => {
                   const value = e.target.value;
-                  // Allow only numbers, decimals, and one decimal point
                   if (value === '' || /^\d*\.?\d*$/.test(value)) {
                     setGiftCost(value);
                   }
                 }}
                 onBlur={() => {
-                  // Format on blur if valid number
                   if (giftCost && !isNaN(parseFloat(giftCost))) {
                     const formatted = parseFloat(giftCost).toFixed(2);
                     setGiftCost(formatted);
@@ -214,11 +324,36 @@ export const GiftForm: React.FC<GiftFormProps> = ({
                 autoComplete="off"
               />
             </div>
-            {/* Helper text only for validation errors */}
-            {giftCost && isNaN(parseFloat(giftCost)) && (
-              <p className="text-xs text-destructive">Numbers only</p>
-            )}
           </div>
+
+          {givers.length > 0 && (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">From</Label>
+              <div className="space-y-2">
+                {givers.map(giver => (
+                  <div key={giver.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`giver-${giver.id}`}
+                      checked={selectedGiverIds.includes(giver.id)}
+                      onCheckedChange={() => toggleGiver(giver.id)}
+                    />
+                    <label 
+                      htmlFor={`giver-${giver.id}`} 
+                      className="text-sm cursor-pointer flex items-center gap-2"
+                    >
+                      <span className="text-lg">{giver.icon}</span>
+                      <span>{giver.name}</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {selectedGiverIds.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Select at least one giver for this gift
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-3 pt-4">
             {mode === 'edit' && onDelete && editingGift && (
@@ -260,7 +395,6 @@ export const GiftForm: React.FC<GiftFormProps> = ({
           </div>
         </form>
 
-        {/* Visual indicator for unsaved changes */}
         {hasUnsavedChanges && (
           <div className="absolute top-2 right-2 w-2 h-2 bg-warning rounded-full animate-pulse" />
         )}

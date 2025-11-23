@@ -49,6 +49,86 @@ export type Database = {
           },
         ]
       }
+      gift_givers: {
+        Row: {
+          created_at: string
+          gift_id: string
+          giver_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          gift_id: string
+          giver_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          gift_id?: string
+          giver_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_givers_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_givers_giver_id_fkey"
+            columns: ["giver_id"]
+            isOneToOne: false
+            referencedRelation: "givers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_templates: {
+        Row: {
+          created_at: string
+          default_cost: number | null
+          default_giver_ids: string[] | null
+          display_order: number
+          household_id: string
+          id: string
+          name: string
+          tag_color: string | null
+          tag_icon: string | null
+        }
+        Insert: {
+          created_at?: string
+          default_cost?: number | null
+          default_giver_ids?: string[] | null
+          display_order?: number
+          household_id: string
+          id?: string
+          name: string
+          tag_color?: string | null
+          tag_icon?: string | null
+        }
+        Update: {
+          created_at?: string
+          default_cost?: number | null
+          default_giver_ids?: string[] | null
+          display_order?: number
+          household_id?: string
+          id?: string
+          name?: string
+          tag_color?: string | null
+          tag_icon?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_templates_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gifts: {
         Row: {
           assigned_to: string | null
@@ -56,9 +136,11 @@ export type Database = {
           created_at: string
           household_id: string
           id: string
+          is_placeholder: boolean
           name: string
           purchased: boolean | null
           recipient_id: string
+          template_id: string | null
           tracking: string | null
           updated_at: string
           url: string | null
@@ -70,9 +152,11 @@ export type Database = {
           created_at?: string
           household_id: string
           id?: string
+          is_placeholder?: boolean
           name: string
           purchased?: boolean | null
           recipient_id: string
+          template_id?: string | null
           tracking?: string | null
           updated_at?: string
           url?: string | null
@@ -84,9 +168,11 @@ export type Database = {
           created_at?: string
           household_id?: string
           id?: string
+          is_placeholder?: boolean
           name?: string
           purchased?: boolean | null
           recipient_id?: string
+          template_id?: string | null
           tracking?: string | null
           updated_at?: string
           url?: string | null
@@ -112,6 +198,48 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gifts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "gift_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      givers: {
+        Row: {
+          created_at: string
+          display_order: number
+          household_id: string
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          household_id: string
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          household_id?: string
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "givers_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
             referencedColumns: ["id"]
           },
         ]

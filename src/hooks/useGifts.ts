@@ -15,6 +15,13 @@ export interface Gift {
   household_id?: string;
   created_at?: string;
   updated_at?: string;
+  is_placeholder?: boolean;
+  template_id?: string | null;
+  givers?: Array<{
+    id: string;
+    name: string;
+    icon: string;
+  }>;
 }
 
 export const useGifts = (householdId: string | null) => {
@@ -31,7 +38,7 @@ export const useGifts = (householdId: string | null) => {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data: giftsData, error } = await supabase
         .from('gifts')
         .select('*')
         .eq('household_id', householdId)
@@ -39,7 +46,38 @@ export const useGifts = (householdId: string | null) => {
 
       if (error) throw error;
 
-      setGifts(data || []);
+      // Fetch givers for all gifts
+      const giftIds = giftsData?.map(g => g.id) || [];
+      let giversMap: Record<string, Array<{ id: string; name: string; icon: string }>> = {};
+      
+      if (giftIds.length > 0) {
+        const { data: giftGiversData } = await supabase
+          .from('gift_givers')
+          .select(`
+            gift_id,
+            giver:givers(id, name, icon)
+          `)
+          .in('gift_id', giftIds);
+
+        if (giftGiversData) {
+          giftGiversData.forEach((gg: any) => {
+            if (!giversMap[gg.gift_id]) {
+              giversMap[gg.gift_id] = [];
+            }
+            if (gg.giver) {
+              giversMap[gg.gift_id].push(gg.giver);
+            }
+          });
+        }
+      }
+
+      // Attach givers to gifts
+      const giftsWithGivers = giftsData?.map(gift => ({
+        ...gift,
+        givers: giversMap[gift.id] || [],
+      })) || [];
+
+      setGifts(giftsWithGivers);
       setError(null);
     } catch (err) {
       console.error('Error fetching gifts:', err);
@@ -89,6 +127,9 @@ export const useGifts = (householdId: string | null) => {
       url?: string;
       tracking?: string;
       assignedTo?: string;
+      isPlaceholder?: boolean;
+      templateId?: string;
+      giverIds?: string[];
     }
   ) => {
     if (!householdId) return;
@@ -106,13 +147,32 @@ export const useGifts = (householdId: string | null) => {
           url: options?.url || null,
           tracking: options?.tracking || null,
           assigned_to: options?.assignedTo || null,
+          is_placeholder: options?.isPlaceholder || false,
+          template_id: options?.templateId || null,
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      setGifts([...gifts, data]);
+      // Add givers if provided
+      if (options?.giverIds && options.giverIds.length > 0) {
+        const giftGiverInserts = options.giverIds.map(giverId => ({
+          gift_id: data.id,
+          giver_id: giverId,
+        }));
+
+        const { error: giversError } = await supabase
+          .from('gift_givers')
+          .insert(giftGiverInserts);
+
+        if (giversError) {
+          console.error('Error adding gift givers:', giversError);
+        }
+      }
+
+      // Refetch to get full data with givers
+      await fetchGifts();
       return data;
     } catch (err) {
       console.error('Error adding gift:', err);
@@ -125,7 +185,11 @@ export const useGifts = (householdId: string | null) => {
     }
   };
 
-  const updateGift = async (id: string, updates: Partial<Omit<Gift, 'id' | 'household_id' | 'created_at' | 'updated_at'>>) => {
+  const updateGift = async (
+    id: string, 
+    updates: Partial<Omit<Gift, 'id' | 'household_id' | 'created_at' | 'updated_at' | 'givers'>>,
+    giverIds?: string[]
+  ) => {
     try {
       const { error } = await supabase
         .from('gifts')
@@ -134,7 +198,33 @@ export const useGifts = (householdId: string | null) => {
 
       if (error) throw error;
 
-      setGifts(gifts.map(g => (g.id === id ? { ...g, ...updates } : g)));
+      // Update givers if provided
+      if (giverIds !== undefined) {
+        // Delete existing givers
+        await supabase
+          .from('gift_givers')
+          .delete()
+          .eq('gift_id', id);
+
+        // Add new givers
+        if (giverIds.length > 0) {
+          const giftGiverInserts = giverIds.map(giverId => ({
+            gift_id: id,
+            giver_id: giverId,
+          }));
+
+          const { error: giversError } = await supabase
+            .from('gift_givers')
+            .insert(giftGiverInserts);
+
+          if (giversError) {
+            console.error('Error updating gift givers:', giversError);
+          }
+        }
+      }
+
+      // Refetch to get updated data with givers
+      await fetchGifts();
     } catch (err) {
       console.error('Error updating gift:', err);
       toast({
