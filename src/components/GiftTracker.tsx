@@ -54,6 +54,13 @@ interface Gift {
   url?: string;
   tracking?: string;
   assignedTo?: string;
+  is_placeholder?: boolean;
+  template_id?: string | null;
+  givers?: Array<{
+    id: string;
+    name: string;
+    icon: string;
+  }>;
 }
 
 interface Person {
@@ -241,13 +248,23 @@ const GiftTracker = () => {
     }
   };
 
-  const addGift = async (personId: string, name: string, cost: number | null) => {
+  const addGift = async (
+    personId: string, 
+    name: string, 
+    cost: number | null,
+    options?: {
+      isPlaceholder?: boolean;
+      templateId?: string;
+      giverIds?: string[];
+    }
+  ) => {
     if (name.trim() && householdId) {
       try {
         await addGiftToDb(
           personId,
           name.trim(),
-          cost
+          cost,
+          options
         );
         
         setEditingGift(null);
@@ -263,9 +280,14 @@ const GiftTracker = () => {
     }
   };
 
-  const updateGift = async (personId: string, giftId: string, updatedGift: Partial<Gift>) => {
+  const updateGift = async (
+    personId: string, 
+    giftId: string, 
+    updatedGift: Partial<Gift>,
+    giverIds?: string[]
+  ) => {
     try {
-      await updateGiftInDb(giftId, updatedGift);
+      await updateGiftInDb(giftId, updatedGift, giverIds);
       
       haptic.impact('light');
       toast({
@@ -986,13 +1008,20 @@ const GiftTracker = () => {
               if (editingGift.giftId) {
                 await updateGift(editingGift.personId, editingGift.giftId, {
                   name: giftData.name,
-                  cost: giftData.cost ? parseFloat(giftData.cost) : null
-                });
+                  cost: giftData.cost ? parseFloat(giftData.cost) : null,
+                  is_placeholder: giftData.isPlaceholder,
+                  template_id: giftData.templateId || null,
+                }, giftData.giverIds);
               } else {
                 await addGift(
                   editingGift.personId,
                   giftData.name,
-                  giftData.cost ? parseFloat(giftData.cost) : null
+                  giftData.cost ? parseFloat(giftData.cost) : null,
+                  {
+                    isPlaceholder: giftData.isPlaceholder,
+                    templateId: giftData.templateId,
+                    giverIds: giftData.giverIds,
+                  }
                 );
               }
               setEditingGift(null);
@@ -1005,6 +1034,8 @@ const GiftTracker = () => {
             currency={currency}
             editingGift={editingGift.gift}
             mode={editingGift.giftId ? 'edit' : 'add'}
+            givers={givers}
+            templates={templates}
           />
         )}
 
