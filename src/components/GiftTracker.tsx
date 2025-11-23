@@ -11,6 +11,7 @@ import { AlphabetIndex } from './AlphabetIndex';
 import { GiftContextMenu, PersonContextMenu } from './ContextMenu';
 import { GiftNotes } from './GiftNotes';
 import { RecipientNotes } from './RecipientNotes';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -1081,44 +1082,46 @@ const GiftTracker = () => {
 
         {/* Gift Form for Add/Edit */}
         {editingGift && (
-          <GiftForm
-            key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
-            isOpen={true}
-            onClose={() => setEditingGift(null)}
-            onSubmit={async (giftData) => {
-              if (editingGift.giftId) {
-                await updateGift(editingGift.personId, editingGift.giftId, {
-                  name: giftData.name,
-                  cost: giftData.cost ? parseFloat(giftData.cost) : null,
-                  is_placeholder: giftData.isPlaceholder,
-                  template_id: giftData.templateId || null,
-                }, giftData.giverIds);
-              } else {
-                await addGift(
-                  editingGift.personId,
-                  giftData.name,
-                  giftData.cost ? parseFloat(giftData.cost) : null,
-                  {
-                    isPlaceholder: giftData.isPlaceholder,
-                    templateId: giftData.templateId,
-                    giverIds: giftData.giverIds,
-                  }
-                );
-              }
-              setEditingGift(null);
-            }}
-            updateGift={updateGift}
-            onDelete={editingGift.giftId ? (giftId) => {
-              deleteGift(editingGift.personId, giftId);
-              setEditingGift(null);
-            } : undefined}
-            personName={people.find(p => p.id === editingGift.personId)?.name || ''}
-            currency={currency}
-            editingGift={editingGift.gift}
-            mode={editingGift.giftId ? 'edit' : 'add'}
-            givers={givers}
-            templates={templates}
-          />
+          <ErrorBoundary>
+            <GiftForm
+              key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
+              isOpen={true}
+              onClose={() => setEditingGift(null)}
+              onSubmit={async (giftData) => {
+                if (editingGift.giftId) {
+                  await updateGift(editingGift.personId, editingGift.giftId, {
+                    name: giftData.name,
+                    cost: giftData.cost ? parseFloat(giftData.cost) : null,
+                    is_placeholder: giftData.isPlaceholder,
+                    template_id: giftData.templateId || null,
+                  }, giftData.giverIds);
+                } else {
+                  await addGift(
+                    editingGift.personId,
+                    giftData.name,
+                    giftData.cost ? parseFloat(giftData.cost) : null,
+                    {
+                      isPlaceholder: giftData.isPlaceholder,
+                      templateId: giftData.templateId,
+                      giverIds: giftData.giverIds,
+                    }
+                  );
+                }
+                setEditingGift(null);
+              }}
+              updateGift={updateGift}
+              onDelete={editingGift.giftId ? (giftId) => {
+                deleteGift(editingGift.personId, giftId);
+                setEditingGift(null);
+              } : undefined}
+              personName={people.find(p => p.id === editingGift.personId)?.name || ''}
+              currency={currency}
+              editingGift={editingGift.gift}
+              mode={editingGift.giftId ? 'edit' : 'add'}
+              givers={givers}
+              templates={templates}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Completion Dialog */}
