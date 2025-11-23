@@ -143,7 +143,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
         const cost = editingGift.cost?.toString() || '';
         const placeholder = editingGift.is_placeholder ?? false;
         const templateId = editingGift.template_id || 'none';
-        const giverIds = Array.isArray(editingGift.givers) 
+        const giverIds = Array.isArray(editingGift?.givers) 
           ? editingGift.givers.map(g => g.id) 
           : [];
         
