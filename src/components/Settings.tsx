@@ -265,8 +265,8 @@ const Settings = () => {
 
             <Card
               className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate('/settings/buyers')}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/buyers')}
+              onClick={() => navigate('/settings/profile')}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/profile')}
               tabIndex={0}
             >
               <div className="flex items-center gap-2 mb-2">

@@ -67,7 +67,7 @@ const App = () => (
               }
             />
             <Route
-              path="/settings/buyers"
+              path="/settings/profile"
               element={
                 <ProtectedRoute>
                   <TopNavigation />

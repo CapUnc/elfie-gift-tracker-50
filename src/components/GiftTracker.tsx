@@ -40,12 +40,7 @@ import { useGifts } from '@/hooks/useGifts';
 import { useGivers } from '@/hooks/useGivers';
 import { useGiftTemplates } from '@/hooks/useGiftTemplates';
 import { supabase } from '@/integrations/supabase/client';
-
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
-}
+import { Buyer } from '@/types/givers';
 
 interface Gift {
   id: string;
@@ -151,7 +146,7 @@ const GiftTracker = () => {
   const buyers: Buyer[] = supabaseBuyers.map(g => ({
     id: g.id,
     name: g.name,
-    emoji: g.icon || '🎁'
+    icon: g.icon || '🎁'
   }));
   
   const people: Person[] = useMemo(() => {
@@ -697,7 +692,7 @@ const GiftTracker = () => {
                         }}
                         className="rounded border-gray-300"
                       />
-                      <span className="text-lg">{buyer.emoji}</span>
+                      <span className="text-lg">{buyer.icon}</span>
                       <span className="text-sm">{buyer.name}</span>
                     </label>
                   ))}
@@ -892,7 +887,7 @@ const GiftTracker = () => {
                                   className="flex-shrink-0 h-8 w-8 rounded-full border border-muted-foreground/30 flex items-center justify-center text-sm bg-background hover:bg-muted transition-colors"
                                   title={assignedBuyer ? `Assigned to ${assignedBuyer.name}` : 'Not assigned'}
                                 >
-                                  {assignedBuyer ? assignedBuyer.emoji : '?'}
+                                  {assignedBuyer ? assignedBuyer.icon : '?'}
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent className="w-48 p-2" align="end">
@@ -919,7 +914,7 @@ const GiftTracker = () => {
                                         setOpenAssignmentPopover(null);
                                       }}
                                     >
-                                      <span className="text-lg leading-none">{buyer.emoji}</span>
+                                      <span className="text-lg leading-none">{buyer.icon}</span>
                                       <span>{buyer.name}</span>
                                     </button>
                                   ))}

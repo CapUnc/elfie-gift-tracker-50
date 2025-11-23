@@ -22,7 +22,7 @@ const ProfileManager = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editEmoji, setEditEmoji] = useState('');
+  const [editIcon, setEditIcon] = useState('');
 
   const ownBuyer = buyers.find(b => b.profile_id === user?.id);
   const otherBuyers = buyers.filter(b => b.profile_id !== user?.id);
@@ -30,7 +30,7 @@ const ProfileManager = () => {
   const handleEdit = () => {
     if (ownBuyer) {
       setEditName(ownBuyer.name);
-      setEditEmoji(ownBuyer.icon || '🎁');
+      setEditIcon(ownBuyer.icon || '🎁');
       setIsEditing(true);
     }
   };
@@ -41,7 +41,7 @@ const ProfileManager = () => {
     try {
       await updateGiver(ownBuyer.id, {
         name: editName,
-        icon: editEmoji,
+        icon: editIcon,
       });
 
       toast({
@@ -122,9 +122,9 @@ const ProfileManager = () => {
                   {COMMON_GIVER_ICONS.map((emoji) => (
                     <button
                       key={emoji}
-                      onClick={() => setEditEmoji(emoji)}
+                      onClick={() => setEditIcon(emoji)}
                       className={`text-3xl p-3 rounded-lg transition-all flex items-center justify-center ${
-                        editEmoji === emoji
+                        editIcon === emoji
                           ? 'bg-primary/20 ring-2 ring-primary scale-110'
                           : 'bg-background hover:bg-secondary'
                       }`}
