@@ -10,10 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, Home } from 'lucide-react';
 import { z } from 'zod';
+import { COMMON_GIVER_ICONS } from '@/types/givers';
 
 const displayNameSchema = z.string().trim().min(1, 'Display name is required').max(100, 'Display name must be less than 100 characters');
-
-const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
 
 export const Welcome = () => {
   const [step, setStep] = useState<'choice' | 'create' | 'join'>('choice');
@@ -228,7 +227,7 @@ export const Welcome = () => {
             <div className="space-y-2">
               <Label>Choose Your Emoji</Label>
               <div className="grid grid-cols-6 gap-2">
-                {emojiOptions.map((emoji) => (
+                {COMMON_GIVER_ICONS.map((emoji) => (
                   <button
                     key={emoji}
                     onClick={() => setSelectedEmoji(emoji)}

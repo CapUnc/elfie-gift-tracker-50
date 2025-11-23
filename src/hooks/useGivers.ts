@@ -1,17 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Giver, GiverUpdate, DeleteGiverResult } from '@/types/givers';
 
-export interface Giver {
-  id: string;
-  household_id: string;
-  name: string;
-  icon: string;
-  display_order: number;
-  created_at: string;
-  profile_id: string | null;
-  is_virtual: boolean;
-}
+export type { Giver } from '@/types/givers';
 
 export const useGivers = (householdId: string | null) => {
   const [givers, setGivers] = useState<Giver[]>([]);
@@ -202,17 +194,15 @@ export const useGivers = (householdId: string | null) => {
     setGivers(reorderedGivers);
 
     try {
-      const updates = reorderedGivers.map((giver, index) => ({
-        id: giver.id,
-        display_order: index,
-      }));
-
-      for (const update of updates) {
-        await supabase
+      // Batch all updates simultaneously using Promise.all
+      const updatePromises = reorderedGivers.map((giver, index) =>
+        supabase
           .from('givers')
-          .update({ display_order: update.display_order })
-          .eq('id', update.id);
-      }
+          .update({ display_order: index })
+          .eq('id', giver.id)
+      );
+
+      await Promise.all(updatePromises);
     } catch (err) {
       console.error('Error reordering givers:', err);
       setGivers(oldGivers);

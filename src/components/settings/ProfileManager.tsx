@@ -7,12 +7,10 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
 import { useGivers } from '@/hooks/useGivers';
-
 import { ArrowLeft, Edit, Info, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-
-const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
+import { COMMON_GIVER_ICONS } from '@/types/givers';
 
 const ProfileManager = () => {
   const navigate = useNavigate();
@@ -121,7 +119,7 @@ const ProfileManager = () => {
               <div className="space-y-2">
                 <Label>Your Emoji</Label>
                 <div className="grid grid-cols-6 gap-2">
-                  {emojiOptions.map((emoji) => (
+                  {COMMON_GIVER_ICONS.map((emoji) => (
                     <button
                       key={emoji}
                       onClick={() => setEditEmoji(emoji)}

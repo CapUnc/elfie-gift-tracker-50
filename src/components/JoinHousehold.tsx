@@ -9,8 +9,7 @@ import { useHousehold } from '@/hooks/useHousehold';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle } from 'lucide-react';
-
-const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
+import { COMMON_GIVER_ICONS } from '@/types/givers';
 
 interface JoinHouseholdProps {}
 
@@ -179,7 +178,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
             <div className="space-y-2">
               <Label>Choose Your Emoji</Label>
               <div className="grid grid-cols-6 gap-2">
-                {emojiOptions.map((emoji) => (
+                {COMMON_GIVER_ICONS.map((emoji) => (
                   <button
                     key={emoji}
                     onClick={() => setSelectedEmoji(emoji)}

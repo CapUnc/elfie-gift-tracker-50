@@ -10,12 +10,11 @@ import { Plus, Users, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { GiverSection } from './GiverSection';
+import { COMMON_GIVER_ICONS } from '@/types/givers';
 
 interface GiversManagerProps {
   householdId: string | null;
 }
-
-const COMMON_EMOJIS = ['🎁', '👩', '👨', '🎅', '🙋', '👶', '👧', '👦', '🧑', '👴', '👵', '🎄', '⭐', '❤️', '🎉'];
 
 const GiversManager = ({ householdId }: GiversManagerProps) => {
   const { profileLinkedGivers, virtualGivers, loading, addGiver, updateGiver, deleteGiver, confirmDeleteGiver, reorderGivers } = useGivers(householdId);
@@ -182,7 +181,7 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
                     <div className="space-y-2">
                       <Label>Icon</Label>
                       <div className="grid grid-cols-8 gap-2">
-                        {COMMON_EMOJIS.map((emoji) => (
+                        {COMMON_GIVER_ICONS.map((emoji) => (
                           <button
                             key={emoji}
                             onClick={() => setNewGiverIcon(emoji)}
@@ -245,7 +244,7 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
               <div className="space-y-2">
                 <Label>Icon</Label>
                 <div className="grid grid-cols-8 gap-2">
-                  {COMMON_EMOJIS.map((emoji) => (
+                  {COMMON_GIVER_ICONS.map((emoji) => (
                     <button
                       key={emoji}
                       onClick={() => setEditingGiver({ ...editingGiver, icon: emoji })}
