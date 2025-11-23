@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
 import { useBuyers } from '@/hooks/useBuyers';
-import { ArrowLeft, Edit, Info } from 'lucide-react';
+import { ArrowLeft, Edit, Info, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
 
@@ -87,7 +88,13 @@ const ProfileManager = () => {
                 <span className="text-4xl">{ownBuyer.emoji}</span>
                 <div>
                   <p className="font-semibold">{ownBuyer.name}</p>
-                  <p className="text-sm text-muted-foreground">(You)</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground">(You)</p>
+                    <Badge variant="secondary" className="gap-1">
+                      <Gift className="h-3 w-3" />
+                      Gift Giver
+                    </Badge>
+                  </div>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={handleEdit}>
@@ -154,10 +161,16 @@ const ProfileManager = () => {
               {otherBuyers.map((buyer) => (
                 <div
                   key={buyer.id}
-                  className="flex items-center gap-3 p-4 bg-secondary/30 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
                 >
-                  <span className="text-3xl">{buyer.emoji}</span>
-                  <p className="font-medium">{buyer.name}</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{buyer.emoji}</span>
+                    <p className="font-medium">{buyer.name}</p>
+                  </div>
+                  <Badge variant="secondary" className="gap-1">
+                    <Gift className="h-3 w-3" />
+                    Gift Giver
+                  </Badge>
                 </div>
               ))}
             </div>

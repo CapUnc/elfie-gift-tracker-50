@@ -216,7 +216,9 @@ export type Database = {
           household_id: string
           icon: string | null
           id: string
+          is_virtual: boolean
           name: string
+          profile_id: string | null
         }
         Insert: {
           created_at?: string
@@ -224,7 +226,9 @@ export type Database = {
           household_id: string
           icon?: string | null
           id?: string
+          is_virtual?: boolean
           name: string
+          profile_id?: string | null
         }
         Update: {
           created_at?: string
@@ -232,7 +236,9 @@ export type Database = {
           household_id?: string
           icon?: string | null
           id?: string
+          is_virtual?: boolean
           name?: string
+          profile_id?: string | null
         }
         Relationships: [
           {
@@ -240,6 +246,13 @@ export type Database = {
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "givers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

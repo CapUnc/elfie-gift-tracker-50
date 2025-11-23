@@ -9,6 +9,8 @@ export interface Giver {
   icon: string;
   display_order: number;
   created_at: string;
+  profile_id: string | null;
+  is_virtual: boolean;
 }
 
 export const useGivers = (householdId: string | null) => {
@@ -130,6 +132,18 @@ export const useGivers = (householdId: string | null) => {
 
   const deleteGiver = async (id: string) => {
     try {
+      // Find the giver to check if it's profile-linked
+      const giver = givers.find(g => g.id === id);
+      
+      if (giver && !giver.is_virtual) {
+        toast({
+          title: 'Cannot delete household member',
+          description: 'Household members are managed through profiles',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
       // Check if giver is used in any gifts
       const { data: giftGivers, error: checkError } = await supabase
         .from('gift_givers')
@@ -195,8 +209,13 @@ export const useGivers = (householdId: string | null) => {
     }
   };
 
+  const profileLinkedGivers = givers.filter(g => !g.is_virtual);
+  const virtualGivers = givers.filter(g => g.is_virtual);
+
   return {
     givers,
+    profileLinkedGivers,
+    virtualGivers,
     loading,
     addGiver,
     updateGiver,
