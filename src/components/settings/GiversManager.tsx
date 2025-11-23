@@ -8,7 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Edit, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Edit, Users, Sparkles, Lock, ChevronUp, ChevronDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface GiversManagerProps {
   householdId: string | null;
@@ -16,14 +19,33 @@ interface GiversManagerProps {
 
 const COMMON_EMOJIS = ['🎁', '👩', '👨', '🎅', '🙋', '👶', '👧', '👦', '🧑', '👴', '👵', '🎄', '⭐', '❤️', '🎉'];
 
+// Component to show gift count
+const GiftCount = ({ giverId }: { giverId: string }) => {
+  const { data: giftGivers = [] } = useQuery({
+    queryKey: ['gift-givers-for-giver', giverId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('gift_givers')
+        .select('id')
+        .eq('giver_id', giverId);
+      return data || [];
+    },
+  });
+  
+  return (
+    <span className="text-xs text-muted-foreground">
+      {giftGivers.length} {giftGivers.length === 1 ? 'gift' : 'gifts'}
+    </span>
+  );
+};
+
 const GiversManager = ({ householdId }: GiversManagerProps) => {
-  const { givers, loading, addGiver, updateGiver, deleteGiver, reorderGivers } = useGivers(householdId);
+  const { profileLinkedGivers, virtualGivers, loading, addGiver, updateGiver, deleteGiver, reorderGivers } = useGivers(householdId);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingGiver, setEditingGiver] = useState<{ id: string; name: string; icon: string } | null>(null);
+  const [editingGiver, setEditingGiver] = useState<{ id: string; name: string; icon: string; isVirtual: boolean } | null>(null);
   const [deletingGiverId, setDeletingGiverId] = useState<string | null>(null);
   const [newGiverName, setNewGiverName] = useState('');
   const [newGiverIcon, setNewGiverIcon] = useState('🎁');
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleAddGiver = async () => {
     if (!newGiverName.trim()) return;
@@ -65,39 +87,39 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
     }
   };
 
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
+  const handleStartEdit = (giver: any) => {
+    setEditingGiver({
+      id: giver.id,
+      name: giver.name,
+      icon: giver.icon,
+      isVirtual: giver.is_virtual,
+    });
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newGivers = [...givers];
-    const draggedItem = newGivers[draggedIndex];
-    newGivers.splice(draggedIndex, 1);
-    newGivers.splice(index, 0, draggedItem);
-    
-    setDraggedIndex(index);
-    reorderGivers(newGivers);
+  const handleDeleteClick = (giver: any) => {
+    setDeletingGiverId(giver.id);
   };
 
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
-
-  const moveUp = (index: number) => {
+  const moveUp = (index: number, isVirtual: boolean) => {
     if (index === 0) return;
-    const newGivers = [...givers];
-    [newGivers[index - 1], newGivers[index]] = [newGivers[index], newGivers[index - 1]];
-    reorderGivers(newGivers);
+    const list = isVirtual ? virtualGivers : profileLinkedGivers;
+    const newList = [...list];
+    [newList[index], newList[index - 1]] = [newList[index - 1], newList[index]];
+    const allGivers = isVirtual 
+      ? [...profileLinkedGivers, ...newList]
+      : [...newList, ...virtualGivers];
+    reorderGivers(allGivers);
   };
 
-  const moveDown = (index: number) => {
-    if (index === givers.length - 1) return;
-    const newGivers = [...givers];
-    [newGivers[index], newGivers[index + 1]] = [newGivers[index + 1], newGivers[index]];
-    reorderGivers(newGivers);
+  const moveDown = (index: number, isVirtual: boolean) => {
+    const list = isVirtual ? virtualGivers : profileLinkedGivers;
+    if (index === list.length - 1) return;
+    const newList = [...list];
+    [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
+    const allGivers = isVirtual 
+      ? [...profileLinkedGivers, ...newList]
+      : [...newList, ...virtualGivers];
+    reorderGivers(allGivers);
   };
 
   if (loading) {
@@ -108,127 +130,211 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Gift Givers</CardTitle>
-              <CardDescription>Manage people who can give gifts (Mom, Dad, Santa, etc.)</CardDescription>
+          <CardTitle>Manage Gift Givers</CardTitle>
+          <CardDescription>Household members automatically become gift givers</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Household Members Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Household Members</h3>
+              <Badge variant="secondary" className="ml-2">Auto-managed</Badge>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Giver
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Giver</DialogTitle>
-                  <DialogDescription>Add someone who can give gifts</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="giver-name">Name</Label>
-                    <Input
-                      id="giver-name"
-                      value={newGiverName}
-                      onChange={(e) => setNewGiverName(e.target.value)}
-                      placeholder="e.g., Mom, Santa"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Icon</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {COMMON_EMOJIS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => setNewGiverIcon(emoji)}
-                          className={`text-2xl p-2 rounded-lg border-2 transition-colors ${
-                            newGiverIcon === emoji ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
-                          }`}
+            <p className="text-sm text-muted-foreground mb-4">
+              Everyone in your household is automatically a gift giver. Names sync with their profile.
+            </p>
+
+            {profileLinkedGivers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No household members yet
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {profileLinkedGivers.map((giver, index) => (
+                  <div
+                    key={giver.id}
+                    className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveUp(index, false)}
+                          disabled={index === 0}
+                          className="h-4 w-6 p-0"
                         >
-                          {emoji}
-                        </button>
-                      ))}
+                          <ChevronUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveDown(index, false)}
+                          disabled={index === profileLinkedGivers.length - 1}
+                          className="h-4 w-6 p-0"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <span className="text-2xl">{giver.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{giver.name}</p>
+                        <GiftCount giverId={giver.id} />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleStartEdit(giver)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled
+                              >
+                                <Lock className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Linked to profile - cannot be deleted</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleAddGiver}>Add Giver</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                ))}
+              </div>
+            )}
           </div>
-        </CardHeader>
-        <CardContent>
-          {givers.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No givers yet. Add your first giver to get started.</p>
-          ) : (
-            <div className="space-y-2">
-              {givers.map((giver, index) => (
-                <div
-                  key={giver.id}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className="flex items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-move"
-                >
-                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-2xl">{giver.icon}</span>
-                  <span className="flex-1 font-medium">{giver.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {(() => {
-                      const { data: giftGivers = [] } = useQuery({
-                        queryKey: ['gift-givers-for-giver', giver.id, householdId],
-                        queryFn: async () => {
-                          if (!householdId) return [];
-                          const { data } = await supabase
-                            .from('gift_givers')
-                            .select('id, gift_id')
-                            .eq('giver_id', giver.id);
-                          return data || [];
-                        },
-                        enabled: !!householdId,
-                      });
-                      return giftGivers.length;
-                    })()} {(() => {
-                      const { data: giftGivers = [] } = useQuery({
-                        queryKey: ['gift-givers-for-giver', giver.id, householdId],
-                        queryFn: async () => {
-                          if (!householdId) return [];
-                          const { data } = await supabase
-                            .from('gift_givers')
-                            .select('id')
-                            .eq('giver_id', giver.id);
-                          return data || [];
-                        },
-                        enabled: !!householdId,
-                      });
-                      return giftGivers.length === 1 ? 'gift' : 'gifts';
-                    })()}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingGiver({ id: giver.id, name: giver.name, icon: giver.icon })}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeletingGiverId(giver.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+
+          <Separator />
+
+          {/* Additional Gift Givers Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Additional Gift Givers</h3>
+              </div>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Giver
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Giver</DialogTitle>
+                    <DialogDescription>Add someone who can give gifts</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="giver-name">Name</Label>
+                      <Input
+                        id="giver-name"
+                        value={newGiverName}
+                        onChange={(e) => setNewGiverName(e.target.value)}
+                        placeholder="e.g., Santa, Grandma"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Icon</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {COMMON_EMOJIS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => setNewGiverIcon(emoji)}
+                            className={`text-2xl p-2 rounded-lg border-2 transition-colors ${
+                              newGiverIcon === emoji ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAddGiver}>Add Giver</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
-          )}
+            <p className="text-sm text-muted-foreground mb-4">
+              Add extra gift givers like Santa, family pets, or anyone else who gives gifts.
+            </p>
+
+            {virtualGivers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No additional givers yet
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {virtualGivers.map((giver, index) => (
+                  <div
+                    key={giver.id}
+                    className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveUp(index, true)}
+                          disabled={index === 0}
+                          className="h-4 w-6 p-0"
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveDown(index, true)}
+                          disabled={index === virtualGivers.length - 1}
+                          className="h-4 w-6 p-0"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <span className="text-2xl">{giver.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{giver.name}</p>
+                        <GiftCount giverId={giver.id} />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleStartEdit(giver)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(giver)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -237,18 +343,29 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Giver</DialogTitle>
-            <DialogDescription>Update giver name and icon</DialogDescription>
+            <DialogDescription>
+              {editingGiver?.isVirtual 
+                ? 'Update giver name and icon' 
+                : 'Update icon (name syncs with profile)'}
+            </DialogDescription>
           </DialogHeader>
           {editingGiver && (
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-giver-name">Name</Label>
-                <Input
-                  id="edit-giver-name"
-                  value={editingGiver.name}
-                  onChange={(e) => setEditingGiver({ ...editingGiver, name: e.target.value })}
-                />
-              </div>
+              {editingGiver.isVirtual && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-giver-name">Name</Label>
+                  <Input
+                    id="edit-giver-name"
+                    value={editingGiver.name}
+                    onChange={(e) => setEditingGiver({ ...editingGiver, name: e.target.value })}
+                  />
+                </div>
+              )}
+              {!editingGiver.isVirtual && (
+                <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+                  Name is managed through the user's profile and syncs automatically
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Icon</Label>
                 <div className="flex flex-wrap gap-2">
