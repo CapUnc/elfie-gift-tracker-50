@@ -40,10 +40,14 @@ const GiftCount = ({ giverId }: { giverId: string }) => {
 };
 
 const GiversManager = ({ householdId }: GiversManagerProps) => {
-  const { profileLinkedGivers, virtualGivers, loading, addGiver, updateGiver, deleteGiver, reorderGivers } = useGivers(householdId);
+  const { profileLinkedGivers, virtualGivers, loading, addGiver, updateGiver, deleteGiver, confirmDeleteGiver, reorderGivers } = useGivers(householdId);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingGiver, setEditingGiver] = useState<{ id: string; name: string; icon: string; isVirtual: boolean } | null>(null);
-  const [deletingGiverId, setDeletingGiverId] = useState<string | null>(null);
+  const [deletingGiverInfo, setDeletingGiverInfo] = useState<{ 
+    id: string; 
+    name: string;
+    giftCount: number;
+  } | null>(null);
   const [newGiverName, setNewGiverName] = useState('');
   const [newGiverIcon, setNewGiverIcon] = useState('🎁');
 
@@ -74,16 +78,31 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
     }
   };
 
-  const handleDeleteGiver = async () => {
-    if (!deletingGiverId) return;
-    
+  const handleDeleteClick = async (giver: any) => {
     try {
-      const success = await deleteGiver(deletingGiverId);
-      if (success) {
-        setDeletingGiverId(null);
+      const result = await deleteGiver(giver.id);
+      if (result && result.canDelete) {
+        setDeletingGiverInfo({
+          id: giver.id,
+          name: giver.name,
+          giftCount: result.giftCount,
+        });
       }
     } catch (err) {
-      setDeletingGiverId(null);
+      // Error handled in hook
+    }
+  };
+
+  const handleDeleteGiver = async () => {
+    if (!deletingGiverInfo) return;
+    
+    try {
+      const success = await confirmDeleteGiver(deletingGiverInfo.id);
+      if (success) {
+        setDeletingGiverInfo(null);
+      }
+    } catch (err) {
+      setDeletingGiverInfo(null);
     }
   };
 
@@ -94,10 +113,6 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
       icon: giver.icon,
       isVirtual: giver.is_virtual,
     });
-  };
-
-  const handleDeleteClick = (giver: any) => {
-    setDeletingGiverId(giver.id);
   };
 
   const moveUp = (index: number, isVirtual: boolean) => {
@@ -393,17 +408,32 @@ const GiversManager = ({ householdId }: GiversManagerProps) => {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deletingGiverId} onOpenChange={(open) => !open && setDeletingGiverId(null)}>
+      <AlertDialog open={!!deletingGiverInfo} onOpenChange={(open) => !open && setDeletingGiverInfo(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Giver?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {deletingGiverInfo?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This giver will be removed. If they are assigned to any gifts, the deletion will be blocked.
+              {deletingGiverInfo?.giftCount === 0 ? (
+                "This giver will be permanently removed."
+              ) : (
+                <>
+                  <span className="font-semibold text-foreground">
+                    This giver is assigned to {deletingGiverInfo?.giftCount} {deletingGiverInfo?.giftCount === 1 ? 'gift' : 'gifts'}.
+                  </span>
+                  <br />
+                  They will be unassigned from all gifts and the giver will be deleted.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteGiver}>Delete</AlertDialogAction>
+            <AlertDialogAction 
+              onClick={handleDeleteGiver}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingGiverInfo?.giftCount === 0 ? 'Delete' : 'Unassign & Delete'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
