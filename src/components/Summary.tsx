@@ -51,19 +51,6 @@ const Summary = () => {
   const queryClient = useQueryClient();
   const [showAllBuyers, setShowAllBuyers] = useState(false);
   
-  // NOW we can do the early return check
-  if (householdLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-32 bg-muted rounded"></div>
-          <div className="h-64 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
   // Fetch household data
   const { data: household } = useQuery({
     queryKey: ['household', householdId],
@@ -77,7 +64,7 @@ const Summary = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!householdId,
+    enabled: !!householdId && !householdLoading,
   });
 
   // Fetch profile-linked givers (acting as buyers)
@@ -99,7 +86,7 @@ const Summary = () => {
         icon: g.icon || '🎁'
       })) as Buyer[];
     },
-    enabled: !!householdId,
+    enabled: !!householdId && !householdLoading,
   });
 
   // Fetch givers
@@ -115,7 +102,7 @@ const Summary = () => {
       if (error) throw error;
       return data as Giver[];
     },
-    enabled: !!householdId,
+    enabled: !!householdId && !householdLoading,
   });
 
   // Fetch recipients with gifts and givers
@@ -156,7 +143,7 @@ const Summary = () => {
         gifts: giftsWithGivers.filter((g: any) => g.recipient_id === recipient.id)
       })) as Recipient[];
     },
-    enabled: !!householdId,
+    enabled: !!householdId && !householdLoading,
   });
 
   // Set up realtime subscriptions
@@ -233,6 +220,19 @@ const Summary = () => {
       supabase.removeChannel(channel);
     };
   }, [householdId, queryClient]);
+  
+  // NOW we can do the early return check AFTER all hooks
+  if (householdLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="h-32 bg-muted rounded"></div>
+          <div className="h-64 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   const currency = household?.currency || '$';
 
