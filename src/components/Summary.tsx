@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useHousehold } from "@/hooks/useHousehold";
+import { Buyer } from "@/hooks/useBuyers";
 
 interface Gift {
   id: string;
@@ -31,12 +32,6 @@ interface Recipient {
   assigned_to: string | null;
   completed: boolean;
   manual_complete: boolean;
-}
-
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
 }
 
 const Summary = () => {
@@ -73,7 +68,11 @@ const Summary = () => {
         .eq('household_id', householdId)
         .order('name');
       if (error) throw error;
-      return data as Buyer[];
+      // Map icon to emoji for backwards compatibility
+      return (data || []).map(giver => ({
+        ...giver,
+        emoji: giver.icon
+      })) as Buyer[];
     },
     enabled: !!householdId,
   });

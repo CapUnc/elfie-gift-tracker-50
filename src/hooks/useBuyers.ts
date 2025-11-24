@@ -33,7 +33,12 @@ export const useBuyers = (householdId: string | null) => {
 
       if (error) throw error;
 
-      setBuyers(data || []);
+      // Map icon to emoji for backwards compatibility
+      const mapped = (data || []).map(giver => ({
+        ...giver,
+        emoji: giver.icon
+      }));
+      setBuyers(mapped);
       setError(null);
     } catch (err) {
       console.error('Error fetching buyers:', err);
@@ -88,8 +93,10 @@ export const useBuyers = (householdId: string | null) => {
 
       if (error) throw error;
 
-      setBuyers([...buyers, data]);
-      return data;
+      // Map icon to emoji for backwards compatibility
+      const mapped = { ...data, emoji: data.icon };
+      setBuyers([...buyers, mapped]);
+      return mapped;
     } catch (err) {
       console.error('Error adding buyer:', err);
       toast({
