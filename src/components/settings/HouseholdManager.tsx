@@ -113,7 +113,7 @@ const HouseholdManager = () => {
     try {
       await supabase.from('recipients').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', user.id);
       await supabase.from('gifts').update({ assigned_to: null }).eq('household_id', householdId).eq('assigned_to', user.id);
-      await supabase.from('buyers').delete().eq('user_id', user.id);
+      await supabase.from('givers').delete().eq('profile_id', user.id);
       await supabase.from('profiles').update({ household_id: null }).eq('id', user.id);
 
       toast({ title: 'Left household' });
@@ -153,10 +153,10 @@ const HouseholdManager = () => {
         </div>
         <div className="space-y-3">
           {members.map((member) => {
-            const buyer = buyers.find(b => b.user_id === member.id);
+            const buyer = buyers.find(b => b.profile_id === member.id);
             return (
               <div key={member.id} className="p-4 bg-secondary/50 rounded-lg flex items-center gap-3">
-                {buyer && <span className="text-3xl">{buyer.emoji}</span>}
+                {buyer && <span className="text-3xl">{buyer.icon || buyer.emoji}</span>}
                 <div className="flex-1">
                   <div className="font-medium">{buyer?.name || member.display_name || 'Anonymous'} {member.id === user?.id && <span className="text-sm text-muted-foreground">(You)</span>}</div>
                   <div className="text-sm text-muted-foreground">Joined {new Date(member.created_at).toLocaleDateString()}</div>

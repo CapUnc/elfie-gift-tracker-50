@@ -23,8 +23,8 @@ const ProfileManager = () => {
   const [editName, setEditName] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
 
-  const ownBuyer = buyers.find(b => b.user_id === user?.id);
-  const otherBuyers = buyers.filter(b => b.user_id !== user?.id);
+  const ownBuyer = buyers.find(b => b.profile_id === user?.id);
+  const otherBuyers = buyers.filter(b => b.profile_id !== user?.id);
 
   const handleEdit = () => {
     if (ownBuyer) {
@@ -84,7 +84,7 @@ const ProfileManager = () => {
           {!isEditing && ownBuyer && (
             <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
               <div className="flex items-center gap-3">
-                <span className="text-4xl">{ownBuyer.emoji}</span>
+                <span className="text-4xl">{ownBuyer.icon || ownBuyer.emoji}</span>
                 <div>
                   <p className="font-semibold">{ownBuyer.name}</p>
                   <p className="text-sm text-muted-foreground">(You)</p>
@@ -156,7 +156,7 @@ const ProfileManager = () => {
                   key={buyer.id}
                   className="flex items-center gap-3 p-4 bg-secondary/30 rounded-lg"
                 >
-                  <span className="text-3xl">{buyer.emoji}</span>
+                  <span className="text-3xl">{buyer.icon || buyer.emoji}</span>
                   <p className="font-medium">{buyer.name}</p>
                 </div>
               ))}

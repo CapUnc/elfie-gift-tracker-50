@@ -38,15 +38,15 @@ export const Welcome = () => {
         .maybeSingle();
 
       if (profile?.household_id) {
-        // User has household, check for buyer
-        const { data: buyer } = await supabase
-          .from('buyers')
+        // User has household, check for giver
+        const { data: giver } = await supabase
+          .from('givers')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('profile_id', user.id)
           .maybeSingle();
 
-        if (!buyer) {
-          // Has household but no buyer - show recovery flow
+        if (!giver) {
+          // Has household but no giver - show recovery flow
           toast({
             title: 'Setup Incomplete',
             description: "Let's finish setting up your profile",
@@ -101,23 +101,24 @@ export const Welcome = () => {
         .update({ name: householdValidation.data })
         .eq('id', householdId);
 
-      // Delete old buyer record AFTER household creation succeeds
+      // Delete old giver record AFTER household creation succeeds
       await supabase
-        .from('buyers')
+        .from('givers')
         .delete()
-        .eq('user_id', user.id);
+        .eq('profile_id', user.id);
 
-      // Create buyer record for the user
-      const { error: buyerError } = await supabase
-        .from('buyers')
+      // Create giver record for the user
+      const { error: giverError } = await supabase
+        .from('givers')
         .insert({
           household_id: householdId,
-          user_id: user.id,
+          profile_id: user.id,
           name: validation.data,
-          emoji: selectedEmoji,
+          icon: selectedEmoji,
+          is_virtual: false,
         });
 
-      if (buyerError) throw buyerError;
+      if (giverError) throw giverError;
 
       toast({
         title: 'Household created!',

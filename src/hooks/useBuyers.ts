@@ -7,7 +7,8 @@ export interface Buyer {
   name: string;
   emoji: string;
   household_id?: string;
-  user_id?: string;
+  profile_id?: string;
+  icon?: string;
 }
 
 export const useBuyers = (householdId: string | null) => {
@@ -25,7 +26,7 @@ export const useBuyers = (householdId: string | null) => {
 
     try {
       const { data, error } = await supabase
-        .from('buyers')
+        .from('givers')
         .select('*')
         .eq('household_id', householdId)
         .order('created_at', { ascending: true });
@@ -53,13 +54,13 @@ export const useBuyers = (householdId: string | null) => {
     // Set up real-time subscription
     if (householdId) {
       const channel = supabase
-        .channel('buyers-changes')
+        .channel('givers-changes')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'buyers',
+            table: 'givers',
             filter: `household_id=eq.${householdId}`,
           },
           () => {
@@ -80,8 +81,8 @@ export const useBuyers = (householdId: string | null) => {
 
     try {
       const { data, error } = await supabase
-        .from('buyers')
-        .insert([{ household_id: householdId, name, emoji, user_id: userId }])
+        .from('givers')
+        .insert([{ household_id: householdId, name, icon: emoji, profile_id: userId }])
         .select()
         .single();
 
@@ -101,13 +102,16 @@ export const useBuyers = (householdId: string | null) => {
   };
 
   const updateOwnBuyer = async (updates: { name?: string; emoji?: string }) => {
-    const ownBuyer = buyers.find(b => b.user_id === householdId);
+    const ownBuyer = buyers.find(b => b.profile_id === householdId);
     if (!ownBuyer) return;
+
+    const giverUpdates: any = { name: updates.name };
+    if (updates.emoji) giverUpdates.icon = updates.emoji;
 
     try {
       const { error } = await supabase
-        .from('buyers')
-        .update(updates)
+        .from('givers')
+        .update(giverUpdates)
         .eq('id', ownBuyer.id);
 
       if (error) throw error;
@@ -125,14 +129,17 @@ export const useBuyers = (householdId: string | null) => {
   };
 
   const getOwnBuyer = () => {
-    return buyers.find(b => b.user_id === householdId);
+    return buyers.find(b => b.profile_id === householdId);
   };
 
   const updateBuyer = async (id: string, updates: { name?: string; emoji?: string }) => {
+    const giverUpdates: any = { name: updates.name };
+    if (updates.emoji) giverUpdates.icon = updates.emoji;
+
     try {
       const { error } = await supabase
-        .from('buyers')
-        .update(updates)
+        .from('givers')
+        .update(giverUpdates)
         .eq('id', id);
 
       if (error) throw error;
@@ -151,7 +158,7 @@ export const useBuyers = (householdId: string | null) => {
 
   const deleteBuyer = async (id: string) => {
     try {
-      const { error } = await supabase.from('buyers').delete().eq('id', id);
+      const { error } = await supabase.from('givers').delete().eq('id', id);
 
       if (error) throw error;
 
