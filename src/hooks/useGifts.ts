@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export interface Giver {
+  id: string;
+  name: string;
+  icon: string;
+  is_virtual?: boolean;
+}
+
 export interface Gift {
   id: string;
   name: string;
@@ -15,6 +22,7 @@ export interface Gift {
   household_id?: string;
   created_at?: string;
   updated_at?: string;
+  givers?: Giver[];
 }
 
 export const useGifts = (householdId: string | null) => {
@@ -23,7 +31,7 @@ export const useGifts = (householdId: string | null) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch gifts from Supabase
+  // Fetch gifts from Supabase with givers
   const fetchGifts = async () => {
     if (!householdId) {
       setLoading(false);
@@ -33,13 +41,30 @@ export const useGifts = (householdId: string | null) => {
     try {
       const { data, error } = await supabase
         .from('gifts')
-        .select('*')
+        .select(`
+          *,
+          gift_givers (
+            giver_id,
+            givers (
+              id,
+              name,
+              icon,
+              is_virtual
+            )
+          )
+        `)
         .eq('household_id', householdId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      setGifts(data || []);
+      // Transform data to include givers array
+      const giftsWithGivers = (data || []).map(gift => ({
+        ...gift,
+        givers: gift.gift_givers?.map((gg: any) => gg.givers).filter(Boolean) || []
+      }));
+
+      setGifts(giftsWithGivers);
       setError(null);
     } catch (err) {
       console.error('Error fetching gifts:', err);

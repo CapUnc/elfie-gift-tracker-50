@@ -7,6 +7,13 @@ import { formatCurrency } from '@/lib/currency';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { cn } from '@/lib/utils';
 
+interface Giver {
+  id: string;
+  name: string;
+  icon: string;
+  is_virtual?: boolean;
+}
+
 interface Gift {
   id: string;
   name: string;
@@ -16,6 +23,7 @@ interface Gift {
   trackingNumber?: string;
   carrier?: string;
   assignedTo?: string | null;
+  givers?: Giver[];
 }
 
 interface SwipeableGiftItemProps {
@@ -272,13 +280,43 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
             </div>
           </div>
 
-          {/* Right Group: Cost + Single Action */}
+          {/* Right Group: Cost + Givers + Action */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {gift.cost !== null && (
               <span className="text-sm text-muted-foreground font-medium">
                 {formatCurrency(gift.cost, currency)}
               </span>
             )}
+            
+            {/* Giver icons */}
+            {gift.givers && gift.givers.length > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center -space-x-1">
+                      {gift.givers.slice(0, 3).map((giver, idx) => (
+                        <span
+                          key={giver.id}
+                          className="inline-flex items-center justify-center w-6 h-6 text-sm bg-muted border border-background rounded-full"
+                          style={{ zIndex: 3 - idx }}
+                        >
+                          {giver.icon}
+                        </span>
+                      ))}
+                      {gift.givers.length > 3 && (
+                        <span className="inline-flex items-center justify-center w-6 h-6 text-xs bg-muted border border-background rounded-full text-muted-foreground">
+                          +{gift.givers.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Given by: {gift.givers.map(g => g.name).join(', ')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            
             <Button
               variant="ghost"
               size="sm"

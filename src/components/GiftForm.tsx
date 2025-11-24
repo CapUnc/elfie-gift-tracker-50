@@ -4,18 +4,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
 import { RippleButton } from './RippleButton';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/currency';
-import { Save, X, Trash2 } from 'lucide-react';
+import { Save, X, Trash2, Check, Users } from 'lucide-react';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 
 const giftSchema = z.object({
   name: z.string().trim().min(1, 'Gift name is required').max(100, 'Gift name must be less than 100 characters'),
   cost: z.string().regex(/^\d*\.?\d{0,2}$/, 'Invalid cost format').optional().or(z.literal('')),
 });
+
+interface Giver {
+  id: string;
+  name: string;
+  icon: string;
+  is_virtual?: boolean;
+}
 
 interface Gift {
   id: string;
@@ -26,17 +37,19 @@ interface Gift {
   trackingNumber?: string;
   carrier?: string;
   assignedTo?: string | null;
+  givers?: Giver[];
 }
 
 interface GiftFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (giftData: { name: string; cost: string }) => void;
+  onSubmit: (giftData: { name: string; cost: string; giverIds: string[] }) => void;
   onDelete?: (giftId: string) => void;
   personName: string;
   currency: string;
   editingGift?: Gift | null;
   mode?: 'add' | 'edit';
+  availableGivers?: Giver[];
 }
 
 export const GiftForm: React.FC<GiftFormProps> = ({
@@ -47,12 +60,15 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   personName,
   currency,
   editingGift,
-  mode = 'add'
+  mode = 'add',
+  availableGivers = []
 }) => {
   const [giftName, setGiftName] = useState('');
   const [giftCost, setGiftCost] = useState('');
+  const [selectedGiverIds, setSelectedGiverIds] = useState<string[]>([]);
+  const [openGiverSelect, setOpenGiverSelect] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [initialValues, setInitialValues] = useState({ name: '', cost: '' });
+  const [initialValues, setInitialValues] = useState({ name: '', cost: '', giverIds: [] as string[] });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const { toast } = useToast();
@@ -74,7 +90,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     }
     
     haptic.success();
-    onSubmit({ name: trimmedName, cost: trimmedCost });
+    onSubmit({ name: trimmedName, cost: trimmedCost, giverIds: selectedGiverIds });
     resetForm();
   });
 
@@ -84,13 +100,16 @@ export const GiftForm: React.FC<GiftFormProps> = ({
       if (mode === 'edit' && editingGift) {
         const name = editingGift.name;
         const cost = editingGift.cost?.toString() || '';
+        const giverIds = editingGift.givers?.map(g => g.id) || [];
         setGiftName(name);
         setGiftCost(cost);
-        setInitialValues({ name, cost });
+        setSelectedGiverIds(giverIds);
+        setInitialValues({ name, cost, giverIds });
       } else {
         setGiftName('');
         setGiftCost('');
-        setInitialValues({ name: '', cost: '' });
+        setSelectedGiverIds([]);
+        setInitialValues({ name: '', cost: '', giverIds: [] });
       }
       setHasUnsavedChanges(false);
     }
@@ -100,14 +119,16 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   useEffect(() => {
     const nameChanged = giftName !== initialValues.name;
     const costChanged = giftCost !== initialValues.cost;
-    setHasUnsavedChanges(nameChanged || costChanged);
-  }, [giftName, giftCost, initialValues]);
+    const giversChanged = JSON.stringify(selectedGiverIds.sort()) !== JSON.stringify(initialValues.giverIds.sort());
+    setHasUnsavedChanges(nameChanged || costChanged || giversChanged);
+  }, [giftName, giftCost, selectedGiverIds, initialValues]);
 
   const resetForm = () => {
     setGiftName('');
     setGiftCost('');
+    setSelectedGiverIds([]);
     setHasUnsavedChanges(false);
-    setInitialValues({ name: '', cost: '' });
+    setInitialValues({ name: '', cost: '', giverIds: [] });
   };
 
   const handleClose = () => {
@@ -217,6 +238,77 @@ export const GiftForm: React.FC<GiftFormProps> = ({
             {/* Helper text only for validation errors */}
             {giftCost && isNaN(parseFloat(giftCost)) && (
               <p className="text-xs text-destructive">Numbers only</p>
+            )}
+          </div>
+
+          {/* Givers Multi-Select */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Assigned To <span className="text-muted-foreground">(Optional)</span>
+            </Label>
+            <Popover open={openGiverSelect} onOpenChange={setOpenGiverSelect}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openGiverSelect}
+                  className="w-full justify-between touch-target"
+                >
+                  <span className="flex items-center gap-1">
+                    <Users className="h-4 w-4 mr-1" />
+                    {selectedGiverIds.length === 0 ? 'Select givers' : `${selectedGiverIds.length} selected`}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search givers..." />
+                  <CommandEmpty>No givers found.</CommandEmpty>
+                  <CommandGroup className="max-h-64 overflow-auto">
+                    {availableGivers.map((giver) => (
+                      <CommandItem
+                        key={giver.id}
+                        onSelect={() => {
+                          setSelectedGiverIds(prev =>
+                            prev.includes(giver.id)
+                              ? prev.filter(id => id !== giver.id)
+                              : [...prev, giver.id]
+                          );
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedGiverIds.includes(giver.id) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <span className="mr-2">{giver.icon}</span>
+                        {giver.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Selected givers badges */}
+            {selectedGiverIds.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedGiverIds.map(giverId => {
+                  const giver = availableGivers.find(g => g.id === giverId);
+                  if (!giver) return null;
+                  return (
+                    <Badge key={giverId} variant="secondary" className="gap-1">
+                      <span>{giver.icon}</span>
+                      {giver.name}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => setSelectedGiverIds(prev => prev.filter(id => id !== giverId))}
+                      />
+                    </Badge>
+                  );
+                })}
+              </div>
             )}
           </div>
 

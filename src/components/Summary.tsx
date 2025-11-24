@@ -21,6 +21,9 @@ interface Gift {
   url: string | null;
   tracking: string | null;
   assigned_to: string | null;
+  gift_givers?: Array<{
+    giver_id: string;
+  }>;
 }
 
 interface Recipient {
@@ -87,7 +90,12 @@ const Summary = () => {
         .from('recipients')
         .select(`
           *,
-          gifts (*)
+          gifts (
+            *,
+            gift_givers (
+              giver_id
+            )
+          )
         `)
         .eq('household_id', householdId)
         .order('name');
@@ -190,23 +198,23 @@ const Summary = () => {
   const giverStats = useMemo(() => {
     return givers.map((giver) => {
       const assignedRecipients = recipients.filter((p) => p.assigned_to === giver.id);
-      const totalAssignedGifts = assignedRecipients.reduce(
-        (sum, person) => sum + person.gifts.length,
-        0
+      
+      // Calculate total gifts where this giver is assigned (including shared gifts)
+      const allGifts = recipients.flatMap(r => r.gifts);
+      const giverGifts = allGifts.filter(gift => 
+        gift.gift_givers?.some((gg: any) => gg.giver_id === giver.id)
       );
-      const purchasedGifts = assignedRecipients.reduce(
-        (sum, person) => sum + person.gifts.filter((g) => g.purchased).length,
-        0
-      );
-      const wrappedGifts = assignedRecipients.reduce(
-        (sum, person) => sum + person.gifts.filter((g) => g.wrapped).length,
-        0
-      );
-      const totalCost = assignedRecipients.reduce(
-        (sum, person) =>
-          sum + person.gifts.reduce((giftSum, gift) => giftSum + (gift.cost || 0), 0),
-        0
-      );
+      
+      const totalAssignedGifts = giverGifts.length;
+      const purchasedGifts = giverGifts.filter(g => g.purchased).length;
+      const wrappedGifts = giverGifts.filter(g => g.wrapped).length;
+      
+      // Calculate total cost - split evenly for shared gifts
+      const totalCost = giverGifts.reduce((sum, gift) => {
+        const giversCount = gift.gift_givers?.length || 1;
+        const splitCost = (gift.cost || 0) / giversCount;
+        return sum + splitCost;
+      }, 0);
 
       const remainingTasks = totalAssignedGifts - wrappedGifts;
 
