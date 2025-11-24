@@ -32,16 +32,10 @@ import { cn } from '@/lib/utils';
 import { GiftForm } from './GiftForm';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useBuyers, Buyer } from '@/hooks/useBuyers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
 import { supabase } from '@/integrations/supabase/client';
-
-interface Buyer {
-  id: string;
-  name: string;
-  emoji: string;
-}
 
 interface Gift {
   id: string;
