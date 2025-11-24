@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useGivers } from '@/hooks/useGivers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -20,7 +20,7 @@ const RecipientsManager = () => {
   const { toast } = useToast();
   const { session } = useAuth();
   const { householdId } = useHousehold(session?.user?.id);
-  const { buyers } = useBuyers(householdId);
+  const { givers } = useGivers(householdId);
   const { recipients, loading, bulkAddRecipients, deleteRecipient } = useRecipients(householdId);
   const { gifts } = useGifts(householdId);
   const [bulkNames, setBulkNames] = useState('');
@@ -165,7 +165,7 @@ const RecipientsManager = () => {
                           <p className="font-medium">{recipient.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {recipientGifts.length} gift{recipientGifts.length !== 1 ? 's' : ''} •
-                            {recipient.assigned_to ? ` Assigned to ${buyers.find(b => b.id === recipient.assigned_to)?.name || 'Unknown'}` : ' Unassigned'}
+                            {recipient.assigned_to ? ` Assigned to ${givers.find(g => g.id === recipient.assigned_to)?.name || 'Unknown'}` : ' Unassigned'}
                           </p>
                         </div>
                         <Button

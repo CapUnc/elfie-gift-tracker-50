@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 interface Buyer {
   id: string;
   name: string;
-  emoji: string;
+  icon: string;
 }
 
 interface SearchFilters {
@@ -72,7 +72,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       const buyer = buyers.find(b => b.id === filters.assignedTo);
       let label = filters.assignedTo;
       if (buyer) {
-        label = `${buyer.emoji} ${buyer.name}`;
+        label = `${buyer.icon} ${buyer.name}`;
       } else if (filters.assignedTo === 'unassigned') {
         label = 'Unassigned';
       } else if (filters.assignedTo === 'assigned-to-me') {
@@ -188,7 +188,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {buyers.map(buyer => (
                         <SelectItem key={buyer.id} value={buyer.id}>
-                          {buyer.emoji} {buyer.name}
+                          {buyer.icon} {buyer.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
