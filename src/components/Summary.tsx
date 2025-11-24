@@ -47,7 +47,11 @@ const Summary = () => {
   const { user } = useAuth();
   const { householdId, loading: householdLoading } = useHousehold(user?.id);
   
-  // Early return BEFORE any other hooks to prevent hooks violation
+  // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
+  const queryClient = useQueryClient();
+  const [showAllBuyers, setShowAllBuyers] = useState(false);
+  
+  // NOW we can do the early return check
   if (householdLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -59,9 +63,6 @@ const Summary = () => {
       </div>
     );
   }
-
-  const queryClient = useQueryClient();
-  const [showAllBuyers, setShowAllBuyers] = useState(false);
 
   // Fetch household data
   const { data: household } = useQuery({
