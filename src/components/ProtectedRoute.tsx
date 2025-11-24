@@ -9,7 +9,15 @@ interface ProtectedRouteProps {
   children: ReactNode;
 }
 
+// 🚨 TESTING MODE: Authentication disabled
+const SKIP_AUTH = true;
+
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  // Skip all authentication for testing
+  if (SKIP_AUTH) {
+    return <>{children}</>;
+  }
+
   const { user, loading: authLoading } = useAuth();
   const { householdId, loading: householdLoading } = useHousehold(user?.id);
   const navigate = useNavigate();
