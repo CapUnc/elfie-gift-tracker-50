@@ -388,15 +388,12 @@ export const GiftForm: React.FC<GiftFormProps> = ({
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleGiver(giver.id);
-                    }}
+                    onClick={() => toggleGiver(giver.id)}
                   >
                     <Checkbox
                       id={`giver-${giver.id}`}
                       checked={selectedGiverIds.includes(giver.id)}
-                      onClick={(e) => e.stopPropagation()}
+                      onCheckedChange={() => toggleGiver(giver.id)}
                     />
                     <span className="text-lg">{giver.icon}</span>
                     <span className="text-sm font-medium flex-1">{giver.name}</span>
