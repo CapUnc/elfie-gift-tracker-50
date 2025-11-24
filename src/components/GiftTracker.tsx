@@ -52,6 +52,12 @@ interface Gift {
   url?: string;
   tracking?: string;
   assignedTo?: string;
+  givers?: Array<{
+    id: string;
+    name: string;
+    icon: string;
+    is_virtual?: boolean;
+  }>;
 }
 
 interface Person {
@@ -153,6 +159,7 @@ const GiftTracker = () => {
           url: gift.url || undefined,
           tracking: gift.tracking || undefined,
           assignedTo: gift.assigned_to || undefined,
+          givers: gift.givers || [],
         }))
     }));
   }, [supabaseRecipients, supabaseGifts]);
@@ -237,14 +244,24 @@ const GiftTracker = () => {
     }
   };
 
-  const addGift = async (personId: string, name: string, cost: number | null) => {
+  const addGift = async (personId: string, name: string, cost: number | null, giverIds: string[] = []) => {
     if (name.trim() && householdId) {
       try {
-        await addGiftToDb(
+        const gift = await addGiftToDb(
           personId,
           name.trim(),
           cost
         );
+        
+        // Assign givers if any selected
+        if (gift && giverIds.length > 0) {
+          for (const giverId of giverIds) {
+            await supabase.from('gift_givers').insert({
+              gift_id: gift.id,
+              giver_id: giverId
+            });
+          }
+        }
         
         setEditingGift(null);
         
@@ -259,9 +276,19 @@ const GiftTracker = () => {
     }
   };
 
-  const updateGift = async (personId: string, giftId: string, updatedGift: Partial<Gift>) => {
+  const updateGift = async (personId: string, giftId: string, updatedGift: Partial<Gift>, giverIds?: string[]) => {
     try {
       await updateGiftInDb(giftId, updatedGift);
+      
+      // Update givers if provided
+      if (giverIds !== undefined) {
+        await supabase.from('gift_givers').delete().eq('gift_id', giftId);
+        if (giverIds.length > 0) {
+          await supabase.from('gift_givers').insert(
+            giverIds.map(giverId => ({ gift_id: giftId, giver_id: giverId }))
+          );
+        }
+      }
       
       haptic.impact('light');
       toast({
@@ -983,12 +1010,13 @@ const GiftTracker = () => {
                 await updateGift(editingGift.personId, editingGift.giftId, {
                   name: giftData.name,
                   cost: giftData.cost ? parseFloat(giftData.cost) : null
-                });
+                }, giftData.giverIds);
               } else {
                 await addGift(
                   editingGift.personId,
                   giftData.name,
-                  giftData.cost ? parseFloat(giftData.cost) : null
+                  giftData.cost ? parseFloat(giftData.cost) : null,
+                  giftData.giverIds
                 );
               }
               setEditingGift(null);
@@ -1001,6 +1029,7 @@ const GiftTracker = () => {
             currency={currency}
             editingGift={editingGift.gift}
             mode={editingGift.giftId ? 'edit' : 'add'}
+            availableGivers={buyers}
           />
         )}
 
