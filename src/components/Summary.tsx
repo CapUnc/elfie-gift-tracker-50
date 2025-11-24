@@ -6,12 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Gift, Users, DollarSign, ChevronDown, ChevronUp, ShoppingBag, Package, AlertCircle } from "lucide-react";
+import { Gift, Users, DollarSign, ChevronDown, ChevronUp, ShoppingBag, Package } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useHousehold } from "@/hooks/useHousehold";
-import { Buyer } from '@/types/givers';
 
 interface Gift {
   id: string;
@@ -22,8 +21,6 @@ interface Gift {
   url: string | null;
   tracking: string | null;
   assigned_to: string | null;
-  is_placeholder?: boolean;
-  template_id?: string | null;
 }
 
 interface Recipient {
@@ -36,21 +33,19 @@ interface Recipient {
   manual_complete: boolean;
 }
 
-interface Giver {
+interface Buyer {
   id: string;
   name: string;
-  icon: string;
+  emoji: string;
 }
 
 const Summary = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { householdId, loading: householdLoading } = useHousehold(user?.id);
-  
-  // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
-  const queryClient = useQueryClient();
   const [showAllBuyers, setShowAllBuyers] = useState(false);
-  
+
   // Fetch household data
   const { data: household } = useQuery({
     queryKey: ['household', householdId],
@@ -64,86 +59,42 @@ const Summary = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!householdId && !householdLoading,
+    enabled: !!householdId,
   });
 
-  // Fetch profile-linked givers (acting as buyers)
+  // Fetch buyers
   const { data: buyers = [] } = useQuery({
-    queryKey: ['profile-givers', householdId],
+    queryKey: ['buyers', householdId],
     queryFn: async () => {
       if (!householdId) return [];
       const { data, error } = await supabase
-        .from('givers')
+        .from('buyers')
         .select('*')
         .eq('household_id', householdId)
-        .eq('is_virtual', false)
         .order('name');
       if (error) throw error;
-      // Map to Buyer interface for compatibility
-      return (data || []).map(g => ({
-        id: g.id,
-        name: g.name,
-        icon: g.icon || '🎁'
-      })) as Buyer[];
+      return data as Buyer[];
     },
-    enabled: !!householdId && !householdLoading,
+    enabled: !!householdId,
   });
 
-  // Fetch givers
-  const { data: givers = [] } = useQuery({
-    queryKey: ['givers', householdId],
-    queryFn: async () => {
-      if (!householdId) return [];
-      const { data, error } = await supabase
-        .from('givers')
-        .select('*')
-        .eq('household_id', householdId)
-        .order('display_order');
-      if (error) throw error;
-      return data as Giver[];
-    },
-    enabled: !!householdId && !householdLoading,
-  });
-
-  // Fetch recipients with gifts and givers
+  // Fetch recipients with gifts
   const { data: recipients = [] } = useQuery({
     queryKey: ['recipients', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      
-      // Fetch recipients
-      const { data: recipientsData, error: recipientsError } = await supabase
+      const { data, error } = await supabase
         .from('recipients')
-        .select('*')
-        .eq('household_id', householdId)
-        .order('name');
-      if (recipientsError) throw recipientsError;
-
-      // Fetch gifts with givers
-      const { data: giftsData, error: giftsError } = await supabase
-        .from('gifts')
         .select(`
           *,
-          gift_givers (
-            giver_id,
-            givers (id, name, icon)
-          )
+          gifts (*)
         `)
-        .eq('household_id', householdId);
-      if (giftsError) throw giftsError;
-
-      // Transform and combine
-      const giftsWithGivers = giftsData.map((gift: any) => ({
-        ...gift,
-        givers: gift.gift_givers?.map((gg: any) => gg.givers).filter(Boolean) || []
-      }));
-
-      return (recipientsData || []).map((recipient: any) => ({
-        ...recipient,
-        gifts: giftsWithGivers.filter((g: any) => g.recipient_id === recipient.id)
-      })) as Recipient[];
+        .eq('household_id', householdId)
+        .order('name');
+      if (error) throw error;
+      return data as Recipient[];
     },
-    enabled: !!householdId && !householdLoading,
+    enabled: !!householdId,
   });
 
   // Set up realtime subscriptions
@@ -181,37 +132,11 @@ const Summary = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'givers',
+          table: 'buyers',
           filter: `household_id=eq.${householdId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['profile-givers', householdId] });
-          queryClient.invalidateQueries({ queryKey: ['givers', householdId] });
-          queryClient.invalidateQueries({ queryKey: ['recipients', householdId] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'givers',
-          filter: `household_id=eq.${householdId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['givers', householdId] });
-          queryClient.invalidateQueries({ queryKey: ['recipients', householdId] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'gift_givers',
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['recipients', householdId] });
+          queryClient.invalidateQueries({ queryKey: ['buyers', householdId] });
         }
       )
       .subscribe();
@@ -220,19 +145,6 @@ const Summary = () => {
       supabase.removeChannel(channel);
     };
   }, [householdId, queryClient]);
-  
-  // NOW we can do the early return check AFTER all hooks
-  if (householdLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-32 bg-muted rounded"></div>
-          <div className="h-64 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
-  }
 
   const currency = household?.currency || '$';
 
@@ -245,75 +157,57 @@ const Summary = () => {
 
   const overallStats = useMemo(() => {
     const totalPeople = recipients.length;
-    
-    // Separate real gifts from placeholders
-    const allGifts = recipients.flatMap(person => person.gifts);
-    const realGifts = allGifts.filter(g => !g.is_placeholder);
-    const placeholderGifts = allGifts.filter(g => g.is_placeholder);
-    
-    const totalGifts = allGifts.length;
-    const realGiftsCount = realGifts.length;
-    const placeholderCount = placeholderGifts.length;
-    
-    const totalCost = realGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
-    const purchasedGifts = realGifts.filter(g => g.purchased).length;
-    const wrappedGifts = realGifts.filter(g => g.wrapped).length;
+    const totalGifts = recipients.reduce((sum, person) => sum + person.gifts.length, 0);
+    const totalCost = recipients.reduce(
+      (sum, person) =>
+        sum + person.gifts.reduce((giftSum, gift) => giftSum + (gift.cost || 0), 0),
+      0
+    );
+    const purchasedGifts = recipients.reduce(
+      (sum, person) => sum + person.gifts.filter((g) => g.purchased).length,
+      0
+    );
+    const wrappedGifts = recipients.reduce(
+      (sum, person) => sum + person.gifts.filter((g) => g.wrapped).length,
+      0
+    );
     const completedPeople = recipients.filter((p) => p.completed || p.manual_complete).length;
 
     return {
       totalPeople,
       totalGifts,
-      realGiftsCount,
-      placeholderCount,
       totalCost,
       purchasedGifts,
       wrappedGifts,
       completedPeople,
-      purchasedPercentage: realGiftsCount > 0 ? Math.round((purchasedGifts / realGiftsCount) * 100) : 0,
-      wrappedPercentage: realGiftsCount > 0 ? Math.round((wrappedGifts / realGiftsCount) * 100) : 0,
+      purchasedPercentage: totalGifts > 0 ? Math.round((purchasedGifts / totalGifts) * 100) : 0,
+      wrappedPercentage: totalGifts > 0 ? Math.round((wrappedGifts / totalGifts) * 100) : 0,
       completedPercentage:
         totalPeople > 0 ? Math.round((completedPeople / totalPeople) * 100) : 0,
     };
   }, [recipients]);
 
-  const giverSpending = useMemo(() => {
-    if (givers.length === 0) return [];
-    
-    const spending = givers.map(giver => {
-      const giftsFromGiver = recipients.flatMap(person => 
-        person.gifts.filter(gift => 
-          !gift.is_placeholder && 
-          (gift as any).givers?.some((g: any) => g.id === giver.id)
-        )
-      );
-      
-      const totalSpent = giftsFromGiver.reduce((sum, gift) => sum + (gift.cost || 0), 0);
-      const giftCount = giftsFromGiver.length;
-      
-      return {
-        ...giver,
-        totalSpent,
-        giftCount
-      };
-    });
-    
-    return spending.filter(s => s.giftCount > 0).sort((a, b) => b.totalSpent - a.totalSpent);
-  }, [givers, recipients]);
-
   const buyerStats = useMemo(() => {
     return buyers.map((buyer) => {
       const assignedRecipients = recipients.filter((p) => p.assigned_to === buyer.id);
-      
-      // Only count non-placeholder gifts for buyer stats
-      const realGifts = assignedRecipients.flatMap(person => 
-        person.gifts.filter(g => !g.is_placeholder)
+      const totalAssignedGifts = assignedRecipients.reduce(
+        (sum, person) => sum + person.gifts.length,
+        0
       );
-      
-      const totalAssignedGifts = realGifts.length;
-      const purchasedGifts = realGifts.filter(g => g.purchased).length;
-      const wrappedGifts = realGifts.filter(g => g.wrapped).length;
-      const totalCost = realGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
-      
+      const purchasedGifts = assignedRecipients.reduce(
+        (sum, person) => sum + person.gifts.filter((g) => g.purchased).length,
+        0
+      );
+      const wrappedGifts = assignedRecipients.reduce(
+        (sum, person) => sum + person.gifts.filter((g) => g.wrapped).length,
+        0
+      );
+      const totalCost = assignedRecipients.reduce(
+        (sum, person) =>
+          sum + person.gifts.reduce((giftSum, gift) => giftSum + (gift.cost || 0), 0),
+        0
+      );
+
       const remainingTasks = totalAssignedGifts - wrappedGifts;
 
       return {
@@ -342,35 +236,6 @@ const Summary = () => {
 
   const displayedBuyers = showAllBuyers ? sortedBuyerStats : sortedBuyerStats.slice(0, 3);
 
-  const avgCostPerRecipient = useMemo(() => {
-    if (recipients.length === 0) return 0;
-    return overallStats.totalCost / recipients.length;
-  }, [overallStats.totalCost, recipients.length]);
-
-  const nearlyCompleteRecipients = useMemo(() => {
-    return recipients
-      .map(person => {
-        const realGifts = person.gifts.filter(g => !g.is_placeholder);
-        const purchased = realGifts.filter(g => g.purchased).length;
-        const wrapped = realGifts.filter(g => g.wrapped).length;
-        const completion = realGifts.length > 0 ? (wrapped / realGifts.length) * 100 : 0;
-        
-        return {
-          ...person,
-          completion,
-          realGiftCount: realGifts.length,
-          purchased,
-          wrapped
-        };
-      })
-      .filter(p => p.completion >= 75 && p.completion < 100 && p.realGiftCount > 0)
-      .sort((a, b) => b.completion - a.completion);
-  }, [recipients]);
-
-  const unassignedRecipients = useMemo(() => {
-    return recipients.filter(r => !r.assigned_to);
-  }, [recipients]);
-
   const nextSteps = useMemo(() => {
     const steps = [];
     
@@ -397,6 +262,18 @@ const Summary = () => {
     return steps;
   }, [overallStats, navigate]);
 
+  if (householdLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="h-32 bg-muted rounded"></div>
+          <div className="h-64 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 pb-24 max-w-7xl">
       <div className="space-y-6">
@@ -411,53 +288,8 @@ const Summary = () => {
           </CardContent>
         </Card>
 
-        {/* Placeholder Warning */}
-        {overallStats.placeholderCount > 0 && (
-          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                    {overallStats.placeholderCount} gift{overallStats.placeholderCount !== 1 ? 's' : ''} still need to be decided
-                  </h3>
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    You have placeholder gifts that need specific items assigned before they can be purchased.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Unassigned Recipients Warning */}
-        {unassignedRecipients.length > 0 && (
-          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Users className="h-5 w-5 text-blue-600 dark:text-blue-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                    {unassignedRecipients.length} recipient{unassignedRecipients.length !== 1 ? 's' : ''} not assigned to a buyer
-                  </h3>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                    Assign these recipients to buyers so everyone knows who they're shopping for.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {unassignedRecipients.map(r => (
-                      <Badge key={r.id} variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100">
-                        {r.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* KPI Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button
             variant="outline"
             className="h-auto p-4 flex-col items-start hover:bg-accent"
@@ -479,14 +311,7 @@ const Summary = () => {
               <Gift className="h-5 w-5 text-primary" />
               <span className="text-sm text-muted-foreground">Gifts</span>
             </div>
-            <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold">{overallStats.realGiftsCount}</p>
-              {overallStats.placeholderCount > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  ({overallStats.placeholderCount} TBD)
-                </p>
-              )}
-            </div>
+            <p className="text-3xl font-bold">{overallStats.totalGifts}</p>
           </Button>
 
           <Button
@@ -500,20 +325,6 @@ const Summary = () => {
             </div>
             <p className="text-3xl font-bold">
               {formatCurrency(overallStats.totalCost, currency)}
-            </p>
-          </Button>
-
-          <Button
-            variant="outline"
-            className="h-auto p-4 flex-col items-start hover:bg-accent"
-            onClick={() => navigate('/gifts')}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <span className="text-sm text-muted-foreground">Avg/Recipient</span>
-            </div>
-            <p className="text-3xl font-bold">
-              {formatCurrency(avgCostPerRecipient, currency)}
             </p>
           </Button>
         </div>
@@ -588,7 +399,7 @@ const Summary = () => {
                   <div key={buyer.id} className="p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">{buyer.icon}</span>
+                        <span className="text-2xl">{buyer.emoji}</span>
                         <div>
                           <h4 className="font-semibold">{buyer.name}</h4>
                           <p className="text-sm text-muted-foreground">
@@ -632,66 +443,6 @@ const Summary = () => {
                         className="h-1"
                       />
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Nearly Complete Recipients */}
-        {nearlyCompleteRecipients.length > 0 && (
-          <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4 text-green-900 dark:text-green-100">
-                🎯 Nearly Complete ({nearlyCompleteRecipients.length})
-              </h3>
-              <div className="space-y-3">
-                {nearlyCompleteRecipients.map((person) => (
-                  <div key={person.id} className="p-3 bg-white dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-green-900 dark:text-green-100">{person.name}</h4>
-                      <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100">
-                        {Math.round(person.completion)}% done
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-green-800 dark:text-green-200">
-                      <span className="flex items-center gap-1">
-                        <ShoppingBag className="h-3 w-3" />
-                        {person.purchased}/{person.realGiftCount} purchased
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Package className="h-3 w-3" />
-                        {person.wrapped}/{person.realGiftCount} wrapped
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Spending by Giver */}
-        {giverSpending.length > 0 && (
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4">Spending by Giver</h3>
-              <div className="space-y-3">
-                {giverSpending.map((giver) => (
-                  <div key={giver.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{giver.icon}</span>
-                      <div>
-                        <h4 className="font-medium">{giver.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {giver.giftCount} gift{giver.giftCount !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="font-semibold text-lg">
-                      {formatCurrency(giver.totalSpent, currency)}
-                    </p>
                   </div>
                 ))}
               </div>

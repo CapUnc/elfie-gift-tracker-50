@@ -9,7 +9,8 @@ import { useHousehold } from '@/hooks/useHousehold';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { COMMON_GIVER_ICONS } from '@/types/givers';
+
+const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
 
 interface JoinHouseholdProps {}
 
@@ -47,34 +48,23 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
           return;
         }
 
-        // Find the user's giver record in the old household
-        const { data: oldGiver } = await supabase
-          .from('givers')
-          .select('id')
+        // Clear assignments and delete old buyer record
+        await supabase
+          .from('recipients')
+          .update({ assigned_to: null })
           .eq('household_id', currentProfile.household_id)
-          .eq('profile_id', user.id)
-          .maybeSingle();
+          .eq('assigned_to', user.id);
 
-        if (oldGiver) {
-          // Clear assignments
-          await supabase
-            .from('recipients')
-            .update({ assigned_to: null })
-            .eq('household_id', currentProfile.household_id)
-            .eq('assigned_to', oldGiver.id);
+        await supabase
+          .from('gifts')
+          .update({ assigned_to: null })
+          .eq('household_id', currentProfile.household_id)
+          .eq('assigned_to', user.id);
 
-          await supabase
-            .from('gifts')
-            .update({ assigned_to: null })
-            .eq('household_id', currentProfile.household_id)
-            .eq('assigned_to', oldGiver.id);
-
-          // Delete old giver record
-          await supabase
-            .from('givers')
-            .delete()
-            .eq('id', oldGiver.id);
-        }
+        await supabase
+          .from('buyers')
+          .delete()
+          .eq('user_id', user.id);
       }
 
       const { data: newHouseholdId, error } = await supabase.rpc('join_household_by_code', {
@@ -114,19 +104,21 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
 
     setLoading(true);
     try {
-      // Create giver record for the user (profile-linked)
-      const { error: giverError } = await supabase
-        .from('givers')
-        .insert({
+      // Use upsert to handle both new and existing buyer records
+      // This prevents issues if buyer was partially created before
+      const { error: buyerError } = await supabase
+        .from('buyers')
+        .upsert({
           household_id: householdId,
-          profile_id: user.id,
+          user_id: user.id,
           name: displayName.trim(),
-          icon: selectedEmoji,
-          is_virtual: false,
+          emoji: selectedEmoji,
+        }, {
+          onConflict: 'user_id,household_id'
         });
 
-      if (giverError) {
-        console.error('Giver insert error:', giverError);
+      if (buyerError) {
+        console.error('Buyer upsert error:', buyerError);
         throw new Error('Could not create profile. Please try again.');
       }
 
@@ -178,7 +170,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
             <div className="space-y-2">
               <Label>Choose Your Emoji</Label>
               <div className="grid grid-cols-6 gap-2">
-                {COMMON_GIVER_ICONS.map((emoji) => (
+                {emojiOptions.map((emoji) => (
                   <button
                     key={emoji}
                     onClick={() => setSelectedEmoji(emoji)}

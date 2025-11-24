@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Trash2, ShoppingCart, Package, Edit2, AlertCircle } from 'lucide-react';
+import { Trash2, ShoppingCart, Package, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusToggle } from '@/components/ui/status-toggle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatCurrency } from '@/lib/currency';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { cn } from '@/lib/utils';
@@ -18,19 +16,6 @@ interface Gift {
   trackingNumber?: string;
   carrier?: string;
   assignedTo?: string | null;
-  is_placeholder?: boolean;
-  template_id?: string | null;
-  givers?: Array<{
-    id: string;
-    name: string;
-    icon: string;
-  }>;
-  template?: {
-    id: string;
-    name: string;
-    tag_color?: string;
-    tag_icon?: string;
-  };
 }
 
 interface SwipeableGiftItemProps {
@@ -171,12 +156,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
   };
 
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-lg bg-card",
-      gift.is_placeholder 
-        ? "border-2 border-dashed border-muted-foreground/40 bg-muted/30" 
-        : "border"
-    )}>
+    <div className="relative overflow-hidden rounded-lg border bg-card">
       {/* Background action indicators */}
       <div className="absolute inset-0 flex">
         <div 
@@ -282,75 +262,18 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
               </Tooltip>
             </TooltipProvider>
 
-            {/* Giver Icons */}
-            {gift.givers && gift.givers.length > 0 && (
-              <div className="flex items-center -space-x-2 flex-shrink-0">
-                {gift.givers.slice(0, 3).map((giver, index) => (
-                  <TooltipProvider key={giver.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Avatar className="h-6 w-6 border-2 border-background">
-                          <AvatarFallback className="text-xs bg-primary/10">
-                            {giver.icon || giver.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p>From {giver.name}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ))}
-                {gift.givers.length > 3 && (
-                  <Badge variant="secondary" className="h-6 text-xs px-1.5 ml-1">
-                    +{gift.givers.length - 3}
-                  </Badge>
-                )}
-              </div>
-            )}
-
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <div className={cn(
-                  "font-medium text-sm truncate",
-                  gift.purchased && "line-through text-muted-foreground"
-                )}>
-                  {gift.name}
-                </div>
-                {gift.is_placeholder && (
-                  <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 flex-shrink-0">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    TBD
-                  </Badge>
-                )}
+              <div className={cn(
+                "font-medium text-sm truncate",
+                gift.purchased && "line-through text-muted-foreground"
+              )}>
+                {gift.name}
               </div>
             </div>
           </div>
 
-          {/* Right Group: Template + Cost + Single Action */}
+          {/* Right Group: Cost + Single Action */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {gift.template && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge 
-                      className="text-xs px-2 py-0.5 h-5"
-                      style={{
-                        backgroundColor: gift.template.tag_color || '#3b82f6',
-                        color: '#ffffff',
-                        border: 'none'
-                      }}
-                    >
-                      {gift.template.tag_icon && <span className="mr-1">{gift.template.tag_icon}</span>}
-                      {gift.template.name}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>Template: {gift.template.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
             {gift.cost !== null && (
               <span className="text-sm text-muted-foreground font-medium">
                 {formatCurrency(gift.cost, currency)}

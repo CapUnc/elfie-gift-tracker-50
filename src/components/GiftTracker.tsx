@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check, StickyNote, Zap } from 'lucide-react';
+import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check, StickyNote } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
@@ -11,7 +11,6 @@ import { AlphabetIndex } from './AlphabetIndex';
 import { GiftContextMenu, PersonContextMenu } from './ContextMenu';
 import { GiftNotes } from './GiftNotes';
 import { RecipientNotes } from './RecipientNotes';
-import { ErrorBoundary } from './ErrorBoundary';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,13 +32,16 @@ import { cn } from '@/lib/utils';
 import { GiftForm } from './GiftForm';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-
+import { useBuyers } from '@/hooks/useBuyers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
-import { useGivers } from '@/hooks/useGivers';
-import { useGiftTemplates } from '@/hooks/useGiftTemplates';
 import { supabase } from '@/integrations/supabase/client';
-import { Buyer } from '@/types/givers';
+
+interface Buyer {
+  id: string;
+  name: string;
+  emoji: string;
+}
 
 interface Gift {
   id: string;
@@ -51,13 +52,6 @@ interface Gift {
   url?: string;
   tracking?: string;
   assignedTo?: string;
-  is_placeholder?: boolean;
-  template_id?: string | null;
-  givers?: Array<{
-    id: string;
-    name: string;
-    icon: string;
-  }>;
 }
 
 interface Person {
@@ -78,12 +72,9 @@ const GiftTracker = () => {
   const { householdId, loading: householdLoading } = useHousehold(session?.user?.id);
   
   // Supabase hooks
-  const { profileLinkedGivers, loading: buyersLoading } = useGivers(householdId);
-  const supabaseBuyers = profileLinkedGivers; // For compatibility with existing code
+  const { buyers: supabaseBuyers, loading: buyersLoading } = useBuyers(householdId);
   const { recipients: supabaseRecipients, updateRecipient, addRecipient } = useRecipients(householdId);
   const { gifts: supabaseGifts, addGift: addGiftToDb, updateGift: updateGiftInDb, updateGiftStatus: updateGiftStatusInDb, deleteGift: deleteGiftFromDb, duplicateGift: duplicateGiftInDb, batchUpdateGifts } = useGifts(householdId);
-  const { givers } = useGivers(householdId);
-  const { templates } = useGiftTemplates(householdId);
   
   // Fetch all household notes for indicator
   const { data: allNotes = [] } = useQuery({
@@ -116,9 +107,7 @@ const GiftTracker = () => {
     wrapping: 'all' as 'all' | 'needs-wrapping' | 'all-wrapped',
     showCompleted: false,
     hasGifts: 'all' as 'all' | 'with-gifts' | 'no-gifts',
-    costStatus: 'all' as 'all' | 'missing-cost',
-    fromGiver: 'all' as string,
-    hasPlaceholders: false
+    costStatus: 'all' as 'all' | 'missing-cost'
   });
 
   const [sortConfig, setSortConfig] = useState<{
@@ -143,11 +132,7 @@ const GiftTracker = () => {
   const animateButton = useAnimatedButton();
 
   // Transform Supabase data into local format
-  const buyers: Buyer[] = supabaseBuyers.map(g => ({
-    id: g.id,
-    name: g.name,
-    icon: g.icon || '🎁'
-  }));
+  const buyers: Buyer[] = supabaseBuyers;
   
   const people: Person[] = useMemo(() => {
     return supabaseRecipients.map(recipient => ({
@@ -163,14 +148,11 @@ const GiftTracker = () => {
           id: gift.id,
           name: gift.name,
           cost: gift.cost,
-          purchased: gift.purchased ?? false,
-          wrapped: gift.wrapped ?? false,
+          purchased: gift.purchased,
+          wrapped: gift.wrapped,
           url: gift.url || undefined,
           tracking: gift.tracking || undefined,
           assignedTo: gift.assigned_to || undefined,
-          is_placeholder: gift.is_placeholder ?? false,
-          template_id: gift.template_id || null,
-          givers: Array.isArray(gift.givers) ? gift.givers : []
         }))
     }));
   }, [supabaseRecipients, supabaseGifts]);
@@ -255,23 +237,13 @@ const GiftTracker = () => {
     }
   };
 
-  const addGift = async (
-    personId: string, 
-    name: string, 
-    cost: number | null,
-    options?: {
-      isPlaceholder?: boolean;
-      templateId?: string;
-      giverIds?: string[];
-    }
-  ) => {
+  const addGift = async (personId: string, name: string, cost: number | null) => {
     if (name.trim() && householdId) {
       try {
         await addGiftToDb(
           personId,
           name.trim(),
-          cost,
-          options
+          cost
         );
         
         setEditingGift(null);
@@ -287,14 +259,9 @@ const GiftTracker = () => {
     }
   };
 
-  const updateGift = async (
-    personId: string, 
-    giftId: string, 
-    updatedGift: Partial<Gift>,
-    giverIds?: string[]
-  ) => {
+  const updateGift = async (personId: string, giftId: string, updatedGift: Partial<Gift>) => {
     try {
-      await updateGiftInDb(giftId, updatedGift, giverIds);
+      await updateGiftInDb(giftId, updatedGift);
       
       haptic.impact('light');
       toast({
@@ -404,32 +371,17 @@ const GiftTracker = () => {
   };
 
   const getCompletionStats = (person: Person) => {
-    const realGifts = person.gifts.filter(g => !g.is_placeholder);
-    const placeholders = person.gifts.filter(g => g.is_placeholder);
+    const total = person.gifts.length;
+    const purchased = person.gifts.filter(g => g.purchased).length;
+    const wrapped = person.gifts.filter(g => g.wrapped).length;
+    const totalCost = person.gifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
     
-    const total = realGifts.length;
-    const purchased = realGifts.filter(g => g.purchased).length;
-    const wrapped = realGifts.filter(g => g.wrapped).length;
-    const totalCost = realGifts.reduce((sum, gift) => sum + (gift.cost || 0), 0);
-    const canBeComplete = placeholders.length === 0;
-    
-    return { total, purchased, wrapped, totalCost, placeholderCount: placeholders.length, canBeComplete };
+    return { total, purchased, wrapped, totalCost };
   };
 
   const handleCompletionChange = async (person: Person, completed: boolean) => {
     if (completed) {
       const stats = getCompletionStats(person);
-      
-      // Check for placeholders first
-      if (!stats.canBeComplete) {
-        toast({
-          title: "Cannot complete",
-          description: `${person.name} has ${stats.placeholderCount} placeholder gift${stats.placeholderCount !== 1 ? 's' : ''} that need to be decided.`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
       const incompletePurchased = stats.total - stats.purchased;
       const incompleteWrapped = stats.total - stats.wrapped;
       
@@ -493,9 +445,9 @@ const GiftTracker = () => {
         if (filters.assignedTo === 'unassigned') {
           if (person.assignedTo !== null) return false;
         } else if (filters.assignedTo === 'assigned-to-me') {
-          // Get current user's giver ID (profile-linked)
-          const currentUserGiver = supabaseBuyers.find(g => g.profile_id === session?.user?.id);
-          if (!currentUserGiver || person.assignedTo !== currentUserGiver.id) return false;
+          // Get current user's buyer ID
+          const currentUserBuyer = supabaseBuyers.find(b => b.user_id === session?.user?.id);
+          if (!currentUserBuyer || person.assignedTo !== currentUserBuyer.id) return false;
         } else {
           if (person.assignedTo !== filters.assignedTo) return false;
         }
@@ -521,23 +473,11 @@ const GiftTracker = () => {
         if (!hasMissingCosts) return false;
       }
 
-      if (filters.fromGiver !== 'all') {
-        const hasGiftFromGiver = person.gifts.some(gift => 
-          gift.givers?.some(giver => giver.id === filters.fromGiver)
-        );
-        if (!hasGiftFromGiver) return false;
-      }
-
-      if (filters.hasPlaceholders) {
-        const hasPlaceholders = person.gifts.some(gift => gift.is_placeholder);
-        if (!hasPlaceholders) return false;
-      }
-
       if (!filters.showCompleted && person.completed) return false;
 
       return true;
     });
-  }, [people, searchTerm, filters, session?.user?.id, supabaseBuyers]);
+  }, [people, searchTerm, filters]);
 
   // Sorting logic
   const sortedAndFilteredPeople = useMemo(() => {
@@ -651,7 +591,6 @@ const GiftTracker = () => {
             filters={filters}
             onFiltersChange={setFilters}
             buyers={buyers}
-            givers={givers}
           />
         </div>
 
@@ -695,7 +634,7 @@ const GiftTracker = () => {
                         }}
                         className="rounded border-gray-300"
                       />
-                      <span className="text-lg">{buyer.icon}</span>
+                      <span className="text-lg">{buyer.emoji}</span>
                       <span className="text-sm">{buyer.name}</span>
                     </label>
                   ))}
@@ -841,9 +780,6 @@ const GiftTracker = () => {
                                 <span className="flex items-center gap-1">
                                   <Gift className="h-3 w-3" />
                                   {stats.total}
-                                  {stats.placeholderCount > 0 && (
-                                    <span className="text-amber-600 ml-0.5">({stats.placeholderCount} TBD)</span>
-                                  )}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <ShoppingCart className="h-3 w-3" />
@@ -890,7 +826,7 @@ const GiftTracker = () => {
                                   className="flex-shrink-0 h-8 w-8 rounded-full border border-muted-foreground/30 flex items-center justify-center text-sm bg-background hover:bg-muted transition-colors"
                                   title={assignedBuyer ? `Assigned to ${assignedBuyer.name}` : 'Not assigned'}
                                 >
-                                  {assignedBuyer ? assignedBuyer.icon : '?'}
+                                  {assignedBuyer ? assignedBuyer.emoji : '?'}
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent className="w-48 p-2" align="end">
@@ -917,7 +853,7 @@ const GiftTracker = () => {
                                         setOpenAssignmentPopover(null);
                                       }}
                                     >
-                                      <span className="text-lg leading-none">{buyer.icon}</span>
+                                      <span className="text-lg leading-none">{buyer.emoji}</span>
                                       <span>{buyer.name}</span>
                                     </button>
                                   ))}
@@ -951,15 +887,7 @@ const GiftTracker = () => {
                         {stats.total > 0 && (
                           <div className="mt-3">
                             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                              <div className="flex items-center gap-2">
-                                <span>Progress</span>
-                                {stats.placeholderCount > 0 && (
-                                  <span className="flex items-center gap-1 text-amber-600">
-                                    <AlertCircle className="h-3 w-3" />
-                                    {stats.placeholderCount} TBD
-                                  </span>
-                                )}
-                              </div>
+                              <span>Progress</span>
                               <span>{Math.round(progressPercent)}%</span>
                             </div>
                             <div className="w-full bg-muted rounded-full h-2">
@@ -986,59 +914,20 @@ const GiftTracker = () => {
 
                             {person.gifts.length > 0 ? (
                               <div className="space-y-3 max-w-full">
-                                 <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center justify-between mb-3">
                                   <h4 className="text-sm font-medium">
                                     Gifts ({person.gifts.length})
                                   </h4>
-                                  <div className="flex items-center gap-2">
-                                    {templates.length > 0 && (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-7 px-2 text-xs"
-                                          >
-                                            <Zap className="h-3 w-3 mr-1" />
-                                            Quick Add
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-56">
-                                          <DropdownMenuLabel>Add from Template</DropdownMenuLabel>
-                                          <DropdownMenuSeparator />
-                                          {templates.map(template => (
-                                            <DropdownMenuItem
-                                              key={template.id}
-                                              onClick={() => {
-                                                addGift(
-                                                  person.id,
-                                                  template.name,
-                                                  template.default_cost,
-                                                  {
-                                                    templateId: template.id,
-                                                    giverIds: template.default_giver_ids || []
-                                                  }
-                                                );
-                                              }}
-                                            >
-                                              <span className="mr-2">{template.tag_icon}</span>
-                                              {template.name}
-                                            </DropdownMenuItem>
-                                          ))}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    )}
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 px-2 text-xs"
-                                      onClick={() => setEditingGift({ personId: person.id })}
-                                      aria-label={`Add gift for ${person.name}`}
-                                    >
-                                      <Plus className="h-3 w-3 mr-1" />
-                                      Add Gift
-                                    </Button>
-                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => setEditingGift({ personId: person.id })}
+                                    aria-label={`Add gift for ${person.name}`}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add Gift
+                                  </Button>
                                 </div>
                                 {person.gifts.map((gift) => (
                                   <SwipeableGiftItem
@@ -1085,46 +974,34 @@ const GiftTracker = () => {
 
         {/* Gift Form for Add/Edit */}
         {editingGift && (
-          <ErrorBoundary>
-            <GiftForm
-              key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
-              isOpen={true}
-              onClose={() => setEditingGift(null)}
-              onSubmit={async (giftData) => {
-                if (editingGift.giftId) {
-                  await updateGift(editingGift.personId, editingGift.giftId, {
-                    name: giftData.name,
-                    cost: giftData.cost ? parseFloat(giftData.cost) : null,
-                    is_placeholder: giftData.isPlaceholder,
-                    template_id: giftData.templateId || null,
-                  }, giftData.giverIds);
-                } else {
-                  await addGift(
-                    editingGift.personId,
-                    giftData.name,
-                    giftData.cost ? parseFloat(giftData.cost) : null,
-                    {
-                      isPlaceholder: giftData.isPlaceholder,
-                      templateId: giftData.templateId,
-                      giverIds: giftData.giverIds,
-                    }
-                  );
-                }
-                setEditingGift(null);
-              }}
-              updateGift={updateGift}
-              onDelete={editingGift.giftId ? (giftId) => {
-                deleteGift(editingGift.personId, giftId);
-                setEditingGift(null);
-              } : undefined}
-              personName={people.find(p => p.id === editingGift.personId)?.name || ''}
-              currency={currency}
-              editingGift={editingGift.gift || null}
-              mode={editingGift.giftId ? 'edit' : 'add'}
-              givers={givers}
-              templates={templates}
-            />
-          </ErrorBoundary>
+          <GiftForm
+            key={`${editingGift.personId}-${editingGift.giftId || 'new'}`}
+            isOpen={true}
+            onClose={() => setEditingGift(null)}
+            onSubmit={async (giftData) => {
+              if (editingGift.giftId) {
+                await updateGift(editingGift.personId, editingGift.giftId, {
+                  name: giftData.name,
+                  cost: giftData.cost ? parseFloat(giftData.cost) : null
+                });
+              } else {
+                await addGift(
+                  editingGift.personId,
+                  giftData.name,
+                  giftData.cost ? parseFloat(giftData.cost) : null
+                );
+              }
+              setEditingGift(null);
+            }}
+            onDelete={editingGift.giftId ? (giftId) => {
+              deleteGift(editingGift.personId, giftId);
+              setEditingGift(null);
+            } : undefined}
+            personName={people.find(p => p.id === editingGift.personId)?.name || ''}
+            currency={currency}
+            editingGift={editingGift.gift}
+            mode={editingGift.giftId ? 'edit' : 'add'}
+          />
         )}
 
         {/* Completion Dialog */}

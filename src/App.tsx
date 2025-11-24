@@ -10,8 +10,6 @@ import Settings from "./components/Settings";
 import RecipientsManager from "./components/settings/RecipientsManager";
 import ProfileManager from "./components/settings/ProfileManager";
 import HouseholdManager from "./components/settings/HouseholdManager";
-import GiversPage from "./pages/GiversPage";
-import TemplatesPage from "./pages/TemplatesPage";
 import Welcome from "./components/Welcome";
 import NotFound from "./pages/NotFound";
 import TopNavigation from "./components/TopNavigation";
@@ -67,7 +65,7 @@ const App = () => (
               }
             />
             <Route
-              path="/settings/profile"
+              path="/settings/buyers"
               element={
                 <ProtectedRoute>
                   <TopNavigation />
@@ -89,24 +87,6 @@ const App = () => (
                 <ProtectedRoute>
                   <TopNavigation />
                   <HouseholdManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/givers"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <GiversPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/templates"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <TemplatesPage />
                 </ProtectedRoute>
               }
             />

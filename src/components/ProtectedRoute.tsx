@@ -33,14 +33,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     // These pages will handle profile creation themselves
     if (location.pathname === '/welcome' || location.pathname === '/join-household') {
       if (householdId) {
-        const { data: giver } = await supabase
-          .from('givers')
+        const { data: buyer } = await supabase
+          .from('buyers')
           .select('id')
-          .eq('profile_id', user.id)
-          .eq('household_id', householdId)
+          .eq('user_id', user.id)
           .maybeSingle();
 
-        if (giver) {
+        if (buyer) {
           // Setup complete, redirect to main app
           navigate('/');
           return;
@@ -64,22 +63,21 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       return;
     }
 
-    // Ensure both household and giver exist
+    // Ensure both household and buyer exist
     if (!householdId) {
       navigate('/welcome');
       return;
     }
 
-      // User has household, now check for giver (profile-linked)
-      const { data: giver } = await supabase
-        .from('givers')
+      // User has household, now check for buyer
+      const { data: buyer } = await supabase
+        .from('buyers')
         .select('id')
-        .eq('profile_id', user.id)
-        .eq('household_id', householdId)
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!giver) {
-        // Has household but no giver - send to welcome to fix
+      if (!buyer) {
+        // Has household but no buyer - send to welcome to fix
         navigate('/welcome');
         return;
       }

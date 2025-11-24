@@ -10,9 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, Home } from 'lucide-react';
 import { z } from 'zod';
-import { COMMON_GIVER_ICONS } from '@/types/givers';
 
 const displayNameSchema = z.string().trim().min(1, 'Display name is required').max(100, 'Display name must be less than 100 characters');
+
+const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
 
 export const Welcome = () => {
   const [step, setStep] = useState<'choice' | 'create' | 'join'>('choice');
@@ -37,16 +38,15 @@ export const Welcome = () => {
         .maybeSingle();
 
       if (profile?.household_id) {
-        // User has household, check for giver (profile-linked)
-        const { data: giver } = await supabase
-          .from('givers')
+        // User has household, check for buyer
+        const { data: buyer } = await supabase
+          .from('buyers')
           .select('id')
-          .eq('profile_id', user.id)
-          .eq('household_id', profile.household_id)
+          .eq('user_id', user.id)
           .maybeSingle();
 
-        if (!giver) {
-          // Has household but no giver - show recovery flow
+        if (!buyer) {
+          // Has household but no buyer - show recovery flow
           toast({
             title: 'Setup Incomplete',
             description: "Let's finish setting up your profile",
@@ -101,24 +101,23 @@ export const Welcome = () => {
         .update({ name: householdValidation.data })
         .eq('id', householdId);
 
-      // Delete old giver record AFTER household creation succeeds
+      // Delete old buyer record AFTER household creation succeeds
       await supabase
-        .from('givers')
+        .from('buyers')
         .delete()
-        .eq('profile_id', user.id);
+        .eq('user_id', user.id);
 
-      // Create giver record for the user (profile-linked)
-      const { error: giverError } = await supabase
-        .from('givers')
+      // Create buyer record for the user
+      const { error: buyerError } = await supabase
+        .from('buyers')
         .insert({
           household_id: householdId,
-          profile_id: user.id,
+          user_id: user.id,
           name: validation.data,
-          icon: selectedEmoji,
-          is_virtual: false,
+          emoji: selectedEmoji,
         });
 
-      if (giverError) throw giverError;
+      if (buyerError) throw buyerError;
 
       toast({
         title: 'Household created!',
@@ -227,7 +226,7 @@ export const Welcome = () => {
             <div className="space-y-2">
               <Label>Choose Your Emoji</Label>
               <div className="grid grid-cols-6 gap-2">
-                {COMMON_GIVER_ICONS.map((emoji) => (
+                {emojiOptions.map((emoji) => (
                   <button
                     key={emoji}
                     onClick={() => setSelectedEmoji(emoji)}

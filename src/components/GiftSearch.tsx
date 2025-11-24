@@ -6,12 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Buyer } from '@/types/givers';
 
-interface Giver {
+interface Buyer {
   id: string;
   name: string;
-  icon: string;
+  emoji: string;
 }
 
 interface SearchFilters {
@@ -21,8 +20,6 @@ interface SearchFilters {
   showCompleted: boolean;
   hasGifts: 'all' | 'with-gifts' | 'no-gifts';
   costStatus: 'all' | 'missing-cost';
-  fromGiver: string;
-  hasPlaceholders: boolean;
 }
 
 interface GiftSearchProps {
@@ -31,7 +28,6 @@ interface GiftSearchProps {
   filters: SearchFilters;
   onFiltersChange: (filters: SearchFilters) => void;
   buyers: Buyer[];
-  givers: Giver[];
 }
 
 export const GiftSearch: React.FC<GiftSearchProps> = ({
@@ -39,8 +35,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
   onSearchChange,
   filters,
   onFiltersChange,
-  buyers,
-  givers
+  buyers
 }) => {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
@@ -51,8 +46,6 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
     if (filters.wrapping !== 'all') count++;
     if (filters.hasGifts !== 'all') count++;
     if (filters.costStatus !== 'all') count++;
-    if (filters.fromGiver !== 'all') count++;
-    if (filters.hasPlaceholders) count++;
     // Don't count showCompleted in the filter count
     return count;
   }, [filters, buyers.length]);
@@ -64,9 +57,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       wrapping: 'all',
       showCompleted: true,
       hasGifts: 'all',
-      costStatus: 'all',
-      fromGiver: 'all',
-      hasPlaceholders: false
+      costStatus: 'all'
     });
   };
 
@@ -81,7 +72,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       const buyer = buyers.find(b => b.id === filters.assignedTo);
       let label = filters.assignedTo;
       if (buyer) {
-        label = `${buyer.icon} ${buyer.name}`;
+        label = `${buyer.emoji} ${buyer.name}`;
       } else if (filters.assignedTo === 'unassigned') {
         label = 'Unassigned';
       } else if (filters.assignedTo === 'assigned-to-me') {
@@ -125,26 +116,9 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
         onRemove: () => onFiltersChange({ ...filters, costStatus: 'all' })
       });
     }
-
-    if (filters.fromGiver !== 'all') {
-      const giver = givers.find(g => g.id === filters.fromGiver);
-      chips.push({
-        id: 'fromGiver',
-        label: giver ? `From ${giver.icon} ${giver.name}` : 'From giver',
-        onRemove: () => onFiltersChange({ ...filters, fromGiver: 'all' })
-      });
-    }
-
-    if (filters.hasPlaceholders) {
-      chips.push({
-        id: 'hasPlaceholders',
-        label: 'Has placeholders',
-        onRemove: () => onFiltersChange({ ...filters, hasPlaceholders: false })
-      });
-    }
     
     return chips;
-  }, [filters, buyers, givers, onFiltersChange]);
+  }, [filters, buyers, onFiltersChange]);
 
   return (
     <div className="space-y-3">
@@ -214,7 +188,7 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {buyers.map(buyer => (
                         <SelectItem key={buyer.id} value={buyer.id}>
-                          {buyer.icon} {buyer.name}
+                          {buyer.emoji} {buyer.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -277,36 +251,6 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
                     <SelectItem value="all-wrapped">Fully wrapped</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              {givers.length > 0 && (
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">From (Giver)</label>
-                  <Select 
-                    value={filters.fromGiver} 
-                    onValueChange={(value) => onFiltersChange({ ...filters, fromGiver: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All givers" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All givers</SelectItem>
-                      {givers.map(giver => (
-                        <SelectItem key={giver.id} value={giver.id}>
-                          {giver.icon} {giver.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Show only with placeholders</label>
-                <Switch
-                  checked={filters.hasPlaceholders}
-                  onCheckedChange={(checked) => onFiltersChange({ ...filters, hasPlaceholders: checked })}
-                />
               </div>
 
               {activeFilterCount > 0 && (

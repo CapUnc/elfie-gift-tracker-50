@@ -4,24 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, AlertCircle, Pencil, Check, X, Sparkles, Users, UserPlus, Home as HomeIcon, Share2, Layers } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Pencil, Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useHousehold } from '@/hooks/useHousehold';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecipients } from '@/hooks/useRecipients';
-import { useGivers } from '@/hooks/useGivers';
-
+import { useBuyers } from '@/hooks/useBuyers';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { householdId } = useHousehold(user?.id);
   const { recipients } = useRecipients(householdId);
-  const { profileLinkedGivers: buyers } = useGivers(householdId);
+  const { buyers } = useBuyers(householdId);
   const { toast } = useToast();
 
   const [currency, setCurrency] = useState('$');
@@ -131,7 +128,7 @@ const Settings = () => {
     }
   };
 
-  const ownBuyer = buyers.find(b => b.profile_id === user?.id);
+  const ownBuyer = buyers.find(b => b.user_id === user?.id);
 
   return (
     <div className="container mx-auto p-4 max-w-2xl space-y-6">
@@ -142,191 +139,117 @@ const Settings = () => {
         <h1 className="text-3xl font-bold">Settings</h1>
       </div>
 
-      <div className="space-y-8">
-        {/* Household Configuration */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3 text-muted-foreground">Household</h2>
-          <div className="space-y-3">
-            <Card className="p-6 space-y-4">
-              <h3 className="text-xl font-semibold">Household Name</h3>
-              {isEditingName ? (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      value={tempName}
-                      onChange={(e) => setTempName(e.target.value)}
-                      placeholder="Enter household name"
-                      autoFocus
-                    />
-                    <Button size="icon" variant="default" onClick={handleSaveHouseholdName}>
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="outline" onClick={handleCancelEditingName}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <p className="text-lg font-medium">{householdName}</p>
-                  <Button size="icon" variant="ghost" onClick={handleStartEditingName}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </Card>
-
-            <Card className="p-6 space-y-4">
-              <h3 className="text-xl font-semibold">Currency</h3>
-              <div className="space-y-2">
-                <Label>Display Currency</Label>
-                <Select value={currency} onValueChange={handleCurrencyChange} disabled={loading}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="$">$ (USD)</SelectItem>
-                    <SelectItem value="€">€ (EUR)</SelectItem>
-                    <SelectItem value="£">£ (GBP)</SelectItem>
-                    <SelectItem value="¥">¥ (JPY)</SelectItem>
-                  </SelectContent>
-                </Select>
+      <div className="space-y-4">
+        <Card className="p-6 space-y-4">
+          <h3 className="text-xl font-semibold">Household Name</h3>
+          {isEditingName ? (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  placeholder="Enter household name"
+                  autoFocus
+                />
+                <Button size="icon" variant="default" onClick={handleSaveHouseholdName}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="outline" onClick={handleCancelEditingName}>
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            </Card>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-medium">{householdName}</p>
+              <Button size="icon" variant="ghost" onClick={handleStartEditingName}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 space-y-4">
+          <h3 className="text-xl font-semibold">Currency</h3>
+          <div className="space-y-2">
+            <Label>Display Currency</Label>
+            <Select value={currency} onValueChange={handleCurrencyChange} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="$">$ (USD)</SelectItem>
+                <SelectItem value="€">€ (EUR)</SelectItem>
+                <SelectItem value="£">£ (GBP)</SelectItem>
+                <SelectItem value="¥">¥ (JPY)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+        </Card>
 
-        <Separator />
-
-        {/* New Features - Highlighted */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Power Features</h2>
+        <Card
+          className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => navigate('/settings/recipients')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/recipients')}
+          tabIndex={0}
+        >
+          <h3 className="text-xl font-semibold mb-2">Manage Recipients</h3>
+          <p className="text-muted-foreground mb-4">
+            Add and manage people you're buying gifts for
+          </p>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-medium">{recipients.length} recipients</span>
           </div>
-          <div className="space-y-3">
-            <Card
-              className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-primary/30 bg-primary/5"
-              onClick={() => navigate('/settings/templates')}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/templates')}
-              tabIndex={0}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="h-5 w-5 text-primary" />
-                <Badge variant="secondary" className="text-xs">NEW</Badge>
+        </Card>
+
+        <Card
+          className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => navigate('/settings/buyers')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/buyers')}
+          tabIndex={0}
+        >
+          <h3 className="text-xl font-semibold mb-2">Your Profile</h3>
+          <p className="text-muted-foreground mb-4">
+            Configure your display name and emoji
+          </p>
+          <div className="flex items-center gap-2 text-sm">
+            {ownBuyer ? (
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{ownBuyer.emoji}</span>
+                <span className="font-medium">{ownBuyer.name}</span>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Gift Templates</h3>
-              <p className="text-muted-foreground">
-                Create reusable templates for common gifts like stocking stuffers
-              </p>
-            </Card>
-            
-            <Card
-              className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-primary/30 bg-primary/5"
-              onClick={() => navigate('/settings/givers')}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/givers')}
-              tabIndex={0}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="h-5 w-5 text-primary" />
-                <Badge variant="secondary" className="text-xs">NEW</Badge>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Manage Givers</h3>
-              <p className="text-muted-foreground">
-                Add people who can give gifts (Mom, Dad, Santa, etc.)
-              </p>
-            </Card>
+            ) : (
+              <span className="text-muted-foreground">Not configured</span>
+            )}
           </div>
-        </div>
+        </Card>
 
-        <Separator />
+        <Card
+          className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => navigate('/settings/household')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/household')}
+          tabIndex={0}
+        >
+          <h3 className="text-xl font-semibold mb-2">Household Sharing</h3>
+          <p className="text-muted-foreground">
+            Invite others and manage household members
+          </p>
+        </Card>
 
-        {/* People Management */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3 text-muted-foreground">People</h2>
-          <div className="space-y-3">
-            <Card
-              className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate('/settings/recipients')}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/recipients')}
-              tabIndex={0}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <UserPlus className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Manage Recipients</h3>
-              <p className="text-muted-foreground mb-4">
-                Add and manage people you're buying gifts for
-              </p>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium">{recipients.length} recipients</span>
-              </div>
-            </Card>
-
-            <Card
-              className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate('/settings/profile')}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/profile')}
-              tabIndex={0}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <HomeIcon className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Your Profile</h3>
-              <p className="text-muted-foreground mb-4">
-                Configure your display name and emoji
-              </p>
-              <div className="flex items-center gap-2 text-sm">
-                {ownBuyer ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{ownBuyer.icon || '🎁'}</span>
-                    <span className="font-medium">{ownBuyer.name}</span>
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">Not configured</span>
-                )}
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Household Sharing */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3 text-muted-foreground">Collaboration</h2>
-          <div className="space-y-3">
-            <Card
-              className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate('/settings/household')}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/household')}
-              tabIndex={0}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Share2 className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Household Sharing</h3>
-              <p className="text-muted-foreground">
-                Invite others and manage household members
-              </p>
-            </Card>
-
-            <Card
-              className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-primary/20"
-              onClick={() => navigate('/join-household')}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/join-household')}
-              tabIndex={0}
-            >
-              <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-500" />
-                Join Another Household
-              </h3>
-              <p className="text-muted-foreground">
-                Switch to a different household. Note: This will remove you from your current household.
-              </p>
-            </Card>
-          </div>
-        </div>
+        <Card
+          className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-primary/20"
+          onClick={() => navigate('/join-household')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/join-household')}
+          tabIndex={0}
+        >
+          <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-amber-500" />
+            Join Another Household
+          </h3>
+          <p className="text-muted-foreground">
+            Switch to a different household. Note: This will remove you from your current household.
+          </p>
+        </Card>
       </div>
     </div>
   );
