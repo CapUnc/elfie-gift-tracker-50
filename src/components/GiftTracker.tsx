@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { GiftForm } from './GiftForm';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useGivers } from '@/hooks/useGivers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,7 +40,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Buyer {
   id: string;
   name: string;
-  emoji: string;
+  icon: string;
 }
 
 interface Gift {
@@ -72,7 +72,7 @@ const GiftTracker = () => {
   const { householdId, loading: householdLoading } = useHousehold(session?.user?.id);
   
   // Supabase hooks
-  const { buyers: supabaseBuyers, loading: buyersLoading } = useBuyers(householdId);
+  const { givers: supabaseGivers, loading: giversLoading } = useGivers(householdId);
   const { recipients: supabaseRecipients, updateRecipient, addRecipient } = useRecipients(householdId);
   const { gifts: supabaseGifts, addGift: addGiftToDb, updateGift: updateGiftInDb, updateGiftStatus: updateGiftStatusInDb, deleteGift: deleteGiftFromDb, duplicateGift: duplicateGiftInDb, batchUpdateGifts } = useGifts(householdId);
   
@@ -132,7 +132,7 @@ const GiftTracker = () => {
   const animateButton = useAnimatedButton();
 
   // Transform Supabase data into local format
-  const buyers: Buyer[] = supabaseBuyers;
+  const buyers: Buyer[] = supabaseGivers;
   
   const people: Person[] = useMemo(() => {
     return supabaseRecipients.map(recipient => ({
@@ -445,9 +445,9 @@ const GiftTracker = () => {
         if (filters.assignedTo === 'unassigned') {
           if (person.assignedTo !== null) return false;
         } else if (filters.assignedTo === 'assigned-to-me') {
-          // Get current user's buyer ID
-          const currentUserBuyer = supabaseBuyers.find(b => b.user_id === session?.user?.id);
-          if (!currentUserBuyer || person.assignedTo !== currentUserBuyer.id) return false;
+          // Get current user's giver ID
+          const currentUserGiver = supabaseGivers.find(g => g.profile_id === session?.user?.id);
+          if (!currentUserGiver || person.assignedTo !== currentUserGiver.id) return false;
         } else {
           if (person.assignedTo !== filters.assignedTo) return false;
         }
@@ -535,7 +535,7 @@ const GiftTracker = () => {
     }
   };
 
-  if (householdLoading || buyersLoading) {
+  if (householdLoading || giversLoading) {
     return (
       <div className="p-4 sm:p-6 pb-20 max-w-full overflow-hidden flex items-center justify-center min-h-screen">
         <p className="text-muted-foreground">Loading...</p>
@@ -634,7 +634,7 @@ const GiftTracker = () => {
                         }}
                         className="rounded border-gray-300"
                       />
-                      <span className="text-lg">{buyer.emoji}</span>
+                      <span className="text-lg">{buyer.icon}</span>
                       <span className="text-sm">{buyer.name}</span>
                     </label>
                   ))}
@@ -826,7 +826,7 @@ const GiftTracker = () => {
                                   className="flex-shrink-0 h-8 w-8 rounded-full border border-muted-foreground/30 flex items-center justify-center text-sm bg-background hover:bg-muted transition-colors"
                                   title={assignedBuyer ? `Assigned to ${assignedBuyer.name}` : 'Not assigned'}
                                 >
-                                  {assignedBuyer ? assignedBuyer.emoji : '?'}
+                                  {assignedBuyer ? assignedBuyer.icon : '?'}
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent className="w-48 p-2" align="end">
@@ -853,7 +853,7 @@ const GiftTracker = () => {
                                         setOpenAssignmentPopover(null);
                                       }}
                                     >
-                                      <span className="text-lg leading-none">{buyer.emoji}</span>
+                                      <span className="text-lg leading-none">{buyer.icon}</span>
                                       <span>{buyer.name}</span>
                                     </button>
                                   ))}

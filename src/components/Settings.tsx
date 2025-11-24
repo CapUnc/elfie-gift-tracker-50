@@ -11,14 +11,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useHousehold } from '@/hooks/useHousehold';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecipients } from '@/hooks/useRecipients';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useGivers } from '@/hooks/useGivers';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { householdId } = useHousehold(user?.id);
   const { recipients } = useRecipients(householdId);
-  const { buyers } = useBuyers(householdId);
+  const { givers } = useGivers(householdId);
   const { toast } = useToast();
 
   const [currency, setCurrency] = useState('$');
@@ -128,7 +128,7 @@ const Settings = () => {
     }
   };
 
-  const ownBuyer = buyers.find(b => b.user_id === user?.id);
+  const ownGiver = givers.find(g => g.profile_id === user?.id);
 
   return (
     <div className="container mx-auto p-4 max-w-2xl space-y-6">
@@ -213,10 +213,10 @@ const Settings = () => {
             Configure your display name and emoji
           </p>
           <div className="flex items-center gap-2 text-sm">
-            {ownBuyer ? (
+            {ownGiver ? (
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{ownBuyer.emoji}</span>
-                <span className="font-medium">{ownBuyer.name}</span>
+                <span className="text-2xl">{ownGiver.icon}</span>
+                <span className="font-medium">{ownGiver.name}</span>
               </div>
             ) : (
               <span className="text-muted-foreground">Not configured</span>

@@ -2,22 +2,22 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export interface Buyer {
+export interface Giver {
   id: string;
   name: string;
-  emoji: string;
+  icon: string;
   household_id?: string;
-  user_id?: string;
+  profile_id?: string;
 }
 
-export const useBuyers = (householdId: string | null) => {
-  const [buyers, setBuyers] = useState<Buyer[]>([]);
+export const useGivers = (householdId: string | null) => {
+  const [givers, setGivers] = useState<Giver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch buyers from Supabase
-  const fetchBuyers = async () => {
+  // Fetch givers from Supabase
+  const fetchGivers = async () => {
     if (!householdId) {
       setLoading(false);
       return;
@@ -25,20 +25,20 @@ export const useBuyers = (householdId: string | null) => {
 
     try {
       const { data, error } = await supabase
-        .from('buyers')
+        .from('givers')
         .select('*')
         .eq('household_id', householdId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      setBuyers(data || []);
+      setGivers(data || []);
       setError(null);
     } catch (err) {
-      console.error('Error fetching buyers:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load buyers');
+      console.error('Error fetching givers:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load givers');
       toast({
-        title: 'Error loading buyers',
+        title: 'Error loading givers',
         description: 'Please try again later',
         variant: 'destructive',
       });
@@ -48,22 +48,22 @@ export const useBuyers = (householdId: string | null) => {
   };
 
   useEffect(() => {
-    fetchBuyers();
+    fetchGivers();
 
     // Set up real-time subscription
     if (householdId) {
       const channel = supabase
-        .channel('buyers-changes')
+        .channel('givers-changes')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'buyers',
+            table: 'givers',
             filter: `household_id=eq.${householdId}`,
           },
           () => {
-            fetchBuyers();
+            fetchGivers();
           }
         )
         .subscribe();
@@ -75,46 +75,46 @@ export const useBuyers = (householdId: string | null) => {
   }, [householdId]);
 
   // Internal use only - for onboarding/joining flows
-  const addBuyer = async (name: string, emoji: string, userId: string) => {
+  const addGiver = async (name: string, icon: string, profileId: string) => {
     if (!householdId) return;
 
     try {
       const { data, error } = await supabase
-        .from('buyers')
-        .insert([{ household_id: householdId, name, emoji, user_id: userId }])
+        .from('givers')
+        .insert([{ household_id: householdId, name, icon, profile_id: profileId }])
         .select()
         .single();
 
       if (error) throw error;
 
-      setBuyers([...buyers, data]);
+      setGivers([...givers, data]);
       return data;
     } catch (err) {
-      console.error('Error adding buyer:', err);
+      console.error('Error adding giver:', err);
       toast({
-        title: 'Error adding buyer',
-        description: err instanceof Error ? err.message : 'Failed to add buyer',
+        title: 'Error adding giver',
+        description: err instanceof Error ? err.message : 'Failed to add giver',
         variant: 'destructive',
       });
       throw err;
     }
   };
 
-  const updateOwnBuyer = async (updates: { name?: string; emoji?: string }) => {
-    const ownBuyer = buyers.find(b => b.user_id === householdId);
-    if (!ownBuyer) return;
+  const updateOwnGiver = async (updates: { name?: string; icon?: string }) => {
+    const ownGiver = givers.find(g => g.profile_id === householdId);
+    if (!ownGiver) return;
 
     try {
       const { error } = await supabase
-        .from('buyers')
+        .from('givers')
         .update(updates)
-        .eq('id', ownBuyer.id);
+        .eq('id', ownGiver.id);
 
       if (error) throw error;
 
-      setBuyers(buyers.map(b => (b.id === ownBuyer.id ? { ...b, ...updates } : b)));
+      setGivers(givers.map(g => (g.id === ownGiver.id ? { ...g, ...updates } : g)));
     } catch (err) {
-      console.error('Error updating own buyer:', err);
+      console.error('Error updating own giver:', err);
       toast({
         title: 'Error updating profile',
         description: err instanceof Error ? err.message : 'Failed to update profile',
@@ -124,43 +124,43 @@ export const useBuyers = (householdId: string | null) => {
     }
   };
 
-  const getOwnBuyer = () => {
-    return buyers.find(b => b.user_id === householdId);
+  const getOwnGiver = () => {
+    return givers.find(g => g.profile_id === householdId);
   };
 
-  const updateBuyer = async (id: string, updates: { name?: string; emoji?: string }) => {
+  const updateGiver = async (id: string, updates: { name?: string; icon?: string }) => {
     try {
       const { error } = await supabase
-        .from('buyers')
+        .from('givers')
         .update(updates)
         .eq('id', id);
 
       if (error) throw error;
 
-      setBuyers(buyers.map(b => (b.id === id ? { ...b, ...updates } : b)));
+      setGivers(givers.map(g => (g.id === id ? { ...g, ...updates } : g)));
     } catch (err) {
-      console.error('Error updating buyer:', err);
+      console.error('Error updating giver:', err);
       toast({
-        title: 'Error updating buyer',
-        description: err instanceof Error ? err.message : 'Failed to update buyer',
+        title: 'Error updating giver',
+        description: err instanceof Error ? err.message : 'Failed to update giver',
         variant: 'destructive',
       });
       throw err;
     }
   };
 
-  const deleteBuyer = async (id: string) => {
+  const deleteGiver = async (id: string) => {
     try {
-      const { error } = await supabase.from('buyers').delete().eq('id', id);
+      const { error } = await supabase.from('givers').delete().eq('id', id);
 
       if (error) throw error;
 
-      setBuyers(buyers.filter(b => b.id !== id));
+      setGivers(givers.filter(g => g.id !== id));
     } catch (err) {
-      console.error('Error deleting buyer:', err);
+      console.error('Error deleting giver:', err);
       toast({
-        title: 'Error deleting buyer',
-        description: err instanceof Error ? err.message : 'Failed to delete buyer',
+        title: 'Error deleting giver',
+        description: err instanceof Error ? err.message : 'Failed to delete giver',
         variant: 'destructive',
       });
       throw err;
@@ -168,14 +168,14 @@ export const useBuyers = (householdId: string | null) => {
   };
 
   return {
-    buyers,
+    givers,
     loading,
     error,
-    addBuyer,
-    updateBuyer,
-    updateOwnBuyer,
-    getOwnBuyer,
-    deleteBuyer,
-    refetch: fetchBuyers,
+    addGiver,
+    updateGiver,
+    updateOwnGiver,
+    getOwnGiver,
+    deleteGiver,
+    refetch: fetchGivers,
   };
 };

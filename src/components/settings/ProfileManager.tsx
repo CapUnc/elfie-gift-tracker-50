@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useGivers } from '@/hooks/useGivers';
 import { ArrowLeft, Edit, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,31 +16,31 @@ const ProfileManager = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { householdId } = useHousehold(user?.id);
-  const { buyers, loading, updateBuyer } = useBuyers(householdId);
+  const { givers, loading, updateGiver } = useGivers(householdId);
   const { toast } = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
 
-  const ownBuyer = buyers.find(b => b.user_id === user?.id);
-  const otherBuyers = buyers.filter(b => b.user_id !== user?.id);
+  const ownGiver = givers.find(g => g.profile_id === user?.id);
+  const otherGivers = givers.filter(g => g.profile_id !== user?.id);
 
   const handleEdit = () => {
-    if (ownBuyer) {
-      setEditName(ownBuyer.name);
-      setEditEmoji(ownBuyer.emoji);
+    if (ownGiver) {
+      setEditName(ownGiver.name);
+      setEditEmoji(ownGiver.icon);
       setIsEditing(true);
     }
   };
 
   const handleSave = async () => {
-    if (!ownBuyer) return;
+    if (!ownGiver) return;
 
     try {
-      await updateBuyer(ownBuyer.id, {
+      await updateGiver(ownGiver.id, {
         name: editName,
-        emoji: editEmoji,
+        icon: editEmoji,
       });
 
       toast({
@@ -81,12 +81,12 @@ const ProfileManager = () => {
         <div>
           <h2 className="text-xl font-semibold mb-4">Your Identity</h2>
           
-          {!isEditing && ownBuyer && (
+          {!isEditing && ownGiver && (
             <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
               <div className="flex items-center gap-3">
-                <span className="text-4xl">{ownBuyer.emoji}</span>
+                <span className="text-4xl">{ownGiver.icon}</span>
                 <div>
-                  <p className="font-semibold">{ownBuyer.name}</p>
+                  <p className="font-semibold">{ownGiver.name}</p>
                   <p className="text-sm text-muted-foreground">(You)</p>
                 </div>
               </div>
@@ -140,24 +140,24 @@ const ProfileManager = () => {
             </div>
           )}
 
-          {!ownBuyer && (
+          {!ownGiver && (
             <div className="p-4 bg-secondary/50 rounded-lg text-center text-muted-foreground">
               <p>You don't have a profile in this household yet.</p>
             </div>
           )}
         </div>
 
-        {otherBuyers.length > 0 && (
+        {otherGivers.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Other Household Members</h2>
             <div className="space-y-2">
-              {otherBuyers.map((buyer) => (
+              {otherGivers.map((giver) => (
                 <div
-                  key={buyer.id}
+                  key={giver.id}
                   className="flex items-center gap-3 p-4 bg-secondary/30 rounded-lg"
                 >
-                  <span className="text-3xl">{buyer.emoji}</span>
-                  <p className="font-medium">{buyer.name}</p>
+                  <span className="text-3xl">{giver.icon}</span>
+                  <p className="font-medium">{giver.name}</p>
                 </div>
               ))}
             </div>

@@ -38,15 +38,15 @@ export const Welcome = () => {
         .maybeSingle();
 
       if (profile?.household_id) {
-        // User has household, check for buyer
-        const { data: buyer } = await supabase
-          .from('buyers')
+        // User has household, check for giver
+        const { data: giver } = await supabase
+          .from('givers')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('profile_id', user.id)
           .maybeSingle();
 
-        if (!buyer) {
-          // Has household but no buyer - show recovery flow
+        if (!giver) {
+          // Has household but no giver - show recovery flow
           toast({
             title: 'Setup Incomplete',
             description: "Let's finish setting up your profile",
@@ -101,23 +101,14 @@ export const Welcome = () => {
         .update({ name: householdValidation.data })
         .eq('id', householdId);
 
-      // Delete old buyer record AFTER household creation succeeds
+      // Delete old giver record AFTER household creation succeeds (if any)
       await supabase
-        .from('buyers')
+        .from('givers')
         .delete()
-        .eq('user_id', user.id);
+        .eq('profile_id', user.id);
 
-      // Create buyer record for the user
-      const { error: buyerError } = await supabase
-        .from('buyers')
-        .insert({
-          household_id: householdId,
-          user_id: user.id,
-          name: validation.data,
-          emoji: selectedEmoji,
-        });
-
-      if (buyerError) throw buyerError;
+      // Note: giver record will be created automatically by the create_giver_for_profile trigger
+      // which fires when the profile is updated with a household_id by the RPC function above
 
       toast({
         title: 'Household created!',

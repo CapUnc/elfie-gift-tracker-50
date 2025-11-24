@@ -48,7 +48,7 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
           return;
         }
 
-        // Clear assignments and delete old buyer record
+        // Clear assignments and delete old giver record
         await supabase
           .from('recipients')
           .update({ assigned_to: null })
@@ -62,9 +62,9 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
           .eq('assigned_to', user.id);
 
         await supabase
-          .from('buyers')
+          .from('givers')
           .delete()
-          .eq('user_id', user.id);
+          .eq('profile_id', user.id);
       }
 
       const { data: newHouseholdId, error } = await supabase.rpc('join_household_by_code', {
@@ -104,23 +104,9 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
 
     setLoading(true);
     try {
-      // Use upsert to handle both new and existing buyer records
-      // This prevents issues if buyer was partially created before
-      const { error: buyerError } = await supabase
-        .from('buyers')
-        .upsert({
-          household_id: householdId,
-          user_id: user.id,
-          name: displayName.trim(),
-          emoji: selectedEmoji,
-        }, {
-          onConflict: 'user_id,household_id'
-        });
-
-      if (buyerError) {
-        console.error('Buyer upsert error:', buyerError);
-        throw new Error('Could not create profile. Please try again.');
-      }
+      // Note: giver record will be created automatically by the create_giver_for_profile trigger
+      // which fires when the profile is updated with a household_id by the join_household_by_code RPC
+      // The giver should already exist at this point, so we don't need to create it manually
 
       toast({
         title: 'Joined household!',

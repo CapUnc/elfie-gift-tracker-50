@@ -33,10 +33,10 @@ interface Recipient {
   manual_complete: boolean;
 }
 
-interface Buyer {
+interface Giver {
   id: string;
   name: string;
-  emoji: string;
+  icon: string;
 }
 
 const Summary = () => {
@@ -62,18 +62,18 @@ const Summary = () => {
     enabled: !!householdId,
   });
 
-  // Fetch buyers
-  const { data: buyers = [] } = useQuery({
-    queryKey: ['buyers', householdId],
+  // Fetch givers
+  const { data: givers = [] } = useQuery({
+    queryKey: ['givers', householdId],
     queryFn: async () => {
       if (!householdId) return [];
       const { data, error } = await supabase
-        .from('buyers')
+        .from('givers')
         .select('*')
         .eq('household_id', householdId)
         .order('name');
       if (error) throw error;
-      return data as Buyer[];
+      return data as Giver[];
     },
     enabled: !!householdId,
   });
@@ -132,11 +132,11 @@ const Summary = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'buyers',
+          table: 'givers',
           filter: `household_id=eq.${householdId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['buyers', householdId] });
+          queryClient.invalidateQueries({ queryKey: ['givers', householdId] });
         }
       )
       .subscribe();
@@ -187,9 +187,9 @@ const Summary = () => {
     };
   }, [recipients]);
 
-  const buyerStats = useMemo(() => {
-    return buyers.map((buyer) => {
-      const assignedRecipients = recipients.filter((p) => p.assigned_to === buyer.id);
+  const giverStats = useMemo(() => {
+    return givers.map((giver) => {
+      const assignedRecipients = recipients.filter((p) => p.assigned_to === giver.id);
       const totalAssignedGifts = assignedRecipients.reduce(
         (sum, person) => sum + person.gifts.length,
         0
@@ -211,7 +211,7 @@ const Summary = () => {
       const remainingTasks = totalAssignedGifts - wrappedGifts;
 
       return {
-        ...buyer,
+        ...giver,
         assignedPeople: assignedRecipients.length,
         totalGifts: totalAssignedGifts,
         purchased: purchasedGifts,
@@ -220,10 +220,10 @@ const Summary = () => {
         remainingTasks,
       };
     });
-  }, [buyers, recipients]);
+  }, [givers, recipients]);
 
-  const sortedBuyerStats = useMemo(() => {
-    return [...buyerStats].sort((a, b) => {
+  const sortedGiverStats = useMemo(() => {
+    return [...giverStats].sort((a, b) => {
       if (a.remainingTasks !== b.remainingTasks) {
         return b.remainingTasks - a.remainingTasks;
       }
@@ -232,9 +232,9 @@ const Summary = () => {
       }
       return b.totalCost - a.totalCost;
     });
-  }, [buyerStats]);
+  }, [giverStats]);
 
-  const displayedBuyers = showAllBuyers ? sortedBuyerStats : sortedBuyerStats.slice(0, 3);
+  const displayedGivers = showAllBuyers ? sortedGiverStats : sortedGiverStats.slice(0, 3);
 
   const nextSteps = useMemo(() => {
     const steps = [];
@@ -367,13 +367,13 @@ const Summary = () => {
           </CardContent>
         </Card>
 
-        {/* Buyer Breakdown */}
-        {buyers.length > 0 && (
+        {/* Giver Breakdown */}
+        {givers.length > 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">Buyer Breakdown</h3>
-                {sortedBuyerStats.length > 3 && (
+                <h3 className="text-xl font-semibold">Giver Breakdown</h3>
+                {sortedGiverStats.length > 3 && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -387,7 +387,7 @@ const Summary = () => {
                     ) : (
                       <>
                         <ChevronDown className="h-4 w-4 mr-1" />
-                        Show All ({sortedBuyerStats.length})
+                        Show All ({sortedGiverStats.length})
                       </>
                     )}
                   </Button>
@@ -395,22 +395,22 @@ const Summary = () => {
               </div>
 
               <div className="space-y-4">
-                {displayedBuyers.map((buyer) => (
-                  <div key={buyer.id} className="p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                {displayedGivers.map((giver) => (
+                  <div key={giver.id} className="p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">{buyer.emoji}</span>
+                        <span className="text-2xl">{giver.icon}</span>
                         <div>
-                          <h4 className="font-semibold">{buyer.name}</h4>
+                          <h4 className="font-semibold">{giver.name}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {buyer.assignedPeople} recipient{buyer.assignedPeople !== 1 ? 's' : ''} •{' '}
-                            {buyer.totalGifts} gift{buyer.totalGifts !== 1 ? 's' : ''} •{' '}
-                            {formatCurrency(buyer.totalCost, currency)}
+                            {giver.assignedPeople} recipient{giver.assignedPeople !== 1 ? 's' : ''} •{' '}
+                            {giver.totalGifts} gift{giver.totalGifts !== 1 ? 's' : ''} •{' '}
+                            {formatCurrency(giver.totalCost, currency)}
                           </p>
                         </div>
                       </div>
-                      {buyer.remainingTasks > 0 && (
-                        <Badge variant="secondary">{buyer.remainingTasks} remaining</Badge>
+                      {giver.remainingTasks > 0 && (
+                        <Badge variant="secondary">{giver.remainingTasks} remaining</Badge>
                       )}
                     </div>
 
@@ -421,11 +421,11 @@ const Summary = () => {
                           Purchased
                         </span>
                         <span className="font-medium">
-                          {buyer.purchased}/{buyer.totalGifts}
+                          {giver.purchased}/{giver.totalGifts}
                         </span>
                       </div>
                       <Progress
-                        value={buyer.totalGifts > 0 ? (buyer.purchased / buyer.totalGifts) * 100 : 0}
+                        value={giver.totalGifts > 0 ? (giver.purchased / giver.totalGifts) * 100 : 0}
                         className="h-1"
                       />
 
@@ -435,11 +435,11 @@ const Summary = () => {
                           Wrapped
                         </span>
                         <span className="font-medium">
-                          {buyer.wrapped}/{buyer.totalGifts}
+                          {giver.wrapped}/{giver.totalGifts}
                         </span>
                       </div>
                       <Progress
-                        value={buyer.totalGifts > 0 ? (buyer.wrapped / buyer.totalGifts) * 100 : 0}
+                        value={giver.totalGifts > 0 ? (giver.wrapped / giver.totalGifts) * 100 : 0}
                         className="h-1"
                       />
                     </div>
