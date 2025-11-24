@@ -5,10 +5,10 @@ import { useToast } from '@/hooks/use-toast';
 export interface Buyer {
   id: string;
   name: string;
-  emoji: string;
+  icon: string;
+  emoji?: string; // For backwards compatibility
   household_id?: string;
   profile_id?: string;
-  icon?: string;
 }
 
 export const useBuyers = (householdId: string | null) => {
