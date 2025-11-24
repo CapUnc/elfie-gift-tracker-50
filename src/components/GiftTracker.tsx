@@ -445,8 +445,8 @@ const GiftTracker = () => {
         if (filters.assignedTo === 'unassigned') {
           if (person.assignedTo !== null) return false;
         } else if (filters.assignedTo === 'assigned-to-me') {
-          // Get current user's buyer ID
-          const currentUserBuyer = supabaseBuyers.find(b => b.user_id === session?.user?.id);
+          // Get current user's giver ID
+          const currentUserBuyer = supabaseBuyers.find(b => b.profile_id === session?.user?.id);
           if (!currentUserBuyer || person.assignedTo !== currentUserBuyer.id) return false;
         } else {
           if (person.assignedTo !== filters.assignedTo) return false;

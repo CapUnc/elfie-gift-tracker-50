@@ -62,13 +62,13 @@ const Summary = () => {
     enabled: !!householdId,
   });
 
-  // Fetch buyers
+  // Fetch givers (buyers)
   const { data: buyers = [] } = useQuery({
-    queryKey: ['buyers', householdId],
+    queryKey: ['givers', householdId],
     queryFn: async () => {
       if (!householdId) return [];
       const { data, error } = await supabase
-        .from('buyers')
+        .from('givers')
         .select('*')
         .eq('household_id', householdId)
         .order('name');

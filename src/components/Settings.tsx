@@ -128,7 +128,7 @@ const Settings = () => {
     }
   };
 
-  const ownBuyer = buyers.find(b => b.user_id === user?.id);
+  const ownBuyer = buyers.find(b => b.profile_id === user?.id);
 
   return (
     <div className="container mx-auto p-4 max-w-2xl space-y-6">
