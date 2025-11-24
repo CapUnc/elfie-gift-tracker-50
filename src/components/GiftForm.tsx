@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -87,7 +87,9 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   
   const { toast } = useToast();
   const haptic = useHapticFeedback();
-  const { execute: saveGift, getVariant, isDisabled } = useAnimatedButton(async () => {
+  
+  // CRITICAL: Wrap callback in useCallback to prevent hook re-creation issues
+  const saveGiftCallback = useCallback(async () => {
     console.log('🔵 [GiftForm] saveGift called with state:', {
       giftName,
       giftCost,
@@ -133,7 +135,9 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     haptic.success();
     onSubmit(submitData);
     resetForm();
-  });
+  }, [giftName, giftCost, isPlaceholder, selectedGiverIds, selectedTemplateId, mode, toast, haptic, onSubmit]);
+  
+  const { execute: saveGift, getVariant, isDisabled } = useAnimatedButton(saveGiftCallback);
 
   // Initialize form with editing data
   useEffect(() => {
