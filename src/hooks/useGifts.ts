@@ -82,9 +82,9 @@ export const useGifts = (householdId: string | null) => {
   useEffect(() => {
     fetchGifts();
 
-    // Set up real-time subscription
+    // Set up real-time subscriptions for both gifts AND gift_givers
     if (householdId) {
-      const channel = supabase
+      const giftsChannel = supabase
         .channel('gifts-changes')
         .on(
           'postgres_changes',
@@ -100,8 +100,25 @@ export const useGifts = (householdId: string | null) => {
         )
         .subscribe();
 
+      // Also watch gift_givers for when givers are assigned/removed
+      const giftGiversChannel = supabase
+        .channel('gift-givers-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'gift_givers',
+          },
+          () => {
+            fetchGifts();
+          }
+        )
+        .subscribe();
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(giftsChannel);
+        supabase.removeChannel(giftGiversChannel);
       };
     }
   }, [householdId]);
