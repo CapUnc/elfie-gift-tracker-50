@@ -24,7 +24,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency } from '@/lib/currency';
@@ -826,19 +826,16 @@ const GiftTracker = () => {
                                   const personNotes = allNotes.filter(n => n.recipient_id === person.id);
                                   const notesCount = personNotes.length;
                                   return notesCount > 0 && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="flex items-center gap-1">
-                                            <StickyNote className="h-3.5 w-3.5 text-amber-600/70" />
-                                            <span className="text-xs">{notesCount}</span>
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" className="max-w-xs">
-                                          <p className="text-xs">{notesCount} note{notesCount !== 1 ? 's' : ''}</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="secondary" className="ml-2">
+                                          {notesCount} {notesCount === 1 ? 'note' : 'notes'}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Click to view and manage notes</p>
+                                      </TooltipContent>
+                                    </Tooltip>
                                   );
                                 })()}
                               </div>
