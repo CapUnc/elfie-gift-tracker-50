@@ -894,10 +894,10 @@ const GiftTracker = () => {
                                       "h-8 w-8 rounded-full border-2 flex items-center justify-center transition-colors",
                                       person.completed
                                         ? "bg-green-600 border-green-600 text-white"
-                                        : "border-muted-foreground/30 hover:border-green-600 hover:bg-green-50"
+                                        : "border-muted-foreground/30 hover:border-green-600 hover:bg-green-50 text-muted-foreground/40 hover:text-green-600"
                                     )}
                                   >
-                                    {person.completed && <Check className="h-4 w-4" />}
+                                    <Check className="h-4 w-4" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
