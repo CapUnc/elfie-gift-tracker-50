@@ -774,25 +774,65 @@ const GiftTracker = () => {
                                   )}
                                 </div>
                                 
-                                {/* Row 2: Metadata (Notes, etc.) */}
-                                {(() => {
-                                  const personNotes = allNotes.filter(n => n.recipient_id === person.id);
-                                  const notesCount = personNotes.length;
-                                  return notesCount > 0 && (
-                                    <div className="flex items-center gap-2">
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Badge variant="secondary" className="flex-shrink-0">
-                                            {notesCount} {notesCount === 1 ? 'note' : 'notes'}
-                                          </Badge>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Click to view and manage notes</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                  );
-                                })()}
+                {/* Row 2: Metadata (Givers, Notes, etc.) */}
+                {(() => {
+                  const personNotes = allNotes.filter(n => n.recipient_id === person.id);
+                  const notesCount = personNotes.length;
+                  
+                  // Get unique givers from all gifts
+                  const giverMap = new Map();
+                  person.gifts.forEach(gift => {
+                    gift.givers?.forEach(giver => {
+                      if (!giverMap.has(giver.id)) {
+                        giverMap.set(giver.id, giver);
+                      }
+                    });
+                  });
+                  const uniqueGivers = Array.from(giverMap.values());
+                  
+                  // Only show row if there are notes OR givers
+                  const hasContent = notesCount > 0 || uniqueGivers.length > 0;
+                  
+                  return hasContent && (
+                    <div className="flex items-center gap-3">
+                      {/* Giver icons */}
+                      {uniqueGivers.length > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center -space-x-2">
+                              {uniqueGivers.map((giver, idx) => (
+                                <div
+                                  key={giver.id}
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 border border-background text-xs"
+                                  style={{ zIndex: uniqueGivers.length - idx }}
+                                >
+                                  {giver.icon}
+                                </div>
+                              ))}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Givers: {uniqueGivers.map(g => g.name).join(', ')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      
+                      {/* Notes badge */}
+                      {notesCount > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="secondary" className="flex-shrink-0">
+                              {notesCount} {notesCount === 1 ? 'note' : 'notes'}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Click to view and manage notes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  );
+                })()}
                               </div>
                             </div>
 
