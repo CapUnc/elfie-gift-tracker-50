@@ -803,39 +803,46 @@ const GiftTracker = () => {
                                 )}
                               </div>
 
-                              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
-                                <span className="flex items-center gap-1">
-                                  <Gift className="h-3 w-3" />
-                                  {stats.total}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <ShoppingCart className="h-3 w-3" />
-                                  {stats.purchased}/{stats.total}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Package className="h-3 w-3" />
-                                  {stats.wrapped}/{stats.total}
-                                </span>
-                                {stats.totalCost > 0 && (
+                              <div className="space-y-2 mt-1">
+                                {/* Row 1: Numeric Stats */}
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
-                                    <DollarSign className="h-3 w-3" />
-                                    {formatCurrency(stats.totalCost, '')}
+                                    <Gift className="h-3 w-3" />
+                                    {stats.total}
                                   </span>
-                                )}
+                                  <span className="flex items-center gap-1">
+                                    <ShoppingCart className="h-3 w-3" />
+                                    {stats.purchased}/{stats.total}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Package className="h-3 w-3" />
+                                    {stats.wrapped}/{stats.total}
+                                  </span>
+                                  {stats.totalCost > 0 && (
+                                    <span className="flex items-center gap-1">
+                                      <DollarSign className="h-3 w-3" />
+                                      {formatCurrency(stats.totalCost, '')}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {/* Row 2: Metadata (Notes, etc.) */}
                                 {(() => {
                                   const personNotes = allNotes.filter(n => n.recipient_id === person.id);
                                   const notesCount = personNotes.length;
                                   return notesCount > 0 && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge variant="secondary" className="flex-shrink-0">
-                                          {notesCount} {notesCount === 1 ? 'note' : 'notes'}
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Click to view and manage notes</p>
-                                      </TooltipContent>
-                                    </Tooltip>
+                                    <div className="flex items-center gap-2">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Badge variant="secondary" className="flex-shrink-0">
+                                            {notesCount} {notesCount === 1 ? 'note' : 'notes'}
+                                          </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Click to view and manage notes</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
                                   );
                                 })()}
                               </div>
