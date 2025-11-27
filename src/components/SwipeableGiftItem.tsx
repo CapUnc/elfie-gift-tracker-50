@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, ShoppingCart, Package, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusToggle } from '@/components/ui/status-toggle';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/currency';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { cn } from '@/lib/utils';
@@ -210,65 +210,61 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
         >
           {/* Left Group: Status Toggles + Gift Name */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <StatusToggle
-                    type="purchased"
-                    checked={gift.purchased}
-                    onCheckedChange={(checked) => {
-                      haptic.success();
-                      setIsHighlighted(true);
-                      setTimeout(() => setIsHighlighted(false), 2000);
-                      
-                      // Show micro-toast
-                      setMicroToast({ 
-                        message: checked ? 'Marked purchased' : 'Marked not purchased', 
-                        show: true 
-                      });
-                      setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
-                      
-                      onUpdate(gift.id, 'purchased', checked as boolean);
-                    }}
-                    className="flex-shrink-0"
-                    aria-label={`Purchased for ${gift.name}. ${gift.purchased ? 'Checked' : 'Unchecked'}`}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Mark as purchased</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <StatusToggle
+                  type="purchased"
+                  checked={gift.purchased}
+                  onCheckedChange={(checked) => {
+                    haptic.success();
+                    setIsHighlighted(true);
+                    setTimeout(() => setIsHighlighted(false), 2000);
+                    
+                    // Show micro-toast
+                    setMicroToast({ 
+                      message: checked ? 'Marked purchased' : 'Marked not purchased', 
+                      show: true 
+                    });
+                    setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
+                    
+                    onUpdate(gift.id, 'purchased', checked as boolean);
+                  }}
+                  className="flex-shrink-0"
+                  aria-label={`Purchased for ${gift.name}. ${gift.purchased ? 'Checked' : 'Unchecked'}`}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Mark as purchased</p>
+              </TooltipContent>
+            </Tooltip>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <StatusToggle
-                    type="wrapped"
-                    checked={gift.wrapped}
-                    onCheckedChange={(checked) => {
-                      haptic.success();
-                      setIsHighlighted(true);
-                      setTimeout(() => setIsHighlighted(false), 2000);
-                      
-                      // Show micro-toast
-                      setMicroToast({ 
-                        message: checked ? 'Marked wrapped' : 'Marked not wrapped', 
-                        show: true 
-                      });
-                      setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
-                      
-                      onUpdate(gift.id, 'wrapped', checked as boolean);
-                    }}
-                    className="flex-shrink-0"
-                    aria-label={`Wrapped for ${gift.name}. ${gift.wrapped ? 'Checked' : 'Unchecked'}`}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Mark as wrapped</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <StatusToggle
+                  type="wrapped"
+                  checked={gift.wrapped}
+                  onCheckedChange={(checked) => {
+                    haptic.success();
+                    setIsHighlighted(true);
+                    setTimeout(() => setIsHighlighted(false), 2000);
+                    
+                    // Show micro-toast
+                    setMicroToast({ 
+                      message: checked ? 'Marked wrapped' : 'Marked not wrapped', 
+                      show: true 
+                    });
+                    setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
+                    
+                    onUpdate(gift.id, 'wrapped', checked as boolean);
+                  }}
+                  className="flex-shrink-0"
+                  aria-label={`Wrapped for ${gift.name}. ${gift.wrapped ? 'Checked' : 'Unchecked'}`}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Mark as wrapped</p>
+              </TooltipContent>
+            </Tooltip>
 
             <div className="min-w-0 flex-1">
               <div className={cn(
@@ -290,31 +286,24 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
             
             {/* Giver icons */}
             {gift.givers && gift.givers.length > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center -space-x-1">
-                      {gift.givers.slice(0, 3).map((giver, idx) => (
-                        <span
-                          key={giver.id}
-                          className="inline-flex items-center justify-center w-6 h-6 text-sm bg-muted border border-background rounded-full"
-                          style={{ zIndex: 3 - idx }}
-                        >
-                          {giver.icon}
-                        </span>
-                      ))}
-                      {gift.givers.length > 3 && (
-                        <span className="inline-flex items-center justify-center w-6 h-6 text-xs bg-muted border border-background rounded-full text-muted-foreground">
-                          +{gift.givers.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>Given by: {gift.givers.map(g => g.name).join(', ')}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center -space-x-2">
+                    {gift.givers.map((giver, idx) => (
+                      <div
+                        key={giver.id}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 border border-background text-xs"
+                        style={{ zIndex: gift.givers!.length - idx }}
+                      >
+                        {giver.icon}
+                      </div>
+                    ))}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Assigned to: {gift.givers.map(g => g.name).join(', ')}</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             
             <Button
