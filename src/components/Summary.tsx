@@ -6,11 +6,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Gift, Users, DollarSign, ChevronDown, ChevronUp, ShoppingBag, Package } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Gift, Users, DollarSign, ChevronDown, ChevronUp, ShoppingBag, Package, UserCircle2 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useHousehold } from "@/hooks/useHousehold";
+
+// Color palette for giver avatars
+const GIVER_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(220, 70%, 50%)",
+  "hsl(280, 65%, 55%)",
+  "hsl(340, 75%, 55%)",
+  "hsl(30, 80%, 55%)",
+  "hsl(160, 60%, 45%)",
+  "hsl(190, 70%, 50%)",
+  "hsl(45, 90%, 55%)",
+];
+
+const getGiverColor = (giverId: string) => {
+  const hash = giverId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return GIVER_COLORS[hash % GIVER_COLORS.length];
+};
 
 interface Gift {
   id: string;
@@ -209,6 +227,10 @@ const Summary = () => {
       const purchasedGifts = giverGifts.filter(g => g.purchased).length;
       const wrappedGifts = giverGifts.filter(g => g.wrapped).length;
       
+      // Count shared vs solo gifts
+      const sharedGifts = giverGifts.filter(g => (g.gift_givers?.length || 0) > 1).length;
+      const soloGifts = totalAssignedGifts - sharedGifts;
+      
       // Calculate total cost - split evenly for shared gifts
       const totalCost = giverGifts.reduce((sum, gift) => {
         const giversCount = gift.gift_givers?.length || 1;
@@ -222,6 +244,8 @@ const Summary = () => {
         ...giver,
         assignedPeople: assignedRecipients.length,
         totalGifts: totalAssignedGifts,
+        sharedGifts,
+        soloGifts,
         purchased: purchasedGifts,
         wrapped: wrappedGifts,
         totalCost,
@@ -406,20 +430,43 @@ const Summary = () => {
                 {displayedGivers.map((giver) => (
                   <div key={giver.id} className="p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{giver.icon}</span>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12" style={{ backgroundColor: getGiverColor(giver.id) }}>
+                          <AvatarFallback className="text-white text-xl" style={{ backgroundColor: 'transparent' }}>
+                            {giver.icon}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <h4 className="font-semibold">{giver.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {giver.assignedPeople} recipient{giver.assignedPeople !== 1 ? 's' : ''} •{' '}
-                            {giver.totalGifts} gift{giver.totalGifts !== 1 ? 's' : ''} •{' '}
-                            {formatCurrency(giver.totalCost, currency)}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm text-muted-foreground">
+                              Contributing to {giver.totalGifts} gift{giver.totalGifts !== 1 ? 's' : ''}
+                            </p>
+                            {giver.sharedGifts > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {giver.sharedGifts} shared
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-primary">
+                            {formatCurrency(giver.totalCost, currency)} total
                           </p>
                         </div>
                       </div>
-                      {giver.remainingTasks > 0 && (
-                        <Badge variant="secondary">{giver.remainingTasks} remaining</Badge>
-                      )}
+                      <div className="flex flex-col items-end gap-2">
+                        {giver.remainingTasks > 0 && (
+                          <Badge variant="secondary">{giver.remainingTasks} remaining</Badge>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/gifts?giver=${giver.id}`)}
+                          className="h-7 text-xs"
+                        >
+                          <UserCircle2 className="h-3 w-3 mr-1" />
+                          View Details
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
