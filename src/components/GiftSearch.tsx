@@ -73,10 +73,8 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
       let label = filters.assignedTo;
       if (buyer) {
         label = `${buyer.icon} ${buyer.name}`;
-      } else if (filters.assignedTo === 'unassigned') {
-        label = 'Unassigned';
-      } else if (filters.assignedTo === 'assigned-to-me') {
-        label = 'Assigned to me';
+      } else if (filters.assignedTo === 'my-gifts') {
+        label = 'My gifts';
       }
       chips.push({
         id: 'assignedTo',
@@ -174,18 +172,17 @@ export const GiftSearch: React.FC<GiftSearchProps> = ({
             <div className="space-y-6 py-6">
               {buyers.length > 1 && (
                 <div className="space-y-3">
-                  <label className="text-sm font-medium">Assignment</label>
+                  <label className="text-sm font-medium">Giver</label>
                   <Select 
                     value={filters.assignedTo} 
                     onValueChange={(value) => onFiltersChange({ ...filters, assignedTo: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="All assignments" />
+                      <SelectValue placeholder="All givers" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All assignments</SelectItem>
-                      <SelectItem value="assigned-to-me">Assigned to me</SelectItem>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      <SelectItem value="all">All givers</SelectItem>
+                      <SelectItem value="my-gifts">My gifts</SelectItem>
                       {buyers.map(buyer => (
                         <SelectItem key={buyer.id} value={buyer.id}>
                           {buyer.icon} {buyer.name}
