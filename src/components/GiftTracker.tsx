@@ -803,7 +803,7 @@ const GiftTracker = () => {
                                 )}
                               </div>
 
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
                                 <span className="flex items-center gap-1">
                                   <Gift className="h-3 w-3" />
                                   {stats.total}
@@ -819,7 +819,7 @@ const GiftTracker = () => {
                                 {stats.totalCost > 0 && (
                                   <span className="flex items-center gap-1">
                                     <DollarSign className="h-3 w-3" />
-                                    {formatCurrency(stats.totalCost, currency)}
+                                    {formatCurrency(stats.totalCost, '')}
                                   </span>
                                 )}
                                 {(() => {
@@ -828,7 +828,7 @@ const GiftTracker = () => {
                                   return notesCount > 0 && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Badge variant="secondary" className="ml-2">
+                                        <Badge variant="secondary" className="flex-shrink-0">
                                           {notesCount} {notesCount === 1 ? 'note' : 'notes'}
                                         </Badge>
                                       </TooltipTrigger>
