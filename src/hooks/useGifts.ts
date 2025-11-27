@@ -18,6 +18,7 @@ export interface Gift {
   url?: string | null;
   tracking?: string | null;
   assigned_to?: string | null;
+  is_placeholder?: boolean;
   recipient_id: string;
   household_id?: string;
   created_at?: string;
@@ -131,6 +132,7 @@ export const useGifts = (householdId: string | null) => {
       url?: string;
       tracking?: string;
       assignedTo?: string;
+      is_placeholder?: boolean;
     }
   ) => {
     if (!householdId) return;
@@ -148,6 +150,7 @@ export const useGifts = (householdId: string | null) => {
           url: options?.url || null,
           tracking: options?.tracking || null,
           assigned_to: options?.assignedTo || null,
+          is_placeholder: options?.is_placeholder || false,
         }])
         .select()
         .single();
