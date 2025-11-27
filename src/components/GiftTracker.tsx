@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Gift, DollarSign, ChevronDown, ChevronRight, Filter, Settings, Package, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, X, Trash2, Home, AlertCircle, CheckCircle, Circle, PlusCircle, Edit2, Save, XCircle, Search, ShoppingCart, Clock, Users, Check, StickyNote } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
@@ -52,6 +53,7 @@ interface Gift {
   url?: string;
   tracking?: string;
   assignedTo?: string;
+  is_placeholder?: boolean;
   givers?: Array<{
     id: string;
     name: string;
@@ -76,6 +78,7 @@ const GiftTracker = () => {
   const haptic = useHapticFeedback();
   const { session } = useAuth();
   const { householdId, loading: householdLoading } = useHousehold(session?.user?.id);
+  const isMobile = useIsMobile();
   
   // Supabase hooks
   const { givers: supabaseGivers, loading: giversLoading } = useGivers(householdId);
@@ -241,13 +244,14 @@ const GiftTracker = () => {
     }
   };
 
-  const addGift = async (personId: string, name: string, cost: number | null, giverIds: string[] = []) => {
+  const addGift = async (personId: string, name: string, cost: number | null, giverIds: string[] = [], isPlaceholder: boolean = false) => {
     if (name.trim() && householdId) {
       try {
         const gift = await addGiftToDb(
           personId,
           name.trim(),
-          cost
+          cost,
+          { is_placeholder: isPlaceholder }
         );
         
         // Assign givers if any selected
@@ -718,7 +722,20 @@ const GiftTracker = () => {
                       )}
                     >
                       {/* Person Header */}
-                      <div className="p-4 border-b bg-muted/30">
+                      <div 
+                        className={cn(
+                          "p-4 border-b bg-muted/30",
+                          isMobile && "cursor-pointer"
+                        )}
+                        onClick={(e) => {
+                          // Only on mobile, expand/collapse card when clicking anywhere
+                          if (!isMobile) return;
+                          // Ignore clicks on interactive elements
+                          const target = e.target as HTMLElement;
+                          if (target.closest('button') || target.closest('[role="button"]')) return;
+                          setExpandedPersonId(isExpanded ? null : person.id);
+                        }}
+                      >
                         <div className="flex items-center justify-between gap-3 min-w-0">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <Button
@@ -957,14 +974,16 @@ const GiftTracker = () => {
               if (editingGift.giftId) {
                 await updateGift(editingGift.personId, editingGift.giftId, {
                   name: giftData.name,
-                  cost: giftData.cost ? parseFloat(giftData.cost) : null
+                  cost: giftData.cost ? parseFloat(giftData.cost) : null,
+                  is_placeholder: giftData.isPlaceholder
                 }, giftData.giverIds);
               } else {
                 await addGift(
                   editingGift.personId,
                   giftData.name,
                   giftData.cost ? parseFloat(giftData.cost) : null,
-                  giftData.giverIds
+                  giftData.giverIds,
+                  giftData.isPlaceholder
                 );
               }
               setEditingGift(null);

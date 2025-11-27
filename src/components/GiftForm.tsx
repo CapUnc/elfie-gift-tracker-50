@@ -4,15 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RippleButton } from './RippleButton';
 import { useAnimatedButton } from '@/hooks/useAnimatedButton';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/currency';
-import { Save, X, Trash2, Check, Users } from 'lucide-react';
+import { Save, X, Trash2, Check, HelpCircle } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 
@@ -37,13 +36,14 @@ interface Gift {
   trackingNumber?: string;
   carrier?: string;
   assignedTo?: string | null;
+  is_placeholder?: boolean;
   givers?: Giver[];
 }
 
 interface GiftFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (giftData: { name: string; cost: string; giverIds: string[] }) => void;
+  onSubmit: (giftData: { name: string; cost: string; giverIds: string[]; isPlaceholder: boolean }) => void;
   onDelete?: (giftId: string) => void;
   personName: string;
   currency: string;
@@ -66,9 +66,9 @@ export const GiftForm: React.FC<GiftFormProps> = ({
   const [giftName, setGiftName] = useState('');
   const [giftCost, setGiftCost] = useState('');
   const [selectedGiverIds, setSelectedGiverIds] = useState<string[]>([]);
-  const [openGiverSelect, setOpenGiverSelect] = useState(false);
+  const [isPlaceholder, setIsPlaceholder] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [initialValues, setInitialValues] = useState({ name: '', cost: '', giverIds: [] as string[] });
+  const [initialValues, setInitialValues] = useState({ name: '', cost: '', giverIds: [] as string[], isPlaceholder: false });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const { toast } = useToast();
@@ -90,7 +90,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     }
     
     haptic.success();
-    onSubmit({ name: trimmedName, cost: trimmedCost, giverIds: selectedGiverIds });
+    onSubmit({ name: trimmedName, cost: trimmedCost, giverIds: selectedGiverIds, isPlaceholder });
     resetForm();
   });
 
@@ -101,15 +101,18 @@ export const GiftForm: React.FC<GiftFormProps> = ({
         const name = editingGift.name;
         const cost = editingGift.cost?.toString() || '';
         const giverIds = editingGift.givers?.map(g => g.id) || [];
+        const placeholder = editingGift.is_placeholder || false;
         setGiftName(name);
         setGiftCost(cost);
         setSelectedGiverIds(giverIds);
-        setInitialValues({ name, cost, giverIds });
+        setIsPlaceholder(placeholder);
+        setInitialValues({ name, cost, giverIds, isPlaceholder: placeholder });
       } else {
         setGiftName('');
         setGiftCost('');
         setSelectedGiverIds([]);
-        setInitialValues({ name: '', cost: '', giverIds: [] });
+        setIsPlaceholder(false);
+        setInitialValues({ name: '', cost: '', giverIds: [], isPlaceholder: false });
       }
       setHasUnsavedChanges(false);
     }
@@ -120,15 +123,17 @@ export const GiftForm: React.FC<GiftFormProps> = ({
     const nameChanged = giftName !== initialValues.name;
     const costChanged = giftCost !== initialValues.cost;
     const giversChanged = JSON.stringify(selectedGiverIds.sort()) !== JSON.stringify(initialValues.giverIds.sort());
-    setHasUnsavedChanges(nameChanged || costChanged || giversChanged);
-  }, [giftName, giftCost, selectedGiverIds, initialValues]);
+    const placeholderChanged = isPlaceholder !== initialValues.isPlaceholder;
+    setHasUnsavedChanges(nameChanged || costChanged || giversChanged || placeholderChanged);
+  }, [giftName, giftCost, selectedGiverIds, isPlaceholder, initialValues]);
 
   const resetForm = () => {
     setGiftName('');
     setGiftCost('');
     setSelectedGiverIds([]);
+    setIsPlaceholder(false);
     setHasUnsavedChanges(false);
-    setInitialValues({ name: '', cost: '', giverIds: [] });
+    setInitialValues({ name: '', cost: '', giverIds: [], isPlaceholder: false });
   };
 
   const handleClose = () => {
@@ -194,13 +199,34 @@ export const GiftForm: React.FC<GiftFormProps> = ({
             <Input
               id="gift-name"
               type="text"
-              placeholder="Enter gift name..."
+              placeholder={isPlaceholder ? "Unknown Gift" : "Enter gift name..."}
               value={giftName}
               onChange={(e) => setGiftName(e.target.value)}
               className="touch-target"
               autoFocus
               autoComplete="off"
             />
+          </div>
+
+          {/* Placeholder Checkbox */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is-placeholder"
+              checked={isPlaceholder}
+              onCheckedChange={(checked) => {
+                setIsPlaceholder(checked as boolean);
+                if (checked && !giftName) {
+                  setGiftName("Unknown Gift");
+                }
+              }}
+            />
+            <Label
+              htmlFor="is-placeholder"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+            >
+              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              <span>I don't know what gift yet (placeholder)</span>
+            </Label>
           </div>
 
           <div className="space-y-2">
@@ -241,59 +267,49 @@ export const GiftForm: React.FC<GiftFormProps> = ({
             )}
           </div>
 
-          {/* Givers Multi-Select */}
-          <div className="space-y-2">
+          {/* Givers Icon Grid */}
+          <div className="space-y-3">
             <Label className="text-sm font-medium">
               Assigned To <span className="text-muted-foreground">(Optional)</span>
             </Label>
-            <Popover open={openGiverSelect} onOpenChange={setOpenGiverSelect}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openGiverSelect}
-                  className="w-full justify-between touch-target"
-                >
-                  <span className="flex items-center gap-1">
-                    <Users className="h-4 w-4 mr-1" />
-                    {selectedGiverIds.length === 0 ? 'Select givers' : `${selectedGiverIds.length} selected`}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search givers..." />
-                  <CommandEmpty>No givers found.</CommandEmpty>
-                  <CommandGroup className="max-h-64 overflow-auto">
-                    {availableGivers.map((giver) => (
-                      <CommandItem
-                        key={giver.id}
-                        onSelect={() => {
-                          setSelectedGiverIds(prev =>
-                            prev.includes(giver.id)
-                              ? prev.filter(id => id !== giver.id)
-                              : [...prev, giver.id]
-                          );
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedGiverIds.includes(giver.id) ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <span className="mr-2">{giver.icon}</span>
-                        {giver.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
             
-            {/* Selected givers badges */}
+            {/* Icon Grid */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {availableGivers.map((giver) => {
+                const isSelected = selectedGiverIds.includes(giver.id);
+                return (
+                  <button
+                    key={giver.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedGiverIds(prev =>
+                        prev.includes(giver.id)
+                          ? prev.filter(id => id !== giver.id)
+                          : [...prev, giver.id]
+                      );
+                    }}
+                    className={cn(
+                      "relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all touch-target",
+                      isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-muted hover:border-primary/50 hover:bg-muted/50"
+                    )}
+                  >
+                    <span className="text-2xl">{giver.icon}</span>
+                    <span className="text-xs font-medium text-center line-clamp-1">{giver.name}</span>
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Selected summary */}
             {selectedGiverIds.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2">
                 {selectedGiverIds.map(giverId => {
                   const giver = availableGivers.find(g => g.id === giverId);
                   if (!giver) return null;

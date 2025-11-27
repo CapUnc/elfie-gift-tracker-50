@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Trash2, ShoppingCart, Package, Edit2 } from 'lucide-react';
+import { Trash2, ShoppingCart, Package, Edit2, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusToggle } from '@/components/ui/status-toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -23,6 +23,7 @@ interface Gift {
   trackingNumber?: string;
   carrier?: string;
   assignedTo?: string | null;
+  is_placeholder?: boolean;
   givers?: Giver[];
 }
 
@@ -268,9 +269,11 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
 
             <div className="min-w-0 flex-1">
               <div className={cn(
-                "font-medium text-sm truncate",
-                gift.purchased && "line-through text-muted-foreground"
+                "font-medium text-sm truncate flex items-center gap-2",
+                gift.purchased && "line-through text-muted-foreground",
+                gift.is_placeholder && "italic text-muted-foreground"
               )}>
+                {gift.is_placeholder && <HelpCircle className="h-3 w-3 flex-shrink-0" />}
                 {gift.name}
               </div>
             </div>
