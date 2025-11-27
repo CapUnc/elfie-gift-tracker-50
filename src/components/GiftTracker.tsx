@@ -100,7 +100,6 @@ const GiftTracker = () => {
   const [currency, setCurrency] = useState('$');
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
-  const [newPersonAssignment, setNewPersonAssignment] = useState<string | null>(null);
   const [editingGift, setEditingGift] = useState<{ personId: string; giftId?: string; gift?: Gift } | null>(null);
   
   const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null);
@@ -120,7 +119,6 @@ const GiftTracker = () => {
     key: 'name' | 'assignment' | 'cost' | 'progress';
     direction: 'asc' | 'desc';
   }>({ key: 'name', direction: 'asc' });
-  const [openAssignmentPopover, setOpenAssignmentPopover] = useState<string | null>(null);
   const [openPeoplePopover, setOpenPeoplePopover] = useState(false);
   const [highlightedItems, setHighlightedItems] = useState<Set<string>>(new Set());
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -227,9 +225,8 @@ const GiftTracker = () => {
   const addPerson = async () => {
     if (newPersonName.trim() && householdId) {
       try {
-        await addRecipient(newPersonName.trim(), newPersonAssignment);
+        await addRecipient(newPersonName.trim(), null);
         setNewPersonName('');
-        setNewPersonAssignment(null);
         setIsAddPersonOpen(false);
         setUnsavedChanges(false);
         
@@ -381,22 +378,6 @@ const GiftTracker = () => {
     }
   };
 
-  const updatePersonAssignment = async (personId: string, buyerId: string | null) => {
-    try {
-      await updateRecipient(personId, { assigned_to: buyerId });
-      
-      const buyer = buyers.find(b => b.id === buyerId);
-      const person = people.find(p => p.id === personId);
-      
-      toast({
-        title: "Assignment updated",
-        description: `${person?.name} ${buyerId ? `assigned to ${buyer?.name}` : 'unassigned'}.`,
-      });
-    } catch (error) {
-      // Error toast shown by hook
-    }
-  };
-
   const getCompletionStats = (person: Person) => {
     const total = person.gifts.length;
     const purchased = person.gifts.filter(g => g.purchased).length;
@@ -469,14 +450,21 @@ const GiftTracker = () => {
       }
 
       if (filters.assignedTo !== 'all') {
-        if (filters.assignedTo === 'unassigned') {
-          if (person.assignedTo !== null) return false;
-        } else if (filters.assignedTo === 'assigned-to-me') {
+        if (filters.assignedTo === 'my-gifts') {
           // Get current user's giver ID
           const currentUserGiver = supabaseGivers.find(g => g.profile_id === session?.user?.id);
-          if (!currentUserGiver || person.assignedTo !== currentUserGiver.id) return false;
+          if (!currentUserGiver) return false;
+          // Show recipients who have at least one gift from this giver
+          const hasGiftFromMe = person.gifts.some(gift => 
+            gift.givers?.some(giver => giver.id === currentUserGiver.id)
+          );
+          if (!hasGiftFromMe) return false;
         } else {
-          if (person.assignedTo !== filters.assignedTo) return false;
+          // Show recipients who have at least one gift from the selected giver
+          const hasGiftFromGiver = person.gifts.some(gift => 
+            gift.givers?.some(giver => giver.id === filters.assignedTo)
+          );
+          if (!hasGiftFromGiver) return false;
         }
       }
 
@@ -645,43 +633,6 @@ const GiftTracker = () => {
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Assign to:</label>
-                <div className="space-y-2">
-                  {buyers.map((buyer) => (
-                    <label key={buyer.id} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="assignment"
-                        value={buyer.id}
-                        checked={newPersonAssignment === buyer.id}
-                        onChange={(e) => {
-                          setNewPersonAssignment(e.target.value);
-                          setUnsavedChanges(true);
-                        }}
-                        className="rounded border-gray-300"
-                      />
-                      <span className="text-lg">{buyer.icon}</span>
-                      <span className="text-sm">{buyer.name}</span>
-                    </label>
-                  ))}
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="assignment"
-                      value=""
-                      checked={newPersonAssignment === null}
-                      onChange={() => {
-                        setNewPersonAssignment(null);
-                        setUnsavedChanges(true);
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                    <span className="text-sm text-muted-foreground">No assignment</span>
-                  </label>
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-2">
                 <Button onClick={addPerson} className="min-h-[44px]">
                   Add Person
@@ -693,13 +644,11 @@ const GiftTracker = () => {
                       if (window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
                         setIsAddPersonOpen(false);
                         setNewPersonName('');
-                        setNewPersonAssignment(null);
                         setUnsavedChanges(false);
                       }
                     } else {
                       setIsAddPersonOpen(false);
                       setNewPersonName('');
-                      setNewPersonAssignment(null);
                       setUnsavedChanges(false);
                     }
                   }}
@@ -754,7 +703,6 @@ const GiftTracker = () => {
                   <PersonContextMenu
                     key={person.id}
                     onAddGift={() => setEditingGift({ personId: person.id })}
-                    onEditAssignment={() => setOpenAssignmentPopover(person.id)}
                     onMarkAllPurchased={() => markAllPurchased(person.id)}
                     onMarkAllWrapped={() => markAllWrapped(person.id)}
                     onMarkComplete={() => handleCompletionChange(person, !person.completed)}
@@ -847,50 +795,6 @@ const GiftTracker = () => {
                                 })()}
                               </div>
                             </div>
-
-                            <Popover 
-                              open={openAssignmentPopover === person.id} 
-                              onOpenChange={(open) => setOpenAssignmentPopover(open ? person.id : null)}
-                            >
-                              <PopoverTrigger asChild>
-                                <button 
-                                  className="flex-shrink-0 h-8 w-8 rounded-full border border-muted-foreground/30 flex items-center justify-center text-sm bg-background hover:bg-muted transition-colors"
-                                  title={assignedBuyer ? `Assigned to ${assignedBuyer.name}` : 'Not assigned'}
-                                >
-                                  {assignedBuyer ? assignedBuyer.icon : '?'}
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-48 p-2" align="end">
-                                <div className="space-y-1">
-                                  <div className="text-xs font-medium text-muted-foreground mb-2">Assign to:</div>
-                                  <button
-                                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-                                    onClick={() => {
-                                      updatePersonAssignment(person.id, null);
-                                      setOpenAssignmentPopover(null);
-                                    }}
-                                  >
-                                    <div className="h-4 w-4 rounded-full border border-muted-foreground/30 flex items-center justify-center">
-                                      <span className="text-xs">?</span>
-                                    </div>
-                                    <span>Unassigned</span>
-                                  </button>
-                                  {buyers.map((buyer) => (
-                                    <button
-                                      key={buyer.id}
-                                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-                                      onClick={() => {
-                                        updatePersonAssignment(person.id, buyer.id);
-                                        setOpenAssignmentPopover(null);
-                                      }}
-                                    >
-                                      <span className="text-lg leading-none">{buyer.icon}</span>
-                                      <span>{buyer.name}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
 
                             <div className="flex-shrink-0">
                               <Tooltip>

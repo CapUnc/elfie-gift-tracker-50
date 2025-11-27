@@ -215,8 +215,6 @@ const Summary = () => {
 
   const giverStats = useMemo(() => {
     return givers.map((giver) => {
-      const assignedRecipients = recipients.filter((p) => p.assigned_to === giver.id);
-      
       // Calculate total gifts where this giver is assigned (including shared gifts)
       const allGifts = recipients.flatMap(r => r.gifts);
       const giverGifts = allGifts.filter(gift => 
@@ -242,7 +240,6 @@ const Summary = () => {
 
       return {
         ...giver,
-        assignedPeople: assignedRecipients.length,
         totalGifts: totalAssignedGifts,
         sharedGifts,
         soloGifts,
@@ -258,9 +255,6 @@ const Summary = () => {
     return [...giverStats].sort((a, b) => {
       if (a.remainingTasks !== b.remainingTasks) {
         return b.remainingTasks - a.remainingTasks;
-      }
-      if (a.assignedPeople !== b.assignedPeople) {
-        return b.assignedPeople - a.assignedPeople;
       }
       return b.totalCost - a.totalCost;
     });
