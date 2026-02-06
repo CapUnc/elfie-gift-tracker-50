@@ -30,7 +30,9 @@ const getGiverColor = (giverId: string) => {
   return GIVER_COLORS[hash % GIVER_COLORS.length];
 };
 
-interface Gift {
+// Types are defined locally here because Summary fetches data differently
+// (nested query with gift_givers) than the shared Gift type.
+interface SummaryGift {
   id: string;
   name: string;
   cost: number | null;
@@ -39,19 +41,23 @@ interface Gift {
   url: string | null;
   tracking: string | null;
   assigned_to: string | null;
-  gift_givers?: Array<{
-    giver_id: string;
-  }>;
+  gift_givers?: Array<{ giver_id: string }>;
 }
 
-interface Recipient {
+interface SummaryRecipient {
   id: string;
   name: string;
-  gifts: Gift[];
+  gifts: SummaryGift[];
   notes: string;
   assigned_to: string | null;
   completed: boolean;
   manual_complete: boolean;
+}
+
+interface SummaryGiver {
+  id: string;
+  name: string;
+  icon: string;
 }
 
 interface Giver {
@@ -94,7 +100,7 @@ const Summary = () => {
         .eq('household_id', householdId)
         .order('name');
       if (error) throw error;
-      return data as Giver[];
+      return data as SummaryGiver[];
     },
     enabled: !!householdId,
   });
@@ -118,7 +124,7 @@ const Summary = () => {
         .eq('household_id', householdId)
         .order('name');
       if (error) throw error;
-      return data as Recipient[];
+      return data as SummaryRecipient[];
     },
     enabled: !!householdId,
   });

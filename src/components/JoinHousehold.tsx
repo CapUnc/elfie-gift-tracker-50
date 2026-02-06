@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
-const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
+import { emojiOptions } from '@/lib/constants';
 
 interface JoinHouseholdProps {}
 
@@ -39,14 +39,8 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
         .single();
 
       if (currentProfile?.household_id) {
-        // Warn user they're leaving current household
-        const confirmed = window.confirm(
-          "You're already in a household. Joining another will remove you from your current one. Continue?"
-        );
-        if (!confirmed) {
-          setLoading(false);
-          return;
-        }
+        // The warning is shown in the UI already (AlertTriangle banner).
+        // Proceeding with join since user explicitly clicked Continue.
 
         // Clear assignments and delete old giver record
         await supabase

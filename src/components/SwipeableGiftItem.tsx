@@ -6,26 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { formatCurrency } from '@/lib/currency';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { cn } from '@/lib/utils';
-
-interface Giver {
-  id: string;
-  name: string;
-  icon: string;
-  is_virtual?: boolean;
-}
-
-interface Gift {
-  id: string;
-  name: string;
-  cost: number | null;
-  purchased: boolean;
-  wrapped: boolean;
-  trackingNumber?: string;
-  carrier?: string;
-  assignedTo?: string | null;
-  is_placeholder?: boolean;
-  givers?: Giver[];
-}
+import type { Gift } from '@/types/gift';
 
 interface SwipeableGiftItemProps {
   gift: Gift;
@@ -63,11 +44,8 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
-    
     const currentX = e.touches[0].clientX;
     const diff = currentX - startXRef.current;
-    
-    // Only allow right swipe (positive diff) for delete, left swipe (negative) for purchase
     if (Math.abs(diff) > 10) {
       setSwipeOffset(Math.max(-150, Math.min(150, diff)));
     }
@@ -75,28 +53,21 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
 
   const handleTouchEnd = () => {
     if (!isDragging) return;
-    
     const duration = Date.now() - startTimeRef.current;
-    
-    // Quick swipe for instant actions
     if (Math.abs(swipeOffset) > QUICK_ACTION_THRESHOLD && duration < 300) {
       if (swipeOffset > 0) {
-        // Right swipe - toggle purchased
         haptic.success();
         setIsHighlighted(true);
         setTimeout(() => setIsHighlighted(false), 2000);
         onUpdate(gift.id, 'purchased', !gift.purchased);
       } else {
-        // Left swipe - delete
         haptic.error();
         onDelete(gift.id);
       }
     } else if (Math.abs(swipeOffset) > SWIPE_THRESHOLD) {
-      // Show action buttons
       haptic.tap();
       setShowActions(true);
     }
-    
     setSwipeOffset(0);
     setIsDragging(false);
   };
@@ -109,7 +80,6 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    
     const diff = e.clientX - startXRef.current;
     if (Math.abs(diff) > 10) {
       setSwipeOffset(Math.max(-150, Math.min(150, diff)));
@@ -121,26 +91,16 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
   };
 
   useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isDragging) {
-        handleTouchEnd();
-      }
-    };
-
+    const handleGlobalMouseUp = () => { if (isDragging) handleTouchEnd(); };
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      
       const diff = e.clientX - startXRef.current;
-      if (Math.abs(diff) > 10) {
-        setSwipeOffset(Math.max(-150, Math.min(150, diff)));
-      }
+      if (Math.abs(diff) > 10) setSwipeOffset(Math.max(-150, Math.min(150, diff)));
     };
-
     if (isDragging) {
       document.addEventListener('mouseup', handleGlobalMouseUp);
       document.addEventListener('mousemove', handleGlobalMouseMove);
     }
-
     return () => {
       document.removeEventListener('mouseup', handleGlobalMouseUp);
       document.removeEventListener('mousemove', handleGlobalMouseMove);
@@ -155,49 +115,29 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
   }, [showActions]);
 
   const handleContentClick = (e: React.MouseEvent) => {
-    // Prevent click when swiping or if target is a checkbox
     if (isDragging || Math.abs(swipeOffset) > 5) return;
     if ((e.target as HTMLElement).closest('[role="checkbox"]')) return;
     if ((e.target as HTMLElement).closest('button')) return;
-    
     haptic.tap();
     onEdit(gift.id);
   };
 
   return (
     <div className="relative overflow-hidden rounded-lg border bg-card">
-      {/* Background action indicators */}
       <div className="absolute inset-0 flex">
-        <div 
-          className={`flex items-center justify-center bg-emerald-500 transition-all duration-200 ${
-            swipeOffset > SWIPE_THRESHOLD ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{ width: Math.max(0, swipeOffset) }}
-        >
+        <div className={`flex items-center justify-center bg-emerald-500 transition-all duration-200 ${swipeOffset > SWIPE_THRESHOLD ? 'opacity-100' : 'opacity-0'}`} style={{ width: Math.max(0, swipeOffset) }}>
           <ShoppingCart className="h-5 w-5 text-white" />
         </div>
         <div className="flex-1" />
-        <div 
-          className={`flex items-center justify-center bg-destructive transition-all duration-200 ${
-            swipeOffset < -SWIPE_THRESHOLD ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{ width: Math.max(0, -swipeOffset) }}
-        >
+        <div className={`flex items-center justify-center bg-destructive transition-all duration-200 ${swipeOffset < -SWIPE_THRESHOLD ? 'opacity-100' : 'opacity-0'}`} style={{ width: Math.max(0, -swipeOffset) }}>
           <Trash2 className="h-5 w-5 text-white" />
         </div>
       </div>
 
-      {/* Main content */}
       <div
         ref={itemRef}
-        className={cn(
-          "relative bg-card p-3 select-none transition-all duration-200 touch-target hover:bg-muted/20",
-          isHighlighted && "animate-highlight-pulse"
-        )}
-        style={{ 
-          transform: `translateX(${swipeOffset}px)`,
-          cursor: isDragging ? 'grabbing' : 'grab'
-        }}
+        className={cn("relative bg-card p-3 select-none transition-all duration-200 touch-target hover:bg-muted/20", isHighlighted && "animate-highlight-pulse")}
+        style={{ transform: `translateX(${swipeOffset}px)`, cursor: isDragging ? 'grabbing' : 'grab' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -205,11 +145,7 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
-        <div 
-          className="flex items-center gap-2 min-h-[44px] cursor-pointer"
-          onClick={handleContentClick}
-        >
-          {/* Left Group: Status Toggles + Gift Name */}
+        <div className="flex items-center gap-2 min-h-[44px] cursor-pointer" onClick={handleContentClick}>
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -220,23 +156,15 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                     haptic.success();
                     setIsHighlighted(true);
                     setTimeout(() => setIsHighlighted(false), 2000);
-                    
-                    // Show micro-toast
-                    setMicroToast({ 
-                      message: checked ? 'Marked purchased' : 'Marked not purchased', 
-                      show: true 
-                    });
+                    setMicroToast({ message: checked ? 'Marked purchased' : 'Marked not purchased', show: true });
                     setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
-                    
                     onUpdate(gift.id, 'purchased', checked as boolean);
                   }}
                   className="flex-shrink-0"
                   aria-label={`Purchased for ${gift.name}. ${gift.purchased ? 'Checked' : 'Unchecked'}`}
                 />
               </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>Mark as purchased</p>
-              </TooltipContent>
+              <TooltipContent side="top"><p>Mark as purchased</p></TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -248,83 +176,49 @@ export const SwipeableGiftItem: React.FC<SwipeableGiftItemProps> = ({
                     haptic.success();
                     setIsHighlighted(true);
                     setTimeout(() => setIsHighlighted(false), 2000);
-                    
-                    // Show micro-toast
-                    setMicroToast({ 
-                      message: checked ? 'Marked wrapped' : 'Marked not wrapped', 
-                      show: true 
-                    });
+                    setMicroToast({ message: checked ? 'Marked wrapped' : 'Marked not wrapped', show: true });
                     setTimeout(() => setMicroToast(prev => ({ ...prev, show: false })), 2000);
-                    
                     onUpdate(gift.id, 'wrapped', checked as boolean);
                   }}
                   className="flex-shrink-0"
                   aria-label={`Wrapped for ${gift.name}. ${gift.wrapped ? 'Checked' : 'Unchecked'}`}
                 />
               </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>Mark as wrapped</p>
-              </TooltipContent>
+              <TooltipContent side="top"><p>Mark as wrapped</p></TooltipContent>
             </Tooltip>
 
             <div className="min-w-0 flex-1">
-              <div className={cn(
-                "font-medium text-sm truncate flex items-center gap-2",
-                gift.purchased && "line-through text-muted-foreground",
-                gift.is_placeholder && "italic text-muted-foreground"
-              )}>
+              <div className={cn("font-medium text-sm truncate flex items-center gap-2", gift.purchased && "line-through text-muted-foreground", gift.is_placeholder && "italic text-muted-foreground")}>
                 {gift.is_placeholder && <HelpCircle className="h-3 w-3 flex-shrink-0" />}
                 {gift.name}
               </div>
             </div>
           </div>
 
-          {/* Right Group: Cost + Givers + Action */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {gift.cost !== null && (
-              <span className="text-sm text-muted-foreground font-medium">
-                {formatCurrency(gift.cost, currency)}
-              </span>
+              <span className="text-sm text-muted-foreground font-medium">{formatCurrency(gift.cost, currency)}</span>
             )}
-            
-            {/* Giver icons */}
             {gift.givers && gift.givers.length > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center -space-x-2">
                     {gift.givers.map((giver, idx) => (
-                      <div
-                        key={giver.id}
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 border border-background text-xs"
-                        style={{ zIndex: gift.givers!.length - idx }}
-                      >
+                      <div key={giver.id} className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 border border-background text-xs" style={{ zIndex: gift.givers!.length - idx }}>
                         {giver.icon}
                       </div>
                     ))}
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Assigned to: {gift.givers.map(g => g.name).join(', ')}</p>
-                </TooltipContent>
+                <TooltipContent><p>Assigned to: {gift.givers.map(g => g.name).join(', ')}</p></TooltipContent>
               </Tooltip>
             )}
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(gift.id);
-              }}
-              className="h-8 w-8 p-0 touch-target opacity-70 hover:opacity-100"
-              aria-label={`Edit ${gift.name}`}
-            >
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(gift.id); }} className="h-8 w-8 p-0 touch-target opacity-70 hover:opacity-100" aria-label={`Edit ${gift.name}`}>
               <Edit2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* Micro-toast */}
         {microToast.show && (
           <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
             <div className="bg-background border border-border rounded-md px-3 py-1.5 shadow-md text-xs font-medium animate-in fade-in-0 zoom-in-95 duration-200">

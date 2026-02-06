@@ -10,7 +10,7 @@ import { useGivers } from '@/hooks/useGivers';
 import { ArrowLeft, Edit, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
+import { emojiOptions } from '@/lib/constants';
 
 const ProfileManager = () => {
   const navigate = useNavigate();
