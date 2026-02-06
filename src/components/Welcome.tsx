@@ -13,7 +13,7 @@ import { z } from 'zod';
 
 const displayNameSchema = z.string().trim().min(1, 'Display name is required').max(100, 'Display name must be less than 100 characters');
 
-const emojiOptions = ['🎅', '🤶', '🎄', '⛄', '🎁', '🔔', '⭐', '❄️', '🦌', '🕎', '👨', '👩', '👦', '👧', '🧑', '👴', '👵'];
+import { emojiOptions } from '@/lib/constants';
 
 export const Welcome = () => {
   const [step, setStep] = useState<'choice' | 'create' | 'join'>('choice');

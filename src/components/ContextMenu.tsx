@@ -7,17 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-
-interface Gift {
-  id: string;
-  name: string;
-  cost: number | null;
-  purchased: boolean;
-  wrapped: boolean;
-  trackingNumber?: string;
-  carrier?: string;
-  assignedTo?: string | null;
-}
+import type { Gift } from '@/types/gift';
 
 interface GiftContextMenuProps {
   gift: Gift;
@@ -30,53 +20,19 @@ interface GiftContextMenuProps {
 }
 
 export const GiftContextMenu: React.FC<GiftContextMenuProps> = ({
-  gift,
-  children,
-  onEdit,
-  onTogglePurchased,
-  onToggleWrapped,
-  onDelete,
-  onDuplicate
+  gift, children, onEdit, onTogglePurchased, onToggleWrapped, onDelete, onDuplicate
 }) => {
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
-        {children}
-      </ContextMenuTrigger>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-48">
-        <ContextMenuItem onClick={onEdit}>
-          <Edit2 className="mr-2 h-4 w-4" />
-          Edit Gift
-        </ContextMenuItem>
-        
+        <ContextMenuItem onClick={onEdit}><Edit2 className="mr-2 h-4 w-4" />Edit Gift</ContextMenuItem>
         <ContextMenuSeparator />
-        
-        <ContextMenuItem onClick={onTogglePurchased}>
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          {gift.purchased ? 'Mark as Not Purchased' : 'Mark as Purchased'}
-        </ContextMenuItem>
-        
-        <ContextMenuItem onClick={onToggleWrapped}>
-          <Package className="mr-2 h-4 w-4" />
-          {gift.wrapped ? 'Mark as Not Wrapped' : 'Mark as Wrapped'}
-        </ContextMenuItem>
-        
-        {onDuplicate && (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuItem onClick={onDuplicate}>
-              <Plus className="mr-2 h-4 w-4" />
-              Duplicate Gift
-            </ContextMenuItem>
-          </>
-        )}
-        
+        <ContextMenuItem onClick={onTogglePurchased}><ShoppingCart className="mr-2 h-4 w-4" />{gift.purchased ? 'Mark as Not Purchased' : 'Mark as Purchased'}</ContextMenuItem>
+        <ContextMenuItem onClick={onToggleWrapped}><Package className="mr-2 h-4 w-4" />{gift.wrapped ? 'Mark as Not Wrapped' : 'Mark as Wrapped'}</ContextMenuItem>
+        {onDuplicate && (<><ContextMenuSeparator /><ContextMenuItem onClick={onDuplicate}><Plus className="mr-2 h-4 w-4" />Duplicate Gift</ContextMenuItem></>)}
         <ContextMenuSeparator />
-        
-        <ContextMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete Gift
-        </ContextMenuItem>
+        <ContextMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete Gift</ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   );
@@ -94,54 +50,22 @@ interface PersonContextMenuProps {
 }
 
 export const PersonContextMenu: React.FC<PersonContextMenuProps> = ({
-  children,
-  onAddGift,
-  onEditNotes,
-  onMarkAllPurchased,
-  onMarkAllWrapped,
-  onMarkComplete,
-  hasGifts,
-  isComplete
+  children, onAddGift, onEditNotes, onMarkAllPurchased, onMarkAllWrapped, onMarkComplete, hasGifts, isComplete
 }) => {
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
-        {children}
-      </ContextMenuTrigger>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-56">
-        <ContextMenuItem onClick={onAddGift}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Gift
-        </ContextMenuItem>
-        
+        <ContextMenuItem onClick={onAddGift}><Plus className="mr-2 h-4 w-4" />Add Gift</ContextMenuItem>
         <ContextMenuSeparator />
-        
-        {onEditNotes && (
-          <ContextMenuItem onClick={onEditNotes}>
-            <Edit2 className="mr-2 h-4 w-4" />
-            Edit Notes
-          </ContextMenuItem>
-        )}
-        
+        {onEditNotes && (<ContextMenuItem onClick={onEditNotes}><Edit2 className="mr-2 h-4 w-4" />Edit Notes</ContextMenuItem>)}
         <ContextMenuSeparator />
-        
-        <ContextMenuItem onClick={onMarkComplete}>
-          <CheckCircle className="mr-2 h-4 w-4" />
-          {isComplete ? 'Mark Not Complete' : 'Mark Complete'}
-        </ContextMenuItem>
-        
+        <ContextMenuItem onClick={onMarkComplete}><CheckCircle className="mr-2 h-4 w-4" />{isComplete ? 'Mark Not Complete' : 'Mark Complete'}</ContextMenuItem>
         {hasGifts && (
           <>
             <ContextMenuSeparator />
-            <ContextMenuItem onClick={onMarkAllPurchased}>
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Mark All as Purchased
-            </ContextMenuItem>
-            
-            <ContextMenuItem onClick={onMarkAllWrapped}>
-              <Package className="mr-2 h-4 w-4" />
-              Mark All as Wrapped
-            </ContextMenuItem>
+            <ContextMenuItem onClick={onMarkAllPurchased}><ShoppingCart className="mr-2 h-4 w-4" />Mark All as Purchased</ContextMenuItem>
+            <ContextMenuItem onClick={onMarkAllWrapped}><Package className="mr-2 h-4 w-4" />Mark All as Wrapped</ContextMenuItem>
           </>
         )}
       </ContextMenuContent>

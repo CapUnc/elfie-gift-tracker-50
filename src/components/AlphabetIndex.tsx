@@ -1,14 +1,6 @@
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-
-interface Person {
-  id: string;
-  name: string;
-  gifts: any[];
-  notes: string;
-  assignedTo: string | null;
-  completed?: boolean;
-}
+import type { Person } from '@/types/gift';
 
 interface AlphabetIndexProps {
   people: Person[];
@@ -16,18 +8,12 @@ interface AlphabetIndexProps {
   className?: string;
 }
 
-export const AlphabetIndex: React.FC<AlphabetIndexProps> = ({
-  people,
-  onLetterClick,
-  className = ""
-}) => {
+export const AlphabetIndex: React.FC<AlphabetIndexProps> = ({ people, onLetterClick, className = "" }) => {
   const availableLetters = useMemo(() => {
     const letters = new Set<string>();
     people.forEach(person => {
       const firstLetter = person.name.charAt(0).toUpperCase();
-      if (firstLetter.match(/[A-Z]/)) {
-        letters.add(firstLetter);
-      }
+      if (firstLetter.match(/[A-Z]/)) letters.add(firstLetter);
     });
     return Array.from(letters).sort();
   }, [people]);
@@ -39,19 +25,8 @@ export const AlphabetIndex: React.FC<AlphabetIndexProps> = ({
       {alphabet.map(letter => {
         const isAvailable = availableLetters.includes(letter);
         return (
-          <Button
-            key={letter}
-            variant="ghost"
-            size="sm"
-            onClick={() => isAvailable && onLetterClick(letter)}
-            disabled={!isAvailable}
-            className={`
-              h-6 w-6 p-0 text-xs font-medium
-              ${isAvailable 
-                ? 'text-primary hover:bg-primary/10 hover:text-primary' 
-                : 'text-muted-foreground/50 cursor-not-allowed'
-              }
-            `}
+          <Button key={letter} variant="ghost" size="sm" onClick={() => isAvailable && onLetterClick(letter)} disabled={!isAvailable}
+            className={`h-6 w-6 p-0 text-xs font-medium ${isAvailable ? 'text-primary hover:bg-primary/10 hover:text-primary' : 'text-muted-foreground/50 cursor-not-allowed'}`}
           >
             {letter}
           </Button>
