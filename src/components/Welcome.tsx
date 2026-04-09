@@ -4,8 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/useAuth';
-import { useHousehold } from '@/hooks/useHousehold';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useHouseholdContext } from '@/contexts/HouseholdContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, Home } from 'lucide-react';
@@ -21,8 +21,8 @@ export const Welcome = () => {
   const [householdName, setHouseholdName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🎅');
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
-  const { refetch } = useHousehold(user?.id);
+  const { user } = useAuthContext();
+  const { refetch } = useHouseholdContext();
   const { toast } = useToast();
   const navigate = useNavigate();
 
