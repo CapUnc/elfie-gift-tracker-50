@@ -5,8 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { useHousehold } from '@/hooks/useHousehold';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useHouseholdContext } from '@/contexts/HouseholdContext';
 import { useGivers } from '@/hooks/useGivers';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGifts } from '@/hooks/useGifts';
@@ -18,8 +18,8 @@ const recipientNameSchema = z.string().trim().min(1, 'Name cannot be empty').max
 const RecipientsManager = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session } = useAuth();
-  const { householdId } = useHousehold(session?.user?.id);
+  const { session } = useAuthContext();
+  const { householdId } = useHouseholdContext();
   const { givers } = useGivers(householdId);
   const { recipients, loading, bulkAddRecipients, deleteRecipient } = useRecipients(householdId);
   const { gifts } = useGifts(householdId);

@@ -4,8 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/useAuth';
-import { useHousehold } from '@/hooks/useHousehold';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useHouseholdContext } from '@/contexts/HouseholdContext';
 import { useGivers } from '@/hooks/useGivers';
 import { ArrowLeft, Edit, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -14,8 +14,8 @@ import { emojiOptions } from '@/lib/constants';
 
 const ProfileManager = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { householdId } = useHousehold(user?.id);
+  const { user } = useAuthContext();
+  const { householdId } = useHouseholdContext();
   const { givers, loading, updateGiver } = useGivers(householdId);
   const { toast } = useToast();
 

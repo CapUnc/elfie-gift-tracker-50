@@ -13,10 +13,12 @@ import ProfileManager from "./components/settings/ProfileManager";
 import HouseholdManager from "./components/settings/HouseholdManager";
 import Welcome from "./components/Welcome";
 import NotFound from "./pages/NotFound";
-import TopNavigation from "./components/TopNavigation";
 import Auth from "./pages/Auth";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedLayout from "./components/ProtectedLayout";
 import JoinHousehold from "./components/JoinHousehold";
+import { AuthProvider } from "./contexts/AuthContext";
+import { HouseholdProvider } from "./contexts/HouseholdContext";
 
 const queryClient = new QueryClient();
 
@@ -27,83 +29,42 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="min-h-screen bg-gradient-subtle">
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <Summary />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/gifts"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <GiftTracker />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/recipients"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <RecipientsManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/buyers"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <ProfileManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/welcome"
-              element={
-                <ProtectedRoute>
-                  <Welcome />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/household"
-              element={
-                <ProtectedRoute>
-                  <TopNavigation />
-                  <HouseholdManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/join-household"
-              element={
-                <ProtectedRoute>
-                  <JoinHousehold />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </div>
+          <AuthProvider>
+            <HouseholdProvider>
+              <div className="min-h-screen bg-gradient-subtle">
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  {/* Routes with TopNavigation */}
+                  <Route element={<ProtectedLayout />}>
+                    <Route path="/" element={<Summary />} />
+                    <Route path="/gifts" element={<GiftTracker />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/settings/recipients" element={<RecipientsManager />} />
+                    <Route path="/settings/buyers" element={<ProfileManager />} />
+                    <Route path="/settings/household" element={<HouseholdManager />} />
+                  </Route>
+                  {/* Routes without TopNavigation */}
+                  <Route
+                    path="/welcome"
+                    element={
+                      <ProtectedRoute>
+                        <Welcome />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/join-household"
+                    element={
+                      <ProtectedRoute>
+                        <JoinHousehold />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </HouseholdProvider>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

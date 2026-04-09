@@ -3,12 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Package, BarChart3, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 const TopNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut } = useAuthContext();
   const { toast } = useToast();
 
   const handleSignOut = async () => {
