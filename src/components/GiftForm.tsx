@@ -169,22 +169,35 @@ export const GiftForm: React.FC<GiftFormProps> = ({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Assigned To <span className="text-muted-foreground">(Optional)</span></Label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {availableGivers.map((giver) => {
-                const isSelected = selectedGiverIds.includes(giver.id);
-                return (
-                  <button key={giver.id} type="button"
-                    onClick={() => setSelectedGiverIds(prev => prev.includes(giver.id) ? prev.filter(id => id !== giver.id) : [...prev, giver.id])}
-                    className={cn("relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all touch-target", isSelected ? "border-primary bg-primary/10" : "border-muted hover:border-primary/50 hover:bg-muted/50")}
-                  >
-                    <span className="text-2xl">{giver.icon}</span>
-                    <span className="text-xs font-medium text-center line-clamp-1">{giver.name}</span>
-                    {isSelected && <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>}
-                  </button>
-                );
-              })}
+            <div>
+              <Label className="text-sm font-medium">Givers <span className="text-muted-foreground">(Optional)</span></Label>
+              <p className="text-xs text-muted-foreground mt-1">Who is buying this gift? Tap one or more.</p>
             </div>
+            {availableGivers.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {availableGivers.map((giver) => {
+                  const isSelected = selectedGiverIds.includes(giver.id);
+                  return (
+                    <button key={giver.id} type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setSelectedGiverIds(prev => prev.includes(giver.id) ? prev.filter(id => id !== giver.id) : [...prev, giver.id])}
+                      className={cn("relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all touch-target", isSelected ? "border-primary bg-primary/10" : "border-muted hover:border-primary/50 hover:bg-muted/50")}
+                    >
+                      <span className="text-2xl">{giver.icon}</span>
+                      <span className="text-xs font-medium text-center line-clamp-1">{giver.name}</span>
+                      {isSelected && <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5"><Check className="h-3 w-3" /></div>}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed p-4 text-center">
+                <p className="text-sm text-muted-foreground">No givers yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add the people who buy gifts in Settings &rarr; Givers, then you can tag them here.
+                </p>
+              </div>
+            )}
             {selectedGiverIds.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {selectedGiverIds.map(giverId => {
