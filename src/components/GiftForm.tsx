@@ -194,7 +194,7 @@ export const GiftForm: React.FC<GiftFormProps> = ({
               <div className="rounded-lg border border-dashed p-4 text-center">
                 <p className="text-sm text-muted-foreground">No givers yet.</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Add the people who buy gifts in Settings &rarr; Givers, then you can tag them here.
+                  Givers are the people in your household. Add or invite them from Settings, then you can tag them here.
                 </p>
               </div>
             )}
