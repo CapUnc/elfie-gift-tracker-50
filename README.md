@@ -41,6 +41,7 @@ Christmas Gift Tracker is a web application designed for households where multip
 ### Organization Features
 - **Alphabetical Index**: Quick navigation to recipients by first letter
 - **Search**: Filter recipients and gifts by name
+- **Filters**: Filter by giver (including "My gifts"), completion, wrapping status, and cost status
 - **Completion Tracking**: Mark recipients as complete (manual or automatic based on gift status)
 - **Notes System**: Add rich notes to recipients with optional links
 - **Collapsible Cards**: Expandable recipient cards showing summary info when collapsed
