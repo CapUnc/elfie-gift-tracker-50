@@ -8,15 +8,15 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, AlertCircle, Pencil, Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useHouseholdContext } from '@/contexts/HouseholdContext';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useHousehold } from '@/hooks/useHousehold';
+import { useAuth } from '@/hooks/useAuth';
 import { useRecipients } from '@/hooks/useRecipients';
 import { useGivers } from '@/hooks/useGivers';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user } = useAuthContext();
-  const { householdId } = useHouseholdContext();
+  const { user } = useAuth();
+  const { householdId } = useHousehold(user?.id);
   const { recipients } = useRecipients(householdId);
   const { givers } = useGivers(householdId);
   const { toast } = useToast();

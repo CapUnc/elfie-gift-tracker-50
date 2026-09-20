@@ -100,8 +100,8 @@ export const useGivers = (householdId: string | null) => {
     }
   };
 
-  const updateOwnGiver = async (userId: string, updates: { name?: string; icon?: string }) => {
-    const ownGiver = givers.find(g => g.profile_id === userId);
+  const updateOwnGiver = async (updates: { name?: string; icon?: string }) => {
+    const ownGiver = givers.find(g => g.profile_id === householdId);
     if (!ownGiver) return;
 
     try {
@@ -124,8 +124,8 @@ export const useGivers = (householdId: string | null) => {
     }
   };
 
-  const getOwnGiver = (userId: string) => {
-    return givers.find(g => g.profile_id === userId);
+  const getOwnGiver = () => {
+    return givers.find(g => g.profile_id === householdId);
   };
 
   const updateGiver = async (id: string, updates: { name?: string; icon?: string }) => {

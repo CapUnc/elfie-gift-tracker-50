@@ -4,8 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useHouseholdContext } from '@/contexts/HouseholdContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -21,8 +21,8 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
   const [selectedEmoji, setSelectedEmoji] = useState('🎅');
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuthContext();
-  const { refetch } = useHouseholdContext();
+  const { user } = useAuth();
+  const { refetch } = useHousehold(user?.id);
   const { toast } = useToast();
   const navigate = useNavigate();
 

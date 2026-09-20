@@ -4,8 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useHouseholdContext } from '@/contexts/HouseholdContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
 import { useGivers } from '@/hooks/useGivers';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Copy, RefreshCw, Check, Loader2, LogOut } from 'lucide-react';
@@ -29,8 +29,8 @@ interface HouseholdMember {
 
 const HouseholdManager = () => {
   const navigate = useNavigate();
-  const { user } = useAuthContext();
-  const { householdId } = useHouseholdContext();
+  const { user } = useAuth();
+  const { householdId } = useHousehold(user?.id);
   const { givers } = useGivers(householdId);
   const { toast } = useToast();
 

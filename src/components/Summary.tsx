@@ -10,8 +10,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Gift, Users, DollarSign, ChevronDown, ChevronUp, ShoppingBag, Package, UserCircle2 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthContext } from "@/contexts/AuthContext";
-import { useHouseholdContext } from "@/contexts/HouseholdContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useHousehold } from "@/hooks/useHousehold";
 
 // Color palette for giver avatars
 const GIVER_COLORS = [
@@ -69,8 +69,8 @@ interface Giver {
 const Summary = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuthContext();
-  const { householdId, loading: householdLoading } = useHouseholdContext();
+  const { user } = useAuth();
+  const { householdId, loading: householdLoading } = useHousehold(user?.id);
   const [showAllBuyers, setShowAllBuyers] = useState(false);
 
   // Fetch household data

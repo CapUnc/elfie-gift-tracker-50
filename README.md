@@ -41,6 +41,7 @@ Christmas Gift Tracker is a web application designed for households where multip
 ### Organization Features
 - **Alphabetical Index**: Quick navigation to recipients by first letter
 - **Search**: Filter recipients and gifts by name
+- **Filters**: Filter by giver (including "My gifts"), completion, wrapping status, and cost status
 - **Completion Tracking**: Mark recipients as complete (manual or automatic based on gift status)
 - **Notes System**: Add rich notes to recipients with optional links
 - **Collapsible Cards**: Expandable recipient cards showing summary info when collapsed
@@ -156,7 +157,8 @@ People you're buying gifts for (e.g., "Mom", "Dad", "Sarah"). Recipients can hav
 - Multiple gifts
 - Notes with optional links
 - Completion status (manual or automatic)
-- Assignment to a household member (optional)
+
+Givers are assigned at the **gift level only** — there is no recipient-level assignment. The collapsed recipient card shows aggregated giver icons (unique givers across all that person's gifts) and a notes badge.
 
 ### Gifts
 Individual gift items for recipients. Each gift has:
@@ -186,15 +188,19 @@ User accounts linked to a household. Contains:
 ## Architecture
 
 ### State Management
-- **React Query**: Server state caching and synchronization
-- **React Hooks**: Local component state
-- **Supabase Realtime** (optional): Live updates across devices
+- **Custom hooks** (`useState`/`useEffect`): Server state fetching per domain (`useRecipients`, `useGifts`, `useGivers`, `useRecipientNotes`, `useHousehold`)
+- **Supabase Realtime**: Each hook subscribes to Postgres changes on its table(s) (including `gift_givers`) and refetches on change, so all household members see live updates
+- **React Query**: Provider is configured in `App.tsx` for future server-state caching
+- **React Context/Hooks**: Local component state
 
 ### Data Flow
-1. Components use custom hooks (`useRecipients`, `useGifts`, `useGivers`, etc.)
-2. Hooks use React Query to fetch/mutate data
-3. React Query manages caching, refetching, and optimistic updates
-4. Supabase client handles API calls with RLS enforcing access control
+1. Components consume custom hooks scoped to the user's household
+2. Hooks query Supabase directly and keep state fresh via realtime subscriptions
+3. Supabase client handles API calls with RLS enforcing access control
+
+### Error Handling
+- **`ErrorBoundary`** wraps the entire app and shows a friendly fallback with a reload option if a render error occurs
+- All hook mutations surface failures via toast notifications
 
 ### Security
 - **Row Level Security (RLS)**: All database tables have RLS policies
@@ -238,7 +244,7 @@ People receiving gifts.
 - `household_id` (uuid, FK → households)
 - `name` (text)
 - `notes` (text, deprecated - use recipient_notes table instead)
-- `assigned_to` (uuid, FK → givers, nullable)
+- `assigned_to` (uuid, FK → givers, nullable, **deprecated** — givers are assigned per-gift via `gift_givers`)
 - `completed` (boolean) - Auto-calculated from gifts
 - `manual_complete` (boolean) - User can override completion
 - `created_at` (timestamp)
@@ -322,8 +328,13 @@ Generates a unique 6-character invite code.
 
 All tables have RLS enabled with policies ensuring:
 - Users can only access data from their household
-- Authenticated users required
+- Authenticated users required (policies are scoped to the `authenticated` role — e.g., `profiles` cannot be read anonymously)
 - Household scoping enforced via `get_user_household_id(auth.uid())`
+- Household creation is only possible through the `create_user_household_and_profile` security-definer function (direct anonymous inserts are rejected)
+
+### Performance Indexes
+
+Indexes exist on the hot query paths for scale: `gifts(recipient_id)`, `gifts(household_id)`, `gift_givers(gift_id)`, `gift_givers(giver_id)`, `recipient_notes(recipient_id)`, `recipients(household_id)`, `givers(household_id)`, `profiles(household_id)`.
 
 ## Component Structure
 
@@ -338,13 +349,28 @@ All tables have RLS enabled with policies ensuring:
 Main dashboard showing summary statistics and recipient list.
 
 #### `GiftTracker.tsx`
-Primary component for viewing/managing recipients and gifts. Features:
+Primary component for viewing/managing recipients and gifts. Composed of smaller focused components in `src/components/gifts/`. Features:
 - Recipient list with collapsible cards
 - Alphabetical index navigation
-- Search functionality
+- Search and filtering (by giver — including "My gifts" — completion, wrapping, cost status)
 - Gift management (add, edit, delete)
 - Swipeable gift items
 - Mobile-optimized card expansion (click anywhere to expand)
+
+#### `gifts/RecipientCard.tsx`
+Single recipient card: header, per-gift stats, aggregated unique giver icons (shown even when collapsed), notes badge, and gift list.
+
+#### `gifts/RecipientList.tsx`
+Filtered recipient list with empty states and alphabet index.
+
+#### `gifts/AddPersonDialog.tsx`
+Add-recipient modal with unsaved-changes guard (self-contained state).
+
+#### `gifts/CompletionDialog.tsx`
+Completion confirmation with "mark all purchased/wrapped" options.
+
+#### `ErrorBoundary.tsx`
+App-level error boundary with a friendly fallback and reload action.
 
 #### `GiftForm.tsx`
 Form for adding/editing gifts with:
@@ -408,7 +434,10 @@ CRUD operations for recipients.
 CRUD operations for gifts, including multi-giver support.
 
 #### `useGivers.ts`
-Fetches and manages givers for the household.
+Fetches and manages givers for the household, with a realtime subscription on the `givers` table.
+
+#### `useGifts.ts` (note)
+`useGifts` also subscribes to `gift_givers` changes so giver icons appear immediately after assignment without a manual refresh.
 
 #### `useGiftGivers.ts`
 Manages gift-giver relationships.
