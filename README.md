@@ -348,13 +348,28 @@ Indexes exist on the hot query paths for scale: `gifts(recipient_id)`, `gifts(ho
 Main dashboard showing summary statistics and recipient list.
 
 #### `GiftTracker.tsx`
-Primary component for viewing/managing recipients and gifts. Features:
+Primary component for viewing/managing recipients and gifts. Composed of smaller focused components in `src/components/gifts/`. Features:
 - Recipient list with collapsible cards
 - Alphabetical index navigation
-- Search functionality
+- Search and filtering (by giver — including "My gifts" — completion, wrapping, cost status)
 - Gift management (add, edit, delete)
 - Swipeable gift items
 - Mobile-optimized card expansion (click anywhere to expand)
+
+#### `gifts/RecipientCard.tsx`
+Single recipient card: header, per-gift stats, aggregated unique giver icons (shown even when collapsed), notes badge, and gift list.
+
+#### `gifts/RecipientList.tsx`
+Filtered recipient list with empty states and alphabet index.
+
+#### `gifts/AddPersonDialog.tsx`
+Add-recipient modal with unsaved-changes guard (self-contained state).
+
+#### `gifts/CompletionDialog.tsx`
+Completion confirmation with "mark all purchased/wrapped" options.
+
+#### `ErrorBoundary.tsx`
+App-level error boundary with a friendly fallback and reload action.
 
 #### `GiftForm.tsx`
 Form for adding/editing gifts with:
@@ -418,7 +433,10 @@ CRUD operations for recipients.
 CRUD operations for gifts, including multi-giver support.
 
 #### `useGivers.ts`
-Fetches and manages givers for the household.
+Fetches and manages givers for the household, with a realtime subscription on the `givers` table.
+
+#### `useGifts.ts` (note)
+`useGifts` also subscribes to `gift_givers` changes so giver icons appear immediately after assignment without a manual refresh.
 
 #### `useGiftGivers.ts`
 Manages gift-giver relationships.
