@@ -62,7 +62,7 @@ export const useGifts = (householdId: string | null) => {
       // Transform data to include givers array
       const giftsWithGivers = (data || []).map(gift => ({
         ...gift,
-        givers: gift.gift_givers?.map((gg: any) => gg.givers).filter(Boolean) || []
+        givers: gift.gift_givers?.map((gg: { givers: unknown }) => gg.givers).filter(Boolean) || []
       }));
 
       setGifts(giftsWithGivers);

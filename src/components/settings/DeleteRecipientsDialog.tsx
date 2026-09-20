@@ -17,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface Person {
   id: string;
   name: string;
-  gifts: any[];
+  gifts: unknown[];
   notes: string;
   assignedTo: string | null;
 }
