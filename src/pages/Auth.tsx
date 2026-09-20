@@ -1,14 +1,23 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Gift } from 'lucide-react';
 
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
 const Auth = () => {
   const [loading, setLoading] = useState(false);
-  const { signInWithGoogle } = useAuth();
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const { signInWithGoogle, signIn, signUp } = useAuth();
   const { toast } = useToast();
 
   const handleGoogleSignIn = async () => {
@@ -17,13 +26,51 @@ const Auth = () => {
       const { error } = await signInWithGoogle();
       if (error) throw error;
       // OAuth redirect will handle navigation
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
-        title: "Sign In Error",
-        description: error.message || "Could not sign in with Google. Please try again.",
-        variant: "destructive",
+        title: 'Sign In Error',
+        description: getErrorMessage(error, 'Could not sign in with Google. Please try again.'),
+        variant: 'destructive',
       });
       setLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailLoading(true);
+    try {
+      const { error } = await signIn(email.trim(), password);
+      if (error) throw error;
+    } catch (error: unknown) {
+      toast({
+        title: 'Sign In Error',
+        description: getErrorMessage(error, 'Could not sign in. Check your email and password.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailLoading(true);
+    try {
+      const { error } = await signUp(email.trim(), password, displayName.trim());
+      if (error) throw error;
+      toast({
+        title: 'Check your email',
+        description: 'We sent you a confirmation link. Click it to finish creating your account.',
+      });
+    } catch (error: unknown) {
+      toast({
+        title: 'Sign Up Error',
+        description: getErrorMessage(error, 'Could not create your account. Please try again.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setEmailLoading(false);
     }
   };
 
@@ -35,17 +82,10 @@ const Auth = () => {
             <Gift className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="text-2xl">Christmas Gift Tracker</CardTitle>
-          <CardDescription>
-            Sign in with your Google account to get started
-          </CardDescription>
+          <CardDescription>Sign in to start planning your gifts</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={handleGoogleSignIn} 
-            className="w-full gap-2"
-            disabled={loading}
-            size="lg"
-          >
+        <CardContent className="space-y-6">
+          <Button onClick={handleGoogleSignIn} className="w-full gap-2" disabled={loading} size="lg">
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -66,6 +106,94 @@ const Auth = () => {
             </svg>
             {loading ? 'Signing in...' : 'Continue with Google'}
           </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">or use email</span>
+            </div>
+          </div>
+
+          <Tabs defaultValue="signin">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign in</TabsTrigger>
+              <TabsTrigger value="signup">Create account</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="signin">
+              <form onSubmit={handleEmailSignIn} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">Email</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signin-password">Password</Label>
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" variant="outline" className="w-full" disabled={emailLoading}>
+                  {emailLoading ? 'Signing in...' : 'Sign in'}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup">
+              <form onSubmit={handleEmailSignUp} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Your name</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={6}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" variant="outline" className="w-full" disabled={emailLoading}>
+                  {emailLoading ? 'Creating account...' : 'Create account'}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

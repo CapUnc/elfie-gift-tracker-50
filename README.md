@@ -488,17 +488,36 @@ This project is built on Lovable and can be deployed with one click:
 ### Custom Domain
 Connect a custom domain via Project → Settings → Domains. Requires a paid Lovable plan.
 
-### Manual Deployment
-For self-hosting, see the [Lovable self-hosting guide](https://docs.lovable.dev/tips-tricks/self-hosting).
+### Self-hosting (NAS, home server, any Docker host)
+
+See **[SELF-HOSTING.md](./SELF-HOSTING.md)** for the full walkthrough. In short:
+
+```bash
+cp .env.example .env     # point at your own backend
+docker compose up -d --build   # serves the app on port 8085
+```
+
+The repo ships a `Dockerfile` (Node build → nginx serve) and an `nginx.conf` with
+SPA routing, cache headers, and a commented websocket-aware backend proxy.
+
+## Authentication
+
+Two sign-in methods are available on the sign-in screen:
+
+- **Google** — requires the OAuth client to list your app's origin and the
+  backend's `/auth/v1/callback` redirect URI.
+- **Email + password** — works with no third-party setup; useful as a fallback
+  when self-hosting.
 
 ## Environment Variables
 
-Environment variables are automatically configured by Lovable Cloud:
-- `VITE_SUPABASE_URL` - Supabase project URL
-- `VITE_SUPABASE_PUBLISHABLE_KEY` - Supabase anon key
-- `VITE_SUPABASE_PROJECT_ID` - Supabase project ID
+Build-time values, inlined by Vite (rebuild after changing them):
+- `VITE_SUPABASE_URL` - backend URL
+- `VITE_SUPABASE_PUBLISHABLE_KEY` - publishable/anon key (safe in the browser)
+- `VITE_SUPABASE_PROJECT_ID` - project ID
 
-These are managed in the `.env` file (auto-generated, do not edit manually).
+On Lovable these are managed automatically in `.env`. When self-hosting, copy
+`.env.example` to `.env` and fill them in. Never put the `service_role` key here.
 
 ## Development Tips
 

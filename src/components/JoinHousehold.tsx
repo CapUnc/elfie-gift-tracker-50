@@ -12,9 +12,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 
 import { emojiOptions } from '@/lib/constants';
 
-interface JoinHouseholdProps {}
-
-export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
+export const JoinHousehold: React.FC = () => {
   const [step, setStep] = useState<'code' | 'emoji'>('code');
   const [inviteCode, setInviteCode] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -110,11 +108,11 @@ export const JoinHousehold: React.FC<JoinHouseholdProps> = () => {
       // Refetch household data and navigate
       await refetch();
       navigate('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating buyer:', error);
       toast({
         title: 'Setup Error',
-        description: error.message || 'Could not complete setup. Please try again.',
+        description: error instanceof Error ? error.message : 'Could not complete setup. Please try again.',
         variant: 'destructive',
       });
     } finally {

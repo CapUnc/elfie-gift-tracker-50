@@ -224,7 +224,7 @@ const Summary = () => {
       // Calculate total gifts where this giver is assigned (including shared gifts)
       const allGifts = recipients.flatMap(r => r.gifts);
       const giverGifts = allGifts.filter(gift => 
-        gift.gift_givers?.some((gg: any) => gg.giver_id === giver.id)
+        gift.gift_givers?.some((gg: { giver_id: string }) => gg.giver_id === giver.id)
       );
       
       const totalAssignedGifts = giverGifts.length;
