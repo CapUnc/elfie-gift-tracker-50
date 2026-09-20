@@ -85,6 +85,9 @@ const RecipientCard: React.FC<RecipientCardProps> = ({
     });
   });
   const uniqueGivers = Array.from(giverMap.values());
+  const MAX_VISIBLE_GIVERS = 4;
+  const visibleGivers = uniqueGivers.slice(0, MAX_VISIBLE_GIVERS);
+  const overflowGivers = uniqueGivers.length - visibleGivers.length;
   const hasMetadata = notesCount > 0 || uniqueGivers.length > 0;
 
   return (
@@ -145,22 +148,34 @@ const RecipientCard: React.FC<RecipientCardProps> = ({
                 </div>
 
                 <div className="space-y-2 mt-1">
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <GiftIcon className="h-3 w-3" />
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                    <span
+                      className="flex items-center gap-1"
+                      title={`${stats.total} ${stats.total === 1 ? 'gift' : 'gifts'}`}
+                    >
+                      <GiftIcon className="h-3 w-3" aria-hidden="true" />
                       {stats.total}
+                      <span className="text-xs">{stats.total === 1 ? 'gift' : 'gifts'}</span>
                     </span>
-                    <span className="flex items-center gap-1">
-                      <ShoppingCart className="h-3 w-3" />
+                    <span
+                      className="flex items-center gap-1"
+                      title={`${stats.purchased} of ${stats.total} bought`}
+                    >
+                      <ShoppingCart className="h-3 w-3" aria-hidden="true" />
                       {stats.purchased}/{stats.total}
+                      <span className="text-xs">bought</span>
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Package className="h-3 w-3" />
+                    <span
+                      className="flex items-center gap-1"
+                      title={`${stats.wrapped} of ${stats.total} wrapped`}
+                    >
+                      <Package className="h-3 w-3" aria-hidden="true" />
                       {stats.wrapped}/{stats.total}
+                      <span className="text-xs">wrapped</span>
                     </span>
                     {stats.totalCost > 0 && (
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
+                      <span className="flex items-center gap-1" title="Total spent">
+                        <DollarSign className="h-3 w-3" aria-hidden="true" />
                         {formatCurrency(stats.totalCost, '')}
                       </span>
                     )}
@@ -171,16 +186,24 @@ const RecipientCard: React.FC<RecipientCardProps> = ({
                       {uniqueGivers.length > 0 && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center -space-x-2">
-                              {uniqueGivers.map((giver, idx) => (
+                            <div
+                              className="flex items-center -space-x-2"
+                              title={`Given by: ${uniqueGivers.map((g) => g.name).join(', ')}`}
+                            >
+                              {visibleGivers.map((giver, idx) => (
                                 <div
                                   key={giver.id}
                                   className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 border border-background text-xs"
-                                  style={{ zIndex: uniqueGivers.length - idx }}
+                                  style={{ zIndex: visibleGivers.length - idx }}
                                 >
                                   {giver.icon}
                                 </div>
                               ))}
+                              {overflowGivers > 0 && (
+                                <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted border border-background text-[10px] font-medium text-muted-foreground">
+                                  +{overflowGivers}
+                                </div>
+                              )}
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -191,7 +214,11 @@ const RecipientCard: React.FC<RecipientCardProps> = ({
                       {notesCount > 0 && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Badge variant="secondary" className="flex-shrink-0">
+                            <Badge
+                              variant="secondary"
+                              className="flex-shrink-0"
+                              title="Open this person to read their notes"
+                            >
                               {notesCount} {notesCount === 1 ? 'note' : 'notes'}
                             </Badge>
                           </TooltipTrigger>
