@@ -172,9 +172,12 @@ export const useGifts = (householdId: string | null) => {
 
   const updateGift = async (id: string, updates: Partial<Omit<Gift, 'id' | 'household_id' | 'created_at' | 'updated_at'>>) => {
     try {
+      // `givers` is a derived relation, not a column on the gifts table
+      const { givers: _givers, ...columnUpdates } = updates;
+
       const { error } = await supabase
         .from('gifts')
-        .update(updates)
+        .update(columnUpdates)
         .eq('id', id);
 
       if (error) throw error;
