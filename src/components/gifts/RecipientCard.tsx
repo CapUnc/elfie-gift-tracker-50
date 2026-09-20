@@ -237,6 +237,8 @@ const RecipientCard: React.FC<RecipientCardProps> = ({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => onToggleComplete(person)}
+                      aria-label={person.completed ? "Mark as incomplete" : "Mark as complete"}
+                      title={person.completed ? "Mark as incomplete" : "Mark as complete"}
                       className={cn(
                         'h-8 w-8 rounded-full border-2 flex items-center justify-center transition-colors',
                         person.completed
