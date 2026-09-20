@@ -112,7 +112,7 @@ export const JoinHousehold: React.FC = () => {
       console.error('Error creating buyer:', error);
       toast({
         title: 'Setup Error',
-        description: error.message || 'Could not complete setup. Please try again.',
+        description: error instanceof Error ? error.message : 'Could not complete setup. Please try again.',
         variant: 'destructive',
       });
     } finally {
