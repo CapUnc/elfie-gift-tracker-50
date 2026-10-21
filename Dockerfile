@@ -12,7 +12,9 @@ ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+# react-day-picker 8 declares date-fns <4 as a peer; the project uses date-fns 4,
+# which works in practice but makes a strict `npm ci` refuse to install.
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 RUN npm run build

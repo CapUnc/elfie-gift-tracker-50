@@ -3,7 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+// Self-hosted builds leave VITE_SUPABASE_URL empty: the backend is served from the
+// same address as the app (see selfhost/nginx.conf), whichever address that is.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || window.location.origin;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Import the supabase client like this:

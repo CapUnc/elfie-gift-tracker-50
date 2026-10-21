@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +18,15 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const { signInWithGoogle, signIn, signUp } = useAuth();
+  const { user, signInWithGoogle, signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Once signed in (email, password or a fresh sign-up), continue into the app.
+  // Google sign-in returns via its own redirect, but email sign-in stays on this page.
+  useEffect(() => {
+    if (user) navigate('/', { replace: true });
+  }, [user, navigate]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -57,12 +65,15 @@ const Auth = () => {
     e.preventDefault();
     setEmailLoading(true);
     try {
-      const { error } = await signUp(email.trim(), password, displayName.trim());
+      const { data, error } = await signUp(email.trim(), password, displayName.trim());
       if (error) throw error;
-      toast({
-        title: 'Check your email',
-        description: 'We sent you a confirmation link. Click it to finish creating your account.',
-      });
+      // Without email confirmation (e.g. self-hosted), sign-up signs you straight in.
+      if (!data.session) {
+        toast({
+          title: 'Check your email',
+          description: 'We sent you a confirmation link. Click it to finish creating your account.',
+        });
+      }
     } catch (error: unknown) {
       toast({
         title: 'Sign Up Error',
