@@ -118,8 +118,10 @@ export const useGifts = (householdId: string | null) => {
         .subscribe();
 
       return () => {
-        supabase.removeChannel(giftsChannel);
-        supabase.removeChannel(giftGiversChannel);
+        // Not supabase.removeChannel(): removing the last channel closes the socket, and
+        // channels the next page subscribes while it is closing never join (realtime-js 2.75).
+        giftsChannel.unsubscribe();
+        giftGiversChannel.unsubscribe();
       };
     }
   }, [householdId]);

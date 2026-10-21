@@ -69,7 +69,9 @@ export const useGivers = (householdId: string | null) => {
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
+        // Not supabase.removeChannel(): removing the last channel closes the socket, and
+        // channels the next page subscribes while it is closing never join (realtime-js 2.75).
+        channel.unsubscribe();
       };
     }
   }, [householdId]);
