@@ -1,122 +1,202 @@
-# Running Elfie on your own server (NAS)
+# Running Elfie on your own Mac
 
-Elfie is a static front-end plus a Supabase backend (database + auth + realtime).
-To run it at home you need both halves.
+This runs everything Elfie needs on one computer: the app, the database, sign-in and
+live updates. Your gift lists live on your Mac, nothing pauses, and there's no
+monthly bill. Other households reach it over a free, secure link from Tailscale.
+
+It's light: about 400 MB of memory while running. It works on Apple Silicon and Intel
+Macs, and on any other machine that runs Docker (the commands are the same).
+
+**You'll need**
+
+- A Mac that stays on (and awake) while people are using Elfie.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (free for personal use).
+- [Tailscale](https://tailscale.com/download) (free personal plan), for access away from home.
+- Your data export from Lovable (step 4). Get it **before** you cancel Lovable Cloud.
+
+All commands below are typed into **Terminal** (Applications → Utilities → Terminal).
 
 ---
 
-## 1. Bring up a backend
+## 1. Install Docker Desktop
 
-Elfie talks to Supabase. Two options:
+Download it, drag it to Applications and open it once. In Docker Desktop's
+**Settings → General**, turn on **Start Docker Desktop when you sign in**, so Elfie
+comes back by itself after the Mac restarts.
 
-- **Keep using a hosted Supabase project** — simplest; nothing to maintain.
-- **Self-host Supabase on the NAS** — follow the official self-hosting Docker guide
-  (`supabase/docker` repo). It gives you Postgres, auth (GoTrue), the API gateway
-  (Kong), and realtime in one compose stack.
+## 2. Get the code
 
-Then create the schema by replaying the migrations in `supabase/migrations/`
-**in filename order**:
+Put it in your home folder (not Desktop or Documents, which macOS keeps scheduled
+jobs out of, so automatic backups would fail there):
 
 ```bash
-for f in supabase/migrations/*.sql; do
-  psql "$DATABASE_URL" -f "$f"
-done
+cd ~
+git clone https://github.com/CapUnc/elfie-gift-tracker-50.git elfie
+cd ~/elfie/selfhost
 ```
 
-They create every table, index, row-level-security policy, function and trigger.
-They do **not** create data — you start with an empty household.
+The first time, macOS may offer to install "command line developer tools". Say yes,
+then run the commands again. If git asks you to sign in, use your GitHub username and
+a [personal access token](https://github.com/settings/tokens) as the password, or
+clone with the GitHub Desktop app instead.
 
----
-
-## 2. Configure sign-in
-
-The app supports Google sign-in and email + password.
-
-**Email + password** works out of the box once the auth service is running. If you
-don't want confirmation emails (no SMTP at home), turn on auto-confirm in your
-auth settings — otherwise nobody can finish signing up.
-
-**Google sign-in** needs, in the Google Cloud console for your OAuth client:
-
-- Authorised JavaScript origin: `https://elfie.your-nas-host` (your real URL)
-- Authorised redirect URI: `<your-backend-url>/auth/v1/callback`
-
-And in your auth service config: the Google client ID + secret, plus your app URL
-as the **Site URL** and in **Additional redirect URLs**. Skipping this is the most
-common reason the first sign-in fails after a move.
-
----
-
-## 3. Configure the app
+## 3. Create your secrets (once)
 
 ```bash
-cp .env.example .env
+./setup.sh
 ```
 
-Fill in `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and
-`VITE_SUPABASE_PROJECT_ID` from your backend. These are **build-time** values —
-Vite bakes them into the bundle, so rebuild after any change.
+This writes `selfhost/.env` with random passwords and keys for your database. Keep
+that file: the database only opens with those exact secrets. It's never uploaded to
+GitHub.
 
-The publishable (anon) key is meant to be public; row level security protects the
-data. Never put the `service_role` key in this file.
+## 4. Bring your data over from Lovable
 
----
-
-## 4. Run it
-
-### Docker (recommended)
+1. In Lovable open your project, then **More → Cloud → Overview → Advanced settings**.
+2. Under **Export project data** click **Export data**, then **Export** on the
+   **Database** card, then **Start export**.
+3. Lovable emails you when it's ready. Download the file from **More → Cloud → Storage**.
+   (Exports are limited to one a day, and disappear when Cloud is removed.)
+4. Load it into Elfie:
 
 ```bash
-docker compose up -d --build
+./restore.sh ~/Downloads/<the file you downloaded>
 ```
 
-Serves the app on port `8085`. `Dockerfile` builds the static bundle and
-`nginx.conf` serves it with SPA routing and sane cache headers.
+The first run downloads Supabase (a few GB) and builds the app, so give it several
+minutes. When it says **Done**, open <http://localhost:8085> and sign in with your
+usual email and password.
 
-### Without Docker
+What comes across: every account (with its password), every household, recipient,
+gift, note and invite code, plus the database rules that keep each household's lists
+private. Everyone just needs to sign in once more.
+
+**People who used "Continue with Google"** don't have a password yet. Give them one,
+then let them know:
 
 ```bash
-npm ci
-npm run build
-# serve the ./dist folder with any static web server
+./set-password.sh their@email.com 'a new password'
 ```
 
+## 5. Let the other households in (Tailscale Funnel)
+
+Funnel gives your Mac a public `https://` link that works from anywhere, without
+touching your router. Use the same link at home and away.
+
+1. Install Tailscale on the Mac (the App Store or the standalone download both work)
+   and sign in.
+2. In Terminal:
+
+   ```bash
+   /Applications/Tailscale.app/Contents/MacOS/Tailscale funnel --bg 8085
+   ```
+
+   The first time, it prints a link to approve Funnel for your account. Open it,
+   approve, and run the command again.
+3. It prints your link, something like `https://your-mac.tail1234.ts.net`. That's the
+   address for everyone. A brand-new link can take up to 10 minutes to start working.
+
+`--bg` keeps the link running after restarts. To check it:
+`/Applications/Tailscale.app/Contents/MacOS/Tailscale funnel status`.
+To turn it off: `... funnel reset`.
+
+Tip: rename the Mac in the [Tailscale admin console](https://login.tailscale.com/admin/machines)
+(e.g. to `elfie`) before step 2 for a friendlier link.
+
+## 6. Keep the Mac awake
+
+- **iMac / Mac mini / Mac Studio:** System Settings → Energy → turn on
+  **Prevent automatic sleeping when the display is off**.
+- **MacBook:** keep it plugged in, then System Settings → Battery → Options → turn on
+  **Prevent automatic sleeping on power adapter when the display is off**. Closing
+  the lid still puts it to sleep unless an external display is connected.
+
+After a restart, someone has to sign in to the Mac for Docker Desktop (and Elfie) to start.
+
 ---
 
-## 5. Reverse proxy notes
+## Everyday use
 
-If you put the app behind your NAS reverse proxy (nginx, Traefik, Caddy):
+Run these from `~/elfie/selfhost`.
 
-- **Websockets must pass through.** Live updates between family members use a
-  websocket connection to the backend. Without `Upgrade`/`Connection: upgrade`
-  headers, changes only appear after a page refresh.
-- Serve over HTTPS. Google sign-in requires it, and it keeps sessions working.
-- Everything under `/` must fall back to `index.html` (already handled inside the
-  container's nginx config).
+| To... | Run |
+| --- | --- |
+| Stop Elfie | `docker compose down` |
+| Start it again | `docker compose up -d` |
+| Update after pulling new code | `git pull` then `docker compose up -d --build` |
+| Back up now | `./backup.sh` (saves to `selfhost/backups/`, keeps the newest 30) |
+| Reset someone's password | `./set-password.sh their@email.com 'new password'` |
+| See what's running | `docker compose ps` |
 
-A commented example of proxying the backend on the same origin is at the bottom of
-`nginx.conf`.
+**Never run `docker compose down -v`** unless you mean to delete all the data.
 
----
+**Back up automatically.** Run `crontab -e` and add this line for a backup every night
+at 3am (adjust the folder if you put the code somewhere else):
 
-## 6. Backups
-
-Your gifts live in Postgres, not in this repo. Schedule a dump:
-
-```bash
-pg_dump "$DATABASE_URL" > /volume1/backups/elfie-$(date +%F).sql
+```
+0 3 * * * PATH=/usr/local/bin:/opt/homebrew/bin:$HOME/.docker/bin:/usr/bin:/bin $HOME/elfie/selfhost/backup.sh
 ```
 
-Keep a few weeks of them. Restoring is `psql "$DATABASE_URL" -f <file>.sql`.
+Backups only help if they're somewhere else too: copy `selfhost/backups/` to your NAS
+now and then, or let Time Machine pick it up. To recover on a fresh install: steps
+1–3, then `./restore.sh backups/<file>`.
 
----
+**Stop strangers signing up.** Your link is public, so anyone who finds it could create
+an account (they would only see an empty household of their own). Once everyone has
+signed up, set `DISABLE_SIGNUP=true` in `selfhost/.env` and run `docker compose up -d`.
+Set it back to `false` to let someone new join.
+
+## Optional: Google sign-in
+
+Email and password needs no setup. To bring back "Continue with Google":
+
+1. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials),
+   create an OAuth client (type: Web application) with
+   - authorized JavaScript origin: your link, e.g. `https://your-mac.tail1234.ts.net`
+   - authorized redirect URI: your link + `/auth/v1/callback`
+2. In `selfhost/.env` set `SITE_URL` to your link, `GOOGLE_ENABLED=true`, and fill in
+   `GOOGLE_CLIENT_ID` and `GOOGLE_SECRET`.
+3. `docker compose up -d`
+
+Existing Google accounts keep working: Google identifies people the same way
+regardless of which OAuth client is used.
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
+| Symptom | Likely cause / fix |
 | --- | --- |
-| Blank page, console errors about `undefined` URL | `.env` missing or app built before it was filled in |
-| Sign-in redirects to the wrong address | Site URL / redirect URLs not updated to your NAS domain |
-| "Unsupported provider" | Google provider not enabled in the auth service |
-| Changes only show after refresh | Websockets blocked by the reverse proxy |
-| Refreshing a sub-page gives 404 | Static server isn't falling back to `index.html` |
+| `docker: command not found` | Docker Desktop isn't running. Open it and wait for it to say it's running. |
+| `./restore.sh` says the database already has data | It only loads into an empty install. To start over: `docker compose down -v` (deletes everything), then run it again. |
+| The page loads but everything shows errors | You ran `docker compose up` without restoring. Run `./restore.sh` with your export. |
+| Everything says "invalid key" or 401 after re-running setup | The app was built with the old key. Run `docker compose up -d --build`. |
+| The Tailscale link doesn't open | New links take up to 10 minutes. Check `... funnel status` and that the Mac is awake. |
+| Works on the Mac but not on phones | Use the Tailscale link, not `localhost`, on other devices. |
+| Someone forgot their password | `./set-password.sh` (there's no mail server, so "reset by email" isn't available). |
+| A service keeps restarting | `docker compose logs <service>` (app, db, auth, rest or realtime) shows why. |
+
+---
+
+## Other ways to host
+
+- **Hosted Supabase + just the app at home:** create a project at supabase.com, restore
+  the export there (Lovable's guide covers it), put its URL and publishable key in the
+  repo-root `.env` (see `.env.example`), and run `docker compose up -d --build` in the
+  repo root. Free Supabase projects pause after about a week without use.
+- **A NAS or Linux server:** the `selfhost/` setup runs anywhere Docker Compose does.
+
+## How it works (for the curious)
+
+`selfhost/docker-compose.yml` is trimmed from Supabase's official self-hosting setup
+(image versions as of October 2026): Postgres 17, auth, the REST API and realtime.
+Storage, edge functions, analytics, the connection pooler and the dashboard are left
+out because Elfie doesn't use them. The app's nginx (`selfhost/nginx.conf`) also routes
+`/auth/v1`, `/rest/v1` and `/realtime/v1` to those services, so the app and its backend
+share one address. The app is built with `VITE_SUPABASE_URL` empty, which makes it talk
+to whatever address it was opened from (`src/integrations/supabase/client.ts`).
+
+`restore.sh` loads the export's whole `public` schema (tables, data, functions,
+policies, triggers, realtime settings) and merges user accounts column by column, so
+small Supabase version differences don't matter. Note that `supabase/migrations/` in
+this repo is **not** a complete description of the database: Lovable changed the live
+schema without committing migrations (for example, the `givers`, `gift_givers` and
+`gift_templates` tables). The export is the source of truth.

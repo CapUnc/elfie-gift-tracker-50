@@ -1,0 +1,198 @@
+# Elfie, fully self-hosted: the app plus the parts of Supabase it uses.
+#
+# Run everything from this folder (see SELF-HOSTING.md in the repo root):
+#   ./setup.sh                      first time only: creates .env with fresh secrets
+#   docker compose up -d --build    start (or update after pulling new code)
+#   docker compose down             stop; your data is kept
+#
+# NEVER run `docker compose down -v` unless you mean to delete all data.
+#
+# Trimmed from Supabase's official docker/docker-compose.yml: only the database,
+# auth, REST API and realtime services are kept, and the app's nginx stands in
+# for the API gateway, so everything is reached through a single port.
+
+name: elfie
+
+services:
+  app:
+    build:
+      context: ..
+      args:
+        # Empty on purpose: the app talks to the backend on whatever address it
+        # was opened from (http://localhost:8085, your Tailscale address, ...).
+        VITE_SUPABASE_URL: ""
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+        VITE_SUPABASE_PROJECT_ID: self-hosted
+    image: elfie-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8085}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - auth
+      - rest
+      - realtime
+
+  db:
+    image: supabase/postgres:17.6.1.136
+    restart: unless-stopped
+    volumes:
+      - ./db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:ro
+      - ./db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+      - ./db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
+      - db-data:/var/lib/postgresql/data
+      - db-config:/etc/postgresql-custom
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: 5432
+      POSTGRES_PORT: 5432
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: postgres
+      POSTGRES_DB: postgres
+      JWT_EXP: ${JWT_EXPIRY:-3600}
+    command:
+      [
+        "postgres",
+        "-c",
+        "config_file=/etc/postgresql/postgresql.conf",
+        "-c",
+        "log_min_messages=fatal"
+      ]
+
+  auth:
+    image: supabase/gotrue:v2.197.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${SITE_URL:-http://localhost:8085}/auth/v1
+
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:8085}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_ISSUER: ${SITE_URL:-http://localhost:8085}/auth/v1
+
+      # Email + password, confirmed straight away (there is no mail server).
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+
+      # Google sign-in (optional, see SELF-HOSTING.md). Needs SITE_URL set to your
+      # public https address and these values filled in .env.
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ENABLED:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${SITE_URL:-http://localhost:8085}/auth/v1/callback
+
+  rest:
+    image: postgrest/postgrest:v14.18
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "postgrest", "--ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+    command: ["postgrest"]
+
+  realtime:
+    image: supabase/realtime:v2.143.3
+    restart: unless-stopped
+    networks:
+      default:
+        # Realtime picks its tenant from the first part of the hostname it is
+        # reached on, so this exact name matters (it matches SEED_SELF_HOST).
+        aliases:
+          - realtime-dev.supabase-realtime
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sSfL --head -o /dev/null -H \"Authorization: Bearer ${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health"
+        ]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 10s
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+      DISABLE_HEALTHCHECK_LOGGING: "true"
+
+  # Database toolbox used by restore.sh, backup.sh and set-password.sh.
+  # Not started by `docker compose up`.
+  pgtools:
+    image: postgres:17-alpine
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: supabase_admin
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: postgres
+    volumes:
+      - ./db:/scripts:ro
+      - ./backups:/backups
+
+volumes:
+  db-data:
+  db-config:

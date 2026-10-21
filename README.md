@@ -488,17 +488,20 @@ This project is built on Lovable and can be deployed with one click:
 ### Custom Domain
 Connect a custom domain via Project → Settings → Domains. Requires a paid Lovable plan.
 
-### Self-hosting (NAS, home server, any Docker host)
+### Self-hosting (your own Mac, NAS or any Docker host)
 
-See **[SELF-HOSTING.md](./SELF-HOSTING.md)** for the full walkthrough. In short:
+See **[SELF-HOSTING.md](./SELF-HOSTING.md)** for the full walkthrough. `selfhost/`
+runs the app together with the parts of Supabase it uses (Postgres, auth, REST,
+realtime) behind a single port:
 
 ```bash
-cp .env.example .env     # point at your own backend
-docker compose up -d --build   # serves the app on port 8085
+cd selfhost
+./setup.sh                          # once: generates secrets into selfhost/.env
+./restore.sh <lovable-export-file>  # loads your Lovable Cloud data and starts everything
 ```
 
-The repo ships a `Dockerfile` (Node build → nginx serve) and an `nginx.conf` with
-SPA routing, cache headers, and a commented websocket-aware backend proxy.
+Other households reach it through Tailscale Funnel. The repo-root `docker-compose.yml`
+still serves just the app against an externally hosted Supabase project.
 
 ## Authentication
 
@@ -512,7 +515,8 @@ Two sign-in methods are available on the sign-in screen:
 ## Environment Variables
 
 Build-time values, inlined by Vite (rebuild after changing them):
-- `VITE_SUPABASE_URL` - backend URL
+- `VITE_SUPABASE_URL` - backend URL (left empty by `selfhost/`, meaning "the same
+  address the app is served from")
 - `VITE_SUPABASE_PUBLISHABLE_KEY` - publishable/anon key (safe in the browser)
 - `VITE_SUPABASE_PROJECT_ID` - project ID
 
