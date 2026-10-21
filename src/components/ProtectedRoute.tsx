@@ -16,6 +16,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
 
   useEffect(() => {
+    // Set once this run is superseded (deps changed or unmount). A check still
+    // awaiting Supabase was decided on stale auth/household values, so it must
+    // not navigate.
+    let cancelled = false;
+
     const checkBuyerAndRedirect = async () => {
       // Wait for auth to finish loading
       if (authLoading) return;
@@ -38,6 +43,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           .select('id')
           .eq('profile_id', user.id)
           .maybeSingle();
+        if (cancelled) return;
 
         if (giver) {
           // Setup complete, redirect to main app
@@ -55,6 +61,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       .select('id')
       .eq('id', user.id)
       .maybeSingle();
+    if (cancelled) return;
 
     if (profileError || !profile) {
       // User authenticated but has no profile - send to welcome to create one
@@ -75,6 +82,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         .select('id')
         .eq('profile_id', user.id)
         .maybeSingle();
+      if (cancelled) return;
 
       if (!giver) {
         // Has household but no giver - send to welcome to fix
@@ -86,6 +94,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     };
 
     checkBuyerAndRedirect();
+    return () => {
+      cancelled = true;
+    };
   }, [user, authLoading, householdId, householdLoading, navigate, location.pathname]);
 
   if (authLoading || householdLoading) {

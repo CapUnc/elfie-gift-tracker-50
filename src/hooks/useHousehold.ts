@@ -5,14 +5,18 @@ import { useToast } from '@/hooks/use-toast';
 export const useHousehold = (userId: string | undefined) => {
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialFetchDone, setInitialFetchDone] = useState(false);
+  // The userId householdId was fetched for. When userId changes (e.g. auth
+  // resolving on a cold load) there is one render before the effect below sets
+  // loading=true; this keeps loading true in that render too, so callers never
+  // see the previous (signed-out) result as if it were final.
+  const [fetchedForUserId, setFetchedForUserId] = useState<string | undefined>();
   const { toast } = useToast();
 
   const fetchHousehold = async () => {
     if (!userId) {
       setHouseholdId(null);
       setLoading(false);
-      setInitialFetchDone(true);
+      setFetchedForUserId(userId);
       return;
     }
 
@@ -27,7 +31,6 @@ export const useHousehold = (userId: string | undefined) => {
       if (profileError) throw profileError;
 
       setHouseholdId(profile?.household_id || null);
-      setInitialFetchDone(true);
     } catch (err) {
       console.error('Error fetching household:', err);
       toast({
@@ -35,15 +38,14 @@ export const useHousehold = (userId: string | undefined) => {
         description: 'Please try again later',
         variant: 'destructive',
       });
-      setInitialFetchDone(true);
     } finally {
+      setFetchedForUserId(userId);
       setLoading(false);
     }
   };
 
   useEffect(() => {
     setLoading(true);
-    setInitialFetchDone(false);
     fetchHousehold();
   }, [userId]);
 
@@ -52,5 +54,5 @@ export const useHousehold = (userId: string | undefined) => {
     await fetchHousehold();
   };
 
-  return { householdId, loading, refetch };
+  return { householdId, loading: loading || fetchedForUserId !== userId, refetch };
 };
