@@ -14,6 +14,7 @@ import { z } from 'zod';
 const displayNameSchema = z.string().trim().min(1, 'Display name is required').max(100, 'Display name must be less than 100 characters');
 
 import { emojiOptions } from '@/lib/constants';
+import { ensureOwnGiver } from '@/lib/givers';
 
 export const Welcome = () => {
   const [step, setStep] = useState<'choice' | 'create' | 'join'>('choice');
@@ -101,14 +102,9 @@ export const Welcome = () => {
         .update({ name: householdValidation.data })
         .eq('id', householdId);
 
-      // Delete old giver record AFTER household creation succeeds (if any)
-      await supabase
-        .from('givers')
-        .delete()
-        .eq('profile_id', user.id);
-
-      // Note: giver record will be created automatically by the create_giver_for_profile trigger
-      // which fires when the profile is updated with a household_id by the RPC function above
+      // Keep (or recreate) this person's giver, with the emoji they picked. The old code
+      // deleted the giver the database had just created, sending people back here forever.
+      await ensureOwnGiver(user.id, householdId, validation.data, selectedEmoji);
 
       toast({
         title: 'Household created!',

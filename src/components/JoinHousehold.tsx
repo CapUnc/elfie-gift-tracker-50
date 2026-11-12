@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
 import { emojiOptions } from '@/lib/constants';
+import { ensureOwnGiver } from '@/lib/givers';
 
 export const JoinHousehold: React.FC = () => {
   const [step, setStep] = useState<'code' | 'emoji'>('code');
@@ -34,7 +35,7 @@ export const JoinHousehold: React.FC = () => {
         .from('profiles')
         .select('household_id, display_name')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (currentProfile?.household_id) {
         // The warning is shown in the UI already (AlertTriangle banner).
@@ -57,6 +58,14 @@ export const JoinHousehold: React.FC = () => {
           .from('givers')
           .delete()
           .eq('profile_id', user.id);
+      }
+
+      if (!currentProfile) {
+        // Brand-new account: join_household_by_code only updates an existing profile.
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({ id: user.id, email: user.email ?? '' });
+        if (profileError) throw profileError;
       }
 
       const { data: newHouseholdId, error } = await supabase.rpc('join_household_by_code', {
@@ -96,9 +105,14 @@ export const JoinHousehold: React.FC = () => {
 
     setLoading(true);
     try {
-      // Note: giver record will be created automatically by the create_giver_for_profile trigger
-      // which fires when the profile is updated with a household_id by the join_household_by_code RPC
-      // The giver should already exist at this point, so we don't need to create it manually
+      // Joining only moves the profile; nothing in the database creates the giver for it.
+      const name = displayName.trim();
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ display_name: name })
+        .eq('id', user.id);
+      if (profileError) throw profileError;
+      await ensureOwnGiver(user.id, householdId, name, selectedEmoji);
 
       toast({
         title: 'Joined household!',

@@ -52,19 +52,20 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     // For all other routes, check if profile exists
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, household_id')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profileError || !profile) {
       // User authenticated but has no profile - send to welcome to create one
-      console.error('Profile error:', profileError);
+      if (profileError) console.error('Profile error:', profileError);
       navigate('/welcome');
       return;
     }
 
-    // Ensure both household and buyer exist
-    if (!householdId) {
+    // Ensure both household and buyer exist. Use the profile just fetched: the hook's
+    // householdId can be stale right after setup or while a page is first loading.
+    if (!profile.household_id) {
       navigate('/welcome');
       return;
     }
