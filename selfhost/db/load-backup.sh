@@ -49,6 +49,20 @@ step "Restoring tables, data, functions and security rules"
 # public schema first, then triggers on auth tables (they call public functions).
 grep -E '^[0-9]+; [0-9]+ [0-9]+ [A-Z][A-Z ]* public ' /tmp/toc.txt > /tmp/restore.list || true
 grep -E '^[0-9]+; [0-9]+ [0-9]+ TRIGGER auth ' /tmp/toc.txt >> /tmp/restore.list || true
+
+# Lovable's grants also name roles of its own (e.g. sandbox_exec), in the same
+# statements as the grants for anon/authenticated. A missing role would roll the
+# whole statement back, so create any missing ones first, without login rights.
+pg_restore -f - -L /tmp/restore.list "$F" \
+  | grep -E '^(GRANT|REVOKE|ALTER DEFAULT PRIVILEGES|ALTER .* OWNER TO) ' \
+  | grep -oE ' (TO|FROM|ROLE) "?[A-Za-z_][A-Za-z0-9_]*"?' | awk '{print $2}' | tr -d '"' \
+  | grep -viE '^public$' | sort -u > /tmp/roles.txt || true
+while read -r role; do
+  if [ -z "$(psql -tAc "select 1 from pg_roles where rolname = '$role'")" ]; then
+    psql -q -c "create role \"$role\" nologin"
+  fi
+done < /tmp/roles.txt
+
 pg_restore -d postgres -L /tmp/restore.list "$F" 2>>"$LOG" || true
 
 step "Finishing up"

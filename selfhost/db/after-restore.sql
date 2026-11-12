@@ -27,3 +27,8 @@ select table_name::text,
               query_to_xml(format('select count(*) as c from public.%I', table_name), false, true, '')))[1]::text::bigint
   from information_schema.tables
  where table_schema = 'public' and table_type = 'BASE TABLE';
+
+\echo 'These accounts only ever used "Continue with Google", so they have no password yet.'
+\echo 'Give each one with: ./set-password.sh <email> ''<new password>'''
+select email as "needs a password" from auth.users
+ where coalesce(encrypted_password, '') = '' order by email;
